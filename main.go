@@ -4,8 +4,17 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"strings"
 )
+
+// NetFlowHeader defines a structure which stores NetFlow's Header
+type NetFlowHeader struct {
+	version   uint16
+	count     uint16
+	sysUpTime uint32
+	unixSec   uint32
+	seq       uint32
+	sourceid  uint32
+}
 
 func main() {
 	conn, err := net.ListenUDP("udp", &net.UDPAddr{
@@ -36,8 +45,8 @@ func main() {
 		// 	// Shut down the connection.
 		// 	c.Close()
 		// }(conn)
-		data := strings.TrimSpace(string(message[:rlen]))
-		fmt.Printf("received %d bytes (%s) from %s\n", rlen, data, remote)
+		// data := strings.TrimSpace(string(message[:rlen]))
+		fmt.Printf("received %d bytes from %s\n", rlen, remote)
 	}
 
 }
