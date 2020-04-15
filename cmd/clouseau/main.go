@@ -90,7 +90,7 @@ func unmarshalIPFIXHeader(data []byte, len int) (*IPFIXHeader, error) {
 
 func main() {
 	conn, err := net.ListenUDP("udp", &net.UDPAddr{
-		Port: 2055,
+		Port: 4739,
 		IP:   net.ParseIP("0.0.0.0"),
 	})
 
