@@ -26,7 +26,7 @@ type IPFIXHeader struct {
 
 func (h IPFIXHeader) String() string {
 
-	timestamp := time.Unix(int64(h.ExportTimestamp))
+	timestamp := time.Unix(int64(h.ExportTimestamp), 0)
 	return fmt.Sprintf("v%v; message length %v; exported at %v; seq %v; domain %v; setid %v; set length %v", h.Version, h.MessageLength, timestamp, h.SequenceNumber, h.ObservationDomainID, h.SetID, h.SetLength)
 }
 
@@ -103,7 +103,7 @@ func main() {
 	fmt.Printf("Server listening %s\n", conn.LocalAddr().String())
 
 	for {
-		buf := make([]byte, 20+8*1024)
+		buf := make([]byte, IPFIXHeaderLength+8192)
 		buflen, remote, err := conn.ReadFromUDP(buf[:])
 		header, err := unmarshalIPFIXHeader(buf, buflen)
 		if err != nil {
