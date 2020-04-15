@@ -12,4 +12,10 @@
 *.out
 
 # Ignore compiled code
-clouseau
+cmd/clouseau/clouseau
+
+# Please output directory
+plz-out
+
+# Some please-generated script
+pleasew
