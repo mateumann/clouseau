@@ -8,15 +8,15 @@ go_binary(
     visibility = ['PUBLIC'],
 )
 
-go_library(
-    name = 'clouseau',
-    srcs = ['pkg/'],
-    #deps = [
-    #    '//proto:kitten',
-    #    '//third_party/go:grpc',
-    #],
-    visibility = ['//go/...'],
-)
+#go_library(
+#    name = 'clouseau',
+#    srcs = ['pkg/'],
+#    #deps = [
+#    #    '//proto:kitten',
+#    #    '//third_party/go:grpc',
+#    #],
+#    visibility = ['//go/...'],
+#)
 
 # A go_test is similar to a go_binary in that it builds a self-contained
 # executable, but it's typically run through 'plz test' to run all its
