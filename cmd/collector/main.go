@@ -1,41 +1,22 @@
 package main
 
 import (
-	"bytes"
-	"encoding/binary"
-	"errors"
-	"fmt"
-	"log"
-	"net"
-	"time"
+    "bytes"
+    "encoding/binary"
+    "errors"
+    "fmt"
+    "log"
+    "net"
+
+    "encoding/ipfix"
 )
 
-const IPFIXHeaderLength int = 20
-
-// IPFIXHeader defines a structure which stores IPFIX's Header
-type IPFIXHeader struct {
-	Version             uint16
-	MessageLength       uint16
-	ExportTimestamp     uint32
-	SequenceNumber      uint32
-	ObservationDomainID uint32
-	SetID               uint16
-	SetLength           uint16
-	Payload             []byte
-}
-
-func (h IPFIXHeader) String() string {
-
-	timestamp := time.Unix(int64(h.ExportTimestamp), 0)
-	return fmt.Sprintf("v%v; message length %v; exported at %v; seq %v; domain %v; setid %v; set length %v", h.Version, h.MessageLength, timestamp, h.SequenceNumber, h.ObservationDomainID, h.SetID, h.SetLength)
-}
-
-func unmarshalIPFIXHeader(data []byte, len int) (*IPFIXHeader, error) {
-	if len < IPFIXHeaderLength {
-		return nil, errors.New("Not enough data to unmarshal IPFIX Header")
+func unmarshalIPFIXHeader(data []byte, len int) (*adding.IPFIXHeader, error) {
+	if len < adding.IPFIXHeaderLength {
+		return nil, errors.New("not enough data to unmarshal IPFIX Header")
 	}
 
-	var header IPFIXHeader
+	var header adding.IPFIXHeader
 
 	reader := bytes.NewReader(data)
 
@@ -44,12 +25,12 @@ func unmarshalIPFIXHeader(data []byte, len int) (*IPFIXHeader, error) {
 		return nil, err
 	}
 
-	err = binary.Read(reader, binary.BigEndian, &header.MessageLength)
+	err = binary.Read(reader, binary.BigEndian, &header.Length)
 	if err != nil {
 		return nil, err
 	}
 
-	err = binary.Read(reader, binary.BigEndian, &header.ExportTimestamp)
+	err = binary.Read(reader, binary.BigEndian, &header.ExportTime)
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +55,7 @@ func unmarshalIPFIXHeader(data []byte, len int) (*IPFIXHeader, error) {
 		return nil, err
 	}
 
-	bytesToRead := len - IPFIXHeaderLength
+	bytesToRead := len - adding.IPFIXHeaderLength
 
 	payload := make([]byte, bytesToRead)
 
@@ -103,7 +84,7 @@ func main() {
 	fmt.Printf("Server listening %s\n", conn.LocalAddr().String())
 
 	for {
-		buf := make([]byte, IPFIXHeaderLength+8192)
+		buf := make([]byte, adding.IPFIXHeaderLength+8192)
 		buflen, remote, err := conn.ReadFromUDP(buf[:])
 		header, err := unmarshalIPFIXHeader(buf, buflen)
 		if err != nil {
