@@ -6,7 +6,7 @@ import (
 )
 
 // IPFIXHeader defines a structure which stores a IPFIX Header
-type IPFIXHeader struct {
+type _IPFIXHeader struct {
 	Version             uint16
 	Length              uint16
 	ExportTime          uint32
@@ -18,7 +18,7 @@ type IPFIXHeader struct {
 }
 
 // IPFIXHeaderLength is a IPFIX Header's length
-const IPFIXHeaderLength int = 20
+const _IPFIXHeaderLength int = 20
 
 func (h IPFIXHeader) String() string {
     timestamp := time.Unix(int64(h.ExportTime), 0)
