@@ -5,7 +5,7 @@ import (
     "encoding/binary"
 )
 
-//Unmarshal stream of bytes into an empty interface, based somehow on JSON's Unmarshal
+// Unmarshal stream of bytes into a IPFIX Message.
 func Unmarshal(in []byte, out *Message) error {
     reader := bytes.NewReader(in)
 
@@ -14,6 +14,14 @@ func Unmarshal(in []byte, out *Message) error {
         return err
     }
 
+    var sh SetHeader
+    for bytesRead := headerLength; bytesRead < out.Header.Length; {
+        err = binary.Read(reader, binary.BigEndian, &sh)
+        out.Sets = append(out.Sets, sh)
+        placeholder := make([]uint8, sh.Length - 4)
+        binary.Read(reader, binary.BigEndian, &placeholder)
+        bytesRead += sh.Length
+    }
     return nil
 }
 

@@ -5,7 +5,7 @@ import (
     "time"
 )
 
-// A Message represents a IPFIX Message.  It consists of a single Message Header and multiple Sets
+// A Message represents a IPFIX Message.  It consists of a single Message Header and multiple Sets.
 // https://www.ietf.org/rfc/rfc7011.html#section-3
 type Message struct {
     Header Header
@@ -25,8 +25,23 @@ type Header struct {
 // A Set represents any of three IPFIX sets: Data Set, Template Set or Options Template Set
 type Set interface{}
 
-//
+// TODO
 func (h Header) String() string {
     timestamp := time.Unix(int64(h.ExportTime), 0)
     return fmt.Sprintf("IPFIX Message Header (%v) [domain %v; seq %v; exported at %v]", h.VersionNumber, h.ObservationDomainID, h.SequenceNumber, timestamp.Format("15:04:05"))
 }
+
+// A SetHeader represents a IPFIX Set Header
+// https://www.ietf.org/rfc/rfc7011.html#section-3.3.2
+type SetHeader struct {
+    SetID  uint16
+    Length uint16
+}
+
+// TODO
+func (h SetHeader) String() string {
+    return fmt.Sprintf("IPFIX Set Header #%v (%d bytes)", h.SetID, h.Length)
+}
+
+// A headerLength defines the length of a IPFIX Message Header.
+const headerLength uint16 = 16

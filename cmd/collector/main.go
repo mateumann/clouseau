@@ -21,15 +21,18 @@ func main() {
 
     fmt.Printf("Server listening %s\n", conn.LocalAddr().String())
 
-    var message ipfix.Message
     for {
         buf := make([]byte, 8*1024)
         bufferLen, remote, err := conn.ReadFromUDP(buf[:])
+        var message ipfix.Message
         err = ipfix.Unmarshal(buf, &message)
         if err != nil {
             log.Fatal(err)
         }
-        fmt.Printf("%s from %s (%d bytes)\n", message.Header, remote.IP, bufferLen)
+        fmt.Printf("%s from %s (%d bytes, %d sets)\n", message.Header, remote.IP, bufferLen, len(message.Sets))
+        for i, v := range message.Sets {
+            fmt.Printf(" #%01d %s\n", i, v)
+        }
     }
 
 }
