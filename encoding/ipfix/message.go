@@ -46,7 +46,7 @@ type Header struct {
 
 // A Set represents any of three IPFIX sets: Data Set, Template Set or Options Template Set
 type Set interface {
-    Type() int8
+    Type() SetType
 }
 
 // Stringer implementation for IPFIX Header
