@@ -17,13 +17,21 @@ func Unmarshal(in []byte, out *Message) error {
     var sh SetHeader
     for bytesRead := headerLength; bytesRead < out.Header.Length; {
         err = binary.Read(reader, binary.BigEndian, &sh)
+        if err != nil {
+            return err
+        }
         out.Sets = append(out.Sets, sh)
-        placeholder := make([]uint8, sh.Length - 4)
-        binary.Read(reader, binary.BigEndian, &placeholder)
+        placeholder := make([]uint8, sh.Length - setHeaderLength)
+        err = binary.Read(reader, binary.BigEndian, &placeholder)
+        if err != nil {
+            return err
+        }
         bytesRead += sh.Length
     }
     return nil
 }
+
+//func unmarshal
 
 //
 //func Unmarshal(data []byte, v interface{}) error {

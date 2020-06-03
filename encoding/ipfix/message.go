@@ -5,6 +5,28 @@ import (
     "time"
 )
 
+type SetType int8
+
+const (
+    DataSet SetType = iota
+    TemplateSet
+    OptionsTemplateSet
+    UnknownSet SetType = -128
+)
+
+func (t SetType) String() string {
+    switch t {
+    case DataSet:
+        return "Data Set"
+    case TemplateSet:
+        return "Template Set"
+    case OptionsTemplateSet:
+        return "Options Template Set"
+    default:
+        return "Unknown Set"
+    }
+}
+
 // A Message represents a IPFIX Message.  It consists of a single Message Header and multiple Sets.
 // https://www.ietf.org/rfc/rfc7011.html#section-3
 type Message struct {
@@ -23,12 +45,15 @@ type Header struct {
 }
 
 // A Set represents any of three IPFIX sets: Data Set, Template Set or Options Template Set
-type Set interface{}
+type Set interface {
+    Type() int8
+}
 
-// TODO
+// Stringer implementation for IPFIX Header
 func (h Header) String() string {
     timestamp := time.Unix(int64(h.ExportTime), 0)
-    return fmt.Sprintf("IPFIX Message Header (%v) [domain %v; seq %v; exported at %v]", h.VersionNumber, h.ObservationDomainID, h.SequenceNumber, timestamp.Format("15:04:05"))
+    return fmt.Sprintf("IPFIX Message Header (%v) [domain %v; seq %v; exported at %v]",
+        h.VersionNumber, h.ObservationDomainID, h.SequenceNumber, timestamp.Format("15:04:05"))
 }
 
 // A SetHeader represents a IPFIX Set Header
@@ -38,10 +63,29 @@ type SetHeader struct {
     Length uint16
 }
 
-// TODO
+// Stringer implementation for IPFIX SetHeader
 func (h SetHeader) String() string {
-    return fmt.Sprintf("IPFIX Set Header #%v (%d bytes)", h.SetID, h.Length)
+    return fmt.Sprintf("IPFIX Set Header (%s)", h.Type())
+}
+
+func (h SetHeader) Type() SetType {
+    switch {
+    case h.SetID == 2:
+        return TemplateSet
+    case h.SetID == 3:
+        return OptionsTemplateSet
+    case h.SetID >= 256:
+        return DataSet
+    default:
+        return UnknownSet
+    }
+}
+
+type TemplateRecord struct {
 }
 
 // A headerLength defines the length of a IPFIX Message Header.
 const headerLength uint16 = 16
+
+// A setHeaderLength defines the length of a IPFIX Set Header.
+const setHeaderLength uint16 = 4

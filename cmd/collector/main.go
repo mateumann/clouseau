@@ -29,7 +29,7 @@ func main() {
         if err != nil {
             log.Fatal(err)
         }
-        fmt.Printf("%s from %s (%d bytes, %d sets)\n", message.Header, remote.IP, bufferLen, len(message.Sets))
+        fmt.Printf("%s from %s (%d byte(s), %d set(s))\n", message.Header, remote.IP, bufferLen, len(message.Sets))
         for i, v := range message.Sets {
             fmt.Printf(" #%01d %s\n", i, v)
         }
