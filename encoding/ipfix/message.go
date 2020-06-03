@@ -25,7 +25,8 @@ type Header struct {
 // A Set represents any of three IPFIX sets: Data Set, Template Set or Options Template Set
 type Set interface{}
 
-func (h *Header) String() string {
+//
+func (h Header) String() string {
     timestamp := time.Unix(int64(h.ExportTime), 0)
-    return fmt.Sprintf("IPFIX Message Header (%v) [len=%v; exported at %v; seq %v; domain %v", h.VersionNumber, h.Length, timestamp, h.SequenceNumber, h.ObservationDomainID)
+    return fmt.Sprintf("IPFIX Message Header (%v) [domain %v; seq %v; exported at %v]", h.VersionNumber, h.ObservationDomainID, h.SequenceNumber, timestamp.Format("15:04:05"))
 }

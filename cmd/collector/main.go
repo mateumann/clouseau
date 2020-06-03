@@ -29,7 +29,7 @@ func main() {
         if err != nil {
             log.Fatal(err)
         }
-        fmt.Printf("received %d bytes from %s; header %v\n", bufferLen, remote, message.Header)
+        fmt.Printf("%s from %s (%d bytes)\n", message.Header, remote.IP, bufferLen)
     }
 
 }
