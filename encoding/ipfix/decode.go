@@ -6,27 +6,15 @@ import (
 )
 
 //Unmarshal stream of bytes into an empty interface, based somehow on JSON's Unmarshal
-func Unmarshal(data []byte, v interface{}) error {
-    reader := bytes.NewReader(data)
+func Unmarshal(in []byte, out *Message) error {
+    reader := bytes.NewReader(in)
 
-    err := binary.Read(reader, binary.BigEndian, &v)
+    err := binary.Read(reader, binary.BigEndian, &out.Header)
     if err != nil {
         return err
     }
 
-    err = binary.Read(reader, binary.BigEndian, &v)
-    //
-    //    err := binary.Read(reader, binary.BigEndian, &header.Version)
-    //    if err != nil {
-    //        return nil, err
-    //    }
-    //
-    //    err = binary.Read(reader, binary.BigEndian, &header.Length)
-    //    if err != nil {
-    //        return nil, err
-    //    }
-    //
-
+    return nil
 }
 
 //

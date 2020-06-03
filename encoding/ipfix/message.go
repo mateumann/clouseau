@@ -1,5 +1,17 @@
 package ipfix
 
+import (
+    "fmt"
+    "time"
+)
+
+// A Message represents a IPFIX Message.  It consists of a single Message Header and multiple Sets
+// https://www.ietf.org/rfc/rfc7011.html#section-3
+type Message struct {
+    Header Header
+    Sets   []Set
+}
+
 // A Header represents a IPFIX header.
 // see https://tools.ietf.org/html/rfc7011#section-3.1
 type Header struct {
@@ -10,67 +22,10 @@ type Header struct {
     ObservationDomainID uint32
 }
 
-// HeaderLength is a IPFIX header's length
-const HeaderLength int = 2 + 2 + 4 + 4 + 4
+// A Set represents any of three IPFIX sets: Data Set, Template Set or Options Template Set
+type Set interface{}
 
-// A FieldSpecifier
-// https://tools.ietf.org/html/rfc7011#section-3.2
-type FieldSpecifier struct {
-    InformationElementIdentifier uint16 // the very first bit is an Enterprise bit (E)
-    FieldLength                  uint16
-    EnterpriseNumber             *uint32 // may or may not be empty
-}
-
-// A FieldValue represents
-// https://tools.ietf.org/html/rfc7011#section-3.4.3
-type FieldValue struct {
-    Anything uint16 // not really a uint16
-}
-
-// A TemplateRecordHeader represents IPFIX Template Record's header.
-// https://www.ietf.org/rfc/rfc7011.html#section-3.4.1
-type TemplateRecordHeader struct {
-    TemplateID uint16 // > 255
-    FieldCount uint16
-}
-
-// A TemplateRecord represents IPFIX Template Record.
-// https://www.ietf.org/rfc/rfc7011.html#section-3.4.1
-type TemplateRecord struct {
-    Header          TemplateRecordHeader
-    FieldSpecifiers []FieldSpecifier
-}
-
-// A OptionsTemplateRecordHeader represents IPFIX Options Template Record's header.
-// https://www.ietf.org/rfc/rfc7011.html#section-3.4.2
-type OptionsTemplateRecordHeader struct {
-    TemplateID      uint16 // > 255
-    FieldCount      uint16
-    ScopeFieldCount uint16
-}
-
-// A OptionsTemplateRecord represents IPFIX Options Template Record.
-// https://www.ietf.org/rfc/rfc7011.html#section-3.4.2
-type OptionsTemplateRecord struct {
-    Header          OptionsTemplateRecordHeader
-    FieldSpecifiers []FieldSpecifier
-}
-
-// A DataRecord represents IPFIX Data Record.
-// https://www.ietf.org/rfc/rfc7011.html#section-3.4.3
-type DataRecord struct {
-    FieldValues []FieldValue
-}
-
-// A SetHeader represents a IPFIX Set's header.
-// https://www.ietf.org/rfc/rfc7011.html#section-3.3.2
-type SetHeader struct {
-    SetID  uint16
-    Length uint16
-}
-
-// A Set represents a IPFIX set.
-// It can be any of these three possible types: Data Set, Template Set, or Options Template Set.
-type Set interface {
-    SetHeader()
+func (h *Header) String() string {
+    timestamp := time.Unix(int64(h.ExportTime), 0)
+    return fmt.Sprintf("IPFIX Message Header (%v) [len=%v; exported at %v; seq %v; domain %v", h.VersionNumber, h.Length, timestamp, h.SequenceNumber, h.ObservationDomainID)
 }

@@ -1,37 +1,35 @@
 package main
 
 import (
-    "bytes"
-    "encoding/binary"
-    "errors"
     "fmt"
-    "github.com/mateumann/clouseau/pkg/adding"
+    "github.com/mateumann/clouseau/encoding/ipfix"
     "log"
     "net"
 )
 
 func main() {
-	conn, err := net.ListenUDP("udp", &net.UDPAddr{
-		Port: 4739,
-		IP:   net.ParseIP("0.0.0.0"),
-	})
+    conn, err := net.ListenUDP("udp", &net.UDPAddr{
+        Port: 4739,
+        IP:   net.ParseIP("0.0.0.0"),
+    })
 
-	if err != nil {
-		log.Fatal(err)
-	}
+    if err != nil {
+        log.Fatal(err)
+    }
 
-	defer conn.Close()
+    defer conn.Close()
 
-	fmt.Printf("Server listening %s\n", conn.LocalAddr().String())
+    fmt.Printf("Server listening %s\n", conn.LocalAddr().String())
 
-	for {
-		buf := make([]byte, adding.IPFIXHeaderLength+8192)
-		buflen, remote, err := conn.ReadFromUDP(buf[:])
-		header, err := unmarshalIPFIXHeader(buf, buflen)
-		if err != nil {
-			log.Fatal(err)
-		}
-		fmt.Printf("received %d bytes from %s; header %s; len(payload) %d\n", buflen, remote, header, len(header.Payload))
-	}
+    var message ipfix.Message
+    for {
+        buf := make([]byte, 8*1024)
+        bufferLen, remote, err := conn.ReadFromUDP(buf[:])
+        err = ipfix.Unmarshal(buf, &message)
+        if err != nil {
+            log.Fatal(err)
+        }
+        fmt.Printf("received %d bytes from %s; header %v\n", bufferLen, remote, message.Header)
+    }
 
 }
