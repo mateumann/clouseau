@@ -13,16 +13,14 @@ import (
 func Unmarshal(in []byte, out *Message) error {
     reader := bytes.NewReader(in)
 
-    err := binary.Read(reader, binary.BigEndian, &out.Header)
-    if err != nil {
+    if err := binary.Read(reader, binary.BigEndian, &out.Header); err != nil {
         return err
     }
 
     var setHeader SetHeader
     for bytesRead := headerLength; bytesRead < out.Header.Length; {
         // Read Set by Set starting with SetHeader
-        err = binary.Read(reader, binary.BigEndian, &setHeader)
-        if err != nil {
+        if err := binary.Read(reader, binary.BigEndian, &setHeader); err != nil {
             return err
         }
         switch setHeader.Type() {
@@ -41,44 +39,44 @@ func Unmarshal(in []byte, out *Message) error {
             //var dataRecord DataRecord
         default:
         }
+        //bytesRead += setHeader.Length
     }
     return nil
 }
 
-// TODO: implement as some kind of super-method that would automagically allow for
-//       binary.Read(reader, binary.BinEndian, &aTemplateSet)
+// TODO: implement as some kind of super-method that would “automagically” allow for
+//       things like binary.Read(reader, binary.BinEndian, &aTemplateSet)
 func readTemplateSet(reader *bytes.Reader, out *TemplateSet) (error, uint16) {
     var bytesRead uint16
-    err := binary.Read(reader, binary.BigEndian, &out.Header)
-    if err != nil {
+    if err := binary.Read(reader, binary.BigEndian, &out.Header); err != nil {
         return err, 0
     }
 
     for bytesRead = setHeaderLength; bytesRead < out.Header.Length; {
         var templateRecord TemplateRecord
-        err = binary.Read(reader, binary.BigEndian, &templateRecord.TemplateID)
-        if err != nil {
-            return err, 0
+        if err := binary.Read(reader, binary.BigEndian, &templateRecord.Header); err != nil {
+            return err, bytesRead
         }
-        bytesRead += 2
-        err = binary.Read(reader, binary.BigEndian, &templateRecord.FieldCount)
-        if err != nil {
-            return err, 0
-        }
-        bytesRead += 2
         bytesRead += templateRecordHeaderLength
-        for i := uint16(0); i < templateRecord.FieldCount; i++ {
-            var fieldSpecifier FieldSpecifier
-            err = binary.Read(reader, binary.BigEndian, &fieldSpecifier)
-            if err != nil {
-                return err, 0
+        for i := uint16(0); i < templateRecord.Header.FieldCount; i++ {
+            var fieldSpecifier = FieldSpecifier{0, 0, 0}
+            if err := binary.Read(reader, binary.BigEndian, &fieldSpecifier.InformationElementID); err != nil {
+                return err, bytesRead
+            }
+            if err := binary.Read(reader, binary.BigEndian, &fieldSpecifier.FieldLength); err != nil {
+                return err, bytesRead + 2
+            }
+            if fieldSpecifier.E() {
+                if err := binary.Read(reader, binary.BigEndian, &fieldSpecifier.EnterpriseNumber); err != nil {
+                    return err, bytesRead + 4
+                }
             }
             templateRecord.FieldSpecifiers = append(templateRecord.FieldSpecifiers, fieldSpecifier)
-            bytesRead += fieldSpecifierLength
+            bytesRead += fieldSpecifier.Size()
         }
         out.Records = append(out.Records, templateRecord)
     }
     return nil, bytesRead
 }
 
-func readDataRecord(reader *bytes.Reader, out *DataSetType)
+//func readDataRecord(reader *bytes.Reader, out *DataSetType)

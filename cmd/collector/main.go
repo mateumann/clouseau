@@ -24,9 +24,11 @@ func main() {
     for {
         buf := make([]byte, 8*1024)
         bufferLen, remote, err := conn.ReadFromUDP(buf[:])
-        var message ipfix.Message
-        err = ipfix.Unmarshal(buf, &message)
         if err != nil {
+            log.Fatal(err)
+        }
+        var message ipfix.Message
+        if err := ipfix.Unmarshal(buf, &message); err != nil {
             log.Fatal(err)
         }
         fmt.Printf("%s from %s (%d byte(s), %d set(s))\n", message.Header, remote.IP, bufferLen, len(message.Sets))

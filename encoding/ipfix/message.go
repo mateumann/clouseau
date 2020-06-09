@@ -112,13 +112,20 @@ func (s FieldSpecifier) E() bool {
     return s.InformationElementID>>15 == 1
 }
 
-// A fieldSpecifierLength defines the length of a IPFIX Field Specifier.
-const fieldSpecifierLength uint16 = 8
+// Returns a size of a FieldSpecifier.  This depends on Enterprise bit being set (or not).
+func (s FieldSpecifier) Size() uint16 {
+    switch s.E() {
+    case true:
+        return 8
+    default:
+        return 4
+    }
+}
 
 // A TemplateSetType represents a IPFIX Template Set.  It consists of a SetHeader and number of TemplateRecords.
 // https://www.ietf.org/rfc/rfc7011.html#section-3.4.1
 type TemplateSet struct {
-    Header SetHeader
+    Header  SetHeader
     Records []TemplateRecord
 }
 
@@ -133,8 +140,7 @@ const templateRecordHeaderLength uint16 = 4
 // A TemplateRecord represents a IPFIX Template Record.
 // https://www.ietf.org/rfc/rfc7011.html#section-3.4.1
 type TemplateRecord struct {
-    TemplateID      uint16
-    FieldCount      uint16
+    Header          TemplateRecordHeader
     FieldSpecifiers []FieldSpecifier
 }
 
