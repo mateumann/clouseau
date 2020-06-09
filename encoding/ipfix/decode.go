@@ -26,17 +26,23 @@ func Unmarshal(in []byte, out *Message) error {
         switch setHeader.Type() {
         case TemplateSetType:
             var templateSet TemplateSet
-            err, templateSetBytesRead := readTemplateSet(reader, &templateSet)
+            err, setBytesRead := readTemplateSet(reader, &templateSet)
             if err != nil {
                 return err
             }
             out.Sets = append(out.Sets, templateSet)
-            bytesRead += templateSetBytesRead
+            bytesRead += setBytesRead
         case OptionsTemplateSetType:
             //var optionsTemplateRecord OptionsTemplateRecord
             //TODO
         case DataSetType:
-            //var dataRecord DataRecord
+            var dataSet DataSet
+            err, setBytesRead := readDataSet(reader, &dataSet)
+            if err != nil {
+                return err
+            }
+            out.Sets = append(out.Sets, dataSet)
+            bytesRead += setBytesRead
         default:
         }
         //bytesRead += setHeader.Length
@@ -48,11 +54,11 @@ func Unmarshal(in []byte, out *Message) error {
 //       things like binary.Read(reader, binary.BinEndian, &aTemplateSet)
 func readTemplateSet(reader *bytes.Reader, out *TemplateSet) (error, uint16) {
     var bytesRead uint16
-    if err := binary.Read(reader, binary.BigEndian, &out.Header); err != nil {
+    if err := binary.Read(reader, binary.BigEndian, &out.SetHeader); err != nil {
         return err, 0
     }
 
-    for bytesRead = setHeaderLength; bytesRead < out.Header.Length; {
+    for bytesRead = setHeaderLength; bytesRead < out.SetHeader.Length; {
         var templateRecord TemplateRecord
         if err := binary.Read(reader, binary.BigEndian, &templateRecord.Header); err != nil {
             return err, bytesRead
@@ -79,4 +85,7 @@ func readTemplateSet(reader *bytes.Reader, out *TemplateSet) (error, uint16) {
     return nil, bytesRead
 }
 
-//func readDataRecord(reader *bytes.Reader, out *DataSetType)
+func readDataSet(reader *bytes.Reader, out *DataSet) (error, uint16) {
+    // TODO
+    return nil, 0
+}

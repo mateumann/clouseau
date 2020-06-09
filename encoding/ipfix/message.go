@@ -93,7 +93,9 @@ func (h SetHeader) Type() SetType {
 // A Set represents any of three IPFIX sets: Data Set, Template Set or Options Template Set.
 type Set interface {
     Type() SetType
+    Header() SetHeader
 }
+
 
 // A FieldSpecifier represents a IPFIX field specification.
 // https://www.ietf.org/rfc/rfc7011.html#section-3.2
@@ -122,11 +124,19 @@ func (s FieldSpecifier) Size() uint16 {
     }
 }
 
-// A TemplateSetType represents a IPFIX Template Set.  It consists of a SetHeader and number of TemplateRecords.
+// A TemplateSet type represents a IPFIX Template Set.  It consists of a SetHeader and number of TemplateRecords.
 // https://www.ietf.org/rfc/rfc7011.html#section-3.4.1
 type TemplateSet struct {
-    Header  SetHeader
-    Records []TemplateRecord
+    SetHeader SetHeader
+    Records   []TemplateRecord
+}
+
+func (s TemplateSet) Type() SetType {
+    return TemplateSetType
+}
+
+func (s TemplateSet) Header() SetHeader {
+    return s.SetHeader
 }
 
 type TemplateRecordHeader struct {
@@ -144,8 +154,24 @@ type TemplateRecord struct {
     FieldSpecifiers []FieldSpecifier
 }
 
-func (r TemplateSet) Type() SetType {
-    return TemplateSetType
+// A DataSet type represents a IPFIX Data Set.  It consists of a SetHeader and number of DataRecords.
+// https://tools.ietf.org/html/rfc7011#section-3.4.3
+type DataSet struct {
+    SetHeader SetHeader
+    Records   []DataRecord
+}
+
+func (s DataSet) Type() SetType {
+    return DataSetType
+}
+
+func (s DataSet) Header() SetHeader {
+    return s.SetHeader
+}
+
+type DataRecordHeader struct {
+    TemplateID uint16
+    FieldCount uint16
 }
 
 // A DataRecord represents a single portion of data transmitted in IPFIX Data Sets.
