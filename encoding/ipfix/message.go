@@ -96,34 +96,6 @@ type Set interface {
     Header() SetHeader
 }
 
-
-// A FieldSpecifier represents a IPFIX field specification.
-// https://www.ietf.org/rfc/rfc7011.html#section-3.2
-// https://www.iana.org/assignments/ipfix/ipfix.xhtml
-type FieldSpecifier struct {
-    InformationElementID uint16
-    FieldLength          uint16
-    EnterpriseNumber     uint32
-}
-
-// Returns an Enterprise bit.  This is the first bit of the FieldSpecifier.  If this bit is zero, the Information
-// Element identifier identifies an Information Element in [IANA-IPFIX], and the four-octet Enterprise Number field
-// MUST NOT be present.  If this bit is one, the Information Element identifier identifies an enterprise-specific
-// Information Element, and the Enterprise Number field MUST be present.
-func (s FieldSpecifier) E() bool {
-    return s.InformationElementID>>15 == 1
-}
-
-// Returns a size of a FieldSpecifier.  This depends on Enterprise bit being set (or not).
-func (s FieldSpecifier) Size() uint16 {
-    switch s.E() {
-    case true:
-        return 8
-    default:
-        return 4
-    }
-}
-
 // A TemplateSet type represents a IPFIX Template Set.  It consists of a SetHeader and number of TemplateRecords.
 // https://www.ietf.org/rfc/rfc7011.html#section-3.4.1
 type TemplateSet struct {
@@ -169,16 +141,10 @@ func (s DataSet) Header() SetHeader {
     return s.SetHeader
 }
 
-type DataRecordHeader struct {
-    TemplateID uint16
-    FieldCount uint16
-}
-
 // A DataRecord represents a single portion of data transmitted in IPFIX Data Sets.
 // https://www.ietf.org/rfc/rfc7011.html#section-3.4.3
 //   * TemplateID defines a TemplateRecord used to parse data
 type DataRecord struct {
-    TemplateID  uint16
     FieldValues []FieldValue
 }
 

@@ -3,6 +3,8 @@ package ipfix
 import (
     "bytes"
     "encoding/binary"
+    "errors"
+    "fmt"
 )
 
 // TODO: what about padding (less bytes in data structures than declared message size)?
@@ -10,7 +12,7 @@ import (
 // Unmarshal stream of bytes into a IPFIX Message.
 // A single Message consists of a Message Header and a number of Sets.
 // https://www.ietf.org/rfc/rfc7011.html#section-3
-func Unmarshal(in []byte, out *Message) error {
+func Unmarshal(in []byte, templates *[]TemplateRecord, out *Message) error {
     reader := bytes.NewReader(in)
 
     if err := binary.Read(reader, binary.BigEndian, &out.Header); err != nil {
@@ -26,18 +28,19 @@ func Unmarshal(in []byte, out *Message) error {
         switch setHeader.Type() {
         case TemplateSetType:
             var templateSet TemplateSet
-            err, setBytesRead := readTemplateSet(reader, &templateSet)
+            setBytesRead, err := readTemplateSet(reader, &templateSet)
             if err != nil {
                 return err
             }
             out.Sets = append(out.Sets, templateSet)
+            *templates = append(*templates, templateSet.Records...)
             bytesRead += setBytesRead
         case OptionsTemplateSetType:
             //var optionsTemplateRecord OptionsTemplateRecord
             //TODO
         case DataSetType:
             var dataSet DataSet
-            err, setBytesRead := readDataSet(reader, &dataSet)
+            setBytesRead, err := readDataSet(reader, *templates, setHeader, &dataSet)
             if err != nil {
                 return err
             }
@@ -45,36 +48,37 @@ func Unmarshal(in []byte, out *Message) error {
             bytesRead += setBytesRead
         default:
         }
-        //bytesRead += setHeader.Length
+        // TODO there is (could be) some issue with padding, maybe not always bytesRead would be equeal to setBytesRead
+        //      but rather setHeader.Length ???
     }
     return nil
 }
 
 // TODO: implement as some kind of super-method that would “automagically” allow for
 //       things like binary.Read(reader, binary.BinEndian, &aTemplateSet)
-func readTemplateSet(reader *bytes.Reader, out *TemplateSet) (error, uint16) {
+func readTemplateSet(reader *bytes.Reader, out *TemplateSet) (uint16, error) {
     var bytesRead uint16
     if err := binary.Read(reader, binary.BigEndian, &out.SetHeader); err != nil {
-        return err, 0
+        return 0, err
     }
 
     for bytesRead = setHeaderLength; bytesRead < out.SetHeader.Length; {
         var templateRecord TemplateRecord
         if err := binary.Read(reader, binary.BigEndian, &templateRecord.Header); err != nil {
-            return err, bytesRead
+            return bytesRead, err
         }
         bytesRead += templateRecordHeaderLength
         for i := uint16(0); i < templateRecord.Header.FieldCount; i++ {
             var fieldSpecifier = FieldSpecifier{0, 0, 0}
-            if err := binary.Read(reader, binary.BigEndian, &fieldSpecifier.InformationElementID); err != nil {
-                return err, bytesRead
+            if err := binary.Read(reader, binary.BigEndian, &fieldSpecifier.ElementID); err != nil {
+                return bytesRead, err
             }
             if err := binary.Read(reader, binary.BigEndian, &fieldSpecifier.FieldLength); err != nil {
-                return err, bytesRead + 2
+                return bytesRead + 2, err
             }
             if fieldSpecifier.E() {
                 if err := binary.Read(reader, binary.BigEndian, &fieldSpecifier.EnterpriseNumber); err != nil {
-                    return err, bytesRead + 4
+                    return bytesRead + 4, err
                 }
             }
             templateRecord.FieldSpecifiers = append(templateRecord.FieldSpecifiers, fieldSpecifier)
@@ -82,10 +86,50 @@ func readTemplateSet(reader *bytes.Reader, out *TemplateSet) (error, uint16) {
         }
         out.Records = append(out.Records, templateRecord)
     }
-    return nil, bytesRead
+    return bytesRead, nil
 }
 
-func readDataSet(reader *bytes.Reader, out *DataSet) (error, uint16) {
-    // TODO
-    return nil, 0
+func readDataSet(reader *bytes.Reader, templates []TemplateRecord, setHeader SetHeader, out *DataSet) (uint16, error) {
+    var bytesRead uint16
+    template, err := getTemplate(templates, setHeader)
+    if err != nil {
+        return 0, err
+    }
+    for _, fieldSpecifier := range template.FieldSpecifiers {
+        switch fieldSpecifier.ElementID {
+
+        }
+    }
+
+    //if err := binary.Read(reader, binary.BigEndian, &out.SetHeader); err != nil {
+    //    return err, 0
+    //}
+    //bytesRead += templateRecordHeaderLength
+    //for i := uint16(0); i < templateRecord.Header.FieldCount; i++ {
+    //    var fieldSpecifier = FieldSpecifier{0, 0, 0}
+    //    if err := binary.Read(reader, binary.BigEndian, &fieldSpecifier.ElementID); err != nil {
+    //        return err, bytesRead
+    //    }
+    //    if err := binary.Read(reader, binary.BigEndian, &fieldSpecifier.FieldLength); err != nil {
+    //        return err, bytesRead + 2
+    //    }
+    //    if fieldSpecifier.E() {
+    //        if err := binary.Read(reader, binary.BigEndian, &fieldSpecifier.EnterpriseNumber); err != nil {
+    //            return err, bytesRead + 4
+    //        }
+    //    }
+    //    templateRecord.FieldSpecifiers = append(templateRecord.FieldSpecifiers, fieldSpecifier)
+    //    bytesRead += fieldSpecifier.Size()
+    //}
+    //out.Records = append(out.Records, templateRecord)
+    return bytesRead, nil
+}
+
+func getTemplate(templates []TemplateRecord, setHeader SetHeader) (*TemplateRecord, error) {
+    for _, template := range templates {
+        if setHeader.SetID == template.Header.TemplateID {
+            return &template, nil
+        }
+    }
+    return nil, errors.New(fmt.Sprintf("template %d not found", setHeader.SetID))
 }
