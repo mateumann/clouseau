@@ -41,12 +41,20 @@ func Unmarshal(in []byte, templates *[]TemplateRecord, out *Message) error {
         case DataSetType:
             var dataSet DataSet
             dataSet.SetHeader = setHeader
-            setBytesRead, err := readDataSet(reader, *templates, &dataSet)
-            if err != nil {
-                return err
+            // if templates are empty, there is nothing but reading dataSet.SetHeader.Length octets to be done
+            if templates == nil {
+                stream := make([]uint8, dataSet.SetHeader.Length)
+                if err := binary.Read(reader, binary.BigEndian, &stream); err != nil {
+                    return err
+                }
+            } else {
+                setBytesRead, err := readDataSet(reader, *templates, &dataSet)
+                if err != nil {
+                    return err
+                }
+                out.Sets = append(out.Sets, dataSet)
+                bytesRead += setBytesRead
             }
-            out.Sets = append(out.Sets, dataSet)
-            bytesRead += setBytesRead
         default:
         }
         // TODO there is (could be) some issue with padding, maybe not always bytesRead would be equeal to setBytesRead
