@@ -1,5 +1,10 @@
 package ipfix
 
+import (
+    "errors"
+    "fmt"
+)
+
 // Abstract data types of the IPFIX information model
 // https://tools.ietf.org/html/rfc7012#section-3.1
 // https://www.iana.org/assignments/ipfix/ipfix.xhtml#ipfix-information-element-data-types
@@ -42,8 +47,15 @@ type ElementSpecifier struct {
 // Element identifier identifies an Information Element in [IANA-IPFIX], and the four-octet Enterprise Number field
 // MUST NOT be present.  If this bit is one, the Information Element identifier identifies an enterprise-specific
 // Information Element, and the Enterprise Number field MUST be present.
-func (e ElementSpecifier) E() bool {
-    return e.ElementID>>15 == 1
+func (s ElementSpecifier) E() bool {
+    return s.ElementID>>15 == 1
+}
+
+func (s ElementSpecifier) String() string {
+    if s.E() {
+        return fmt.Sprintf("Element %d, Enterprise number %d", s.ElementID, s.EnterpriseNumber)
+    }
+    return fmt.Sprintf("Element %d", s.ElementID)
 }
 
 // A FieldSpecifier represents a IPFIX field specification.
@@ -63,6 +75,10 @@ func (s FieldSpecifier) E() bool {
     return s.ElementID>>15 == 1
 }
 
+func (s *FieldSpecifier) ElementSpec() ElementSpecifier {
+    return ElementSpecifier{s.ElementID, s.EnterpriseNumber}
+}
+
 // Returns a size of a FieldSpecifier.  This depends on Enterprise bit being set (or not).
 func (s FieldSpecifier) Size() uint16 {
     if s.E() {
@@ -72,8 +88,11 @@ func (s FieldSpecifier) Size() uint16 {
     }
 }
 
-func (s *FieldSpecifier) ElementSpec() ElementSpecifier {
-    return ElementSpecifier{s.ElementID, s.EnterpriseNumber}
+func (s FieldSpecifier) String() string {
+    if s.E() {
+        return fmt.Sprintf("Element %d, Enterprise number %d", s.ElementID, s.EnterpriseNumber)
+    }
+    return fmt.Sprintf("Element %d", s.ElementID)
 }
 
 type FieldDefinition struct {
@@ -143,6 +162,30 @@ func ipfixInformationElements() FieldModel {
         ElementSpecifier{226, 0}: FieldDefinition{IPv4Address, "postNATDestinationIPv4Address"},
         ElementSpecifier{227, 0}: FieldDefinition{Uint16, "postNAPTSourceTransportPort"},
         ElementSpecifier{228, 0}: FieldDefinition{Uint16, "postNAPTDestinationTransportPort"},
+    }
+}
+
+func InformationElement(s ElementSpecifier) (FieldDefinition, error) {
+    if fieldDefinition, ok := ipfixInformationElements()[s]; ok {
+        return fieldDefinition, nil
+    }
+    return FieldDefinition{Unknown, ""}, errors.New(fmt.Sprintf("IPFIX information element not found for %v", s))
+}
+
+func (s FieldSpecifier) InformationElement() (FieldDefinition, error) {
+    return InformationElement(ElementSpecifier{s.ElementID, s.EnterpriseNumber})
+}
+
+func (f FieldDefinition) NewPlaceholder() interface{} {
+    switch f.Type {
+    case Uint8: return new(uint8)
+    case Uint16: return new(uint16)
+    case Uint32: return new(uint32)
+    case Uint64: return new(uint64)
+    case IPv4Address: return new(uint32)
+    case IPv6Address: return new(uint64)
+    case MacAddress: return new([6]byte)
+    default: return nil
     }
 }
 

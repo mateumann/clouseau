@@ -40,7 +40,8 @@ func Unmarshal(in []byte, templates *[]TemplateRecord, out *Message) error {
             //TODO
         case DataSetType:
             var dataSet DataSet
-            setBytesRead, err := readDataSet(reader, *templates, setHeader, &dataSet)
+            dataSet.SetHeader = setHeader
+            setBytesRead, err := readDataSet(reader, *templates, &dataSet)
             if err != nil {
                 return err
             }
@@ -54,9 +55,9 @@ func Unmarshal(in []byte, templates *[]TemplateRecord, out *Message) error {
     return nil
 }
 
-// TODO: implement as some kind of super-method that would “automagically” allow for
-//       things like binary.Read(reader, binary.BinEndian, &aTemplateSet)
 func readTemplateSet(reader *bytes.Reader, out *TemplateSet) (uint16, error) {
+    // TODO: implement as some kind of super-method that would “automagically” allow for
+    //       things like binary.Read(reader, binary.BinEndian, &aTemplateSet)
     var bytesRead uint16
     if err := binary.Read(reader, binary.BigEndian, &out.SetHeader); err != nil {
         return 0, err
@@ -89,39 +90,24 @@ func readTemplateSet(reader *bytes.Reader, out *TemplateSet) (uint16, error) {
     return bytesRead, nil
 }
 
-func readDataSet(reader *bytes.Reader, templates []TemplateRecord, setHeader SetHeader, out *DataSet) (uint16, error) {
+func readDataSet(reader *bytes.Reader, templates []TemplateRecord, out *DataSet) (uint16, error) {
     var bytesRead uint16
-    template, err := getTemplate(templates, setHeader)
+    template, err := getTemplate(templates, out.SetHeader)
     if err != nil {
         return 0, err
     }
-    for _, fieldSpecifier := range template.FieldSpecifiers {
-        switch fieldSpecifier.ElementID {
-
+    for bytesRead = setHeaderLength; bytesRead < out.SetHeader.Length; {
+        var dataRecord DataRecord
+        for _, fieldSpecifier := range template.FieldSpecifiers {
+            value := ipfixInformationElements()[ElementSpecifier{fieldSpecifier.ElementID, fieldSpecifier.EnterpriseNumber}].NewPlaceholder()
+            if err := binary.Read(reader, binary.BigEndian, value); err != nil {
+                return bytesRead, err
+            }
+            dataRecord.FieldValues = append(dataRecord.FieldValues, value)
+            bytesRead += fieldSpecifier.FieldLength
         }
+        out.Records = append(out.Records, dataRecord)
     }
-
-    //if err := binary.Read(reader, binary.BigEndian, &out.SetHeader); err != nil {
-    //    return err, 0
-    //}
-    //bytesRead += templateRecordHeaderLength
-    //for i := uint16(0); i < templateRecord.Header.FieldCount; i++ {
-    //    var fieldSpecifier = FieldSpecifier{0, 0, 0}
-    //    if err := binary.Read(reader, binary.BigEndian, &fieldSpecifier.ElementID); err != nil {
-    //        return err, bytesRead
-    //    }
-    //    if err := binary.Read(reader, binary.BigEndian, &fieldSpecifier.FieldLength); err != nil {
-    //        return err, bytesRead + 2
-    //    }
-    //    if fieldSpecifier.E() {
-    //        if err := binary.Read(reader, binary.BigEndian, &fieldSpecifier.EnterpriseNumber); err != nil {
-    //            return err, bytesRead + 4
-    //        }
-    //    }
-    //    templateRecord.FieldSpecifiers = append(templateRecord.FieldSpecifiers, fieldSpecifier)
-    //    bytesRead += fieldSpecifier.Size()
-    //}
-    //out.Records = append(out.Records, templateRecord)
     return bytesRead, nil
 }
 

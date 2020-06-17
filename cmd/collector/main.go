@@ -21,6 +21,8 @@ func main() {
 
     fmt.Printf("Server listening %s\n", conn.LocalAddr().String())
 
+    var templates *[]ipfix.TemplateRecord
+
     for {
         buf := make([]byte, 8*1024)
         bufferLen, remote, err := conn.ReadFromUDP(buf[:])
@@ -28,7 +30,7 @@ func main() {
             log.Fatal(err)
         }
         var message ipfix.Message
-        if err := ipfix.Unmarshal(buf, &message); err != nil {
+        if err := ipfix.Unmarshal(buf, templates, &message); err != nil {
             log.Fatal(err)
         }
         fmt.Printf("%s from %s (%d byte(s), %d set(s))\n", message.Header, remote.IP, bufferLen, len(message.Sets))
