@@ -43,7 +43,7 @@ func Unmarshal(in []byte, templates *[]TemplateRecord, out *Message) error {
             dataSet.SetHeader = setHeader
             // if templates are empty, there is nothing but reading dataSet.SetHeader.Length octets to be done
             if templates == nil {
-                stream := make([]uint8, dataSet.SetHeader.Length)
+                stream := make([]uint8, dataSet.SetHeader.Length - setHeaderLength)
                 if err := binary.Read(reader, binary.BigEndian, &stream); err != nil {
                     return err
                 }
