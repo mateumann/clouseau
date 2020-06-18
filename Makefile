@@ -9,12 +9,17 @@ clean-bin:
 	rm -f collector
 
 .PHONY: fmt
-fmt:
-	gofmt -s -w cmd/collector/*.go
-	gofmt -s -w encoding/ipfix/*.go
-	goimports -w cmd/collector/*.go
-	goimports -w encoding/ipfix/*.go
+fmt: fmt-cmd fmt-ipfix
 
+.PHONY: fmt-cmd
+fmt-cmd:
+	gofmt -s -w cmd/collector/*.go
+	goimports -w cmd/collector/*.go
+
+.PHONY: fmt-ipfix
+fmt-ipfix:
+	gofmt -s -w encoding/ipfix/*.go
+	goimports -w encoding/ipfix/*.go
 
 .PHONY: lint
 lint:
