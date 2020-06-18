@@ -39,5 +39,4 @@ func main() {
 			fmt.Printf(" #%01d %s\n", i, v)
 		}
 	}
-
 }

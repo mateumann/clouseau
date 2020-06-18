@@ -1,7 +1,6 @@
 package ipfix
 
 import (
-	"errors"
 	"fmt"
 )
 
@@ -83,9 +82,8 @@ func (s *FieldSpecifier) ElementSpec() ElementSpecifier {
 func (s FieldSpecifier) Size() uint16 {
 	if s.E() {
 		return 8
-	} else {
-		return 4
 	}
+	return 4
 }
 
 func (s FieldSpecifier) String() string {
@@ -169,7 +167,7 @@ func InformationElement(s ElementSpecifier) (FieldDefinition, error) {
 	if fieldDefinition, ok := ipfixInformationElements()[s]; ok {
 		return fieldDefinition, nil
 	}
-	return FieldDefinition{Unknown, ""}, errors.New(fmt.Sprintf("IPFIX information element not found for %v", s))
+	return FieldDefinition{Unknown, ""}, fmt.Errorf("IPFIX information element not found for %v", s)
 }
 
 func (s FieldSpecifier) InformationElement() (FieldDefinition, error) {

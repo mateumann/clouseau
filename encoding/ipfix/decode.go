@@ -3,7 +3,6 @@ package ipfix
 import (
 	"bytes"
 	"encoding/binary"
-	"errors"
 	"fmt"
 )
 
@@ -106,13 +105,13 @@ func readDataSet(reader *bytes.Reader, templates []TemplateRecord, out *DataSet)
 	}
 	for bytesRead = setHeaderLength; bytesRead < out.SetHeader.Length; {
 		var dataRecord DataRecord
-		for _, fieldSpecifier := range template.FieldSpecifiers {
-			value := ipfixInformationElements()[ElementSpecifier{fieldSpecifier.ElementID, fieldSpecifier.EnterpriseNumber}].NewPlaceholder()
+		for _, s := range template.FieldSpecifiers {
+			value := ipfixInformationElements()[ElementSpecifier{s.ElementID, s.EnterpriseNumber}].NewPlaceholder()
 			if err := binary.Read(reader, binary.BigEndian, value); err != nil {
 				return bytesRead, err
 			}
 			dataRecord.FieldValues = append(dataRecord.FieldValues, value)
-			bytesRead += fieldSpecifier.FieldLength
+			bytesRead += s.FieldLength
 		}
 		out.Records = append(out.Records, dataRecord)
 	}
@@ -125,5 +124,5 @@ func getTemplate(templates []TemplateRecord, setHeader SetHeader) (*TemplateReco
 			return &template, nil
 		}
 	}
-	return nil, errors.New(fmt.Sprintf("template %d not found", setHeader.SetID))
+	return nil, fmt.Errorf("template %d not found", setHeader.SetID)
 }
