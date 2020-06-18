@@ -8,6 +8,26 @@ on:
 
 jobs:
 
+  golangci:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v1
+        with:
+          # Required: the version of golangci-lint is required and must be specified without patch version: we always use the latest patch version.
+          version: v1.26
+
+          # Optional: working directory, useful for monorepos
+          # working-directory: somedir
+
+          # Optional: golangci-lint command line arguments.
+          # args: --issues-exit-code=0
+
+          # Optional: show only new issues if it's a pull request. The default value is `false`.
+          # only-new-issues: true
+
   build:
     name: Build
     runs-on: ubuntu-latest
@@ -31,8 +51,8 @@ jobs:
         fi
 
     - name: Test
-      run: go test -v .
+      run: make test
 
     - name: Build
-      run: go build -v .
+      run: make build
 
