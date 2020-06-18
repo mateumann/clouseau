@@ -1,7 +1,6 @@
-[![<mateumann>](https://circleci.com/gh/mateumann/clouseau.svg?style=shield)](https://circleci.com/gh/mateumann/clouseau)
-
-
 # Clouseau
+
+[![<mateumann>](https://circleci.com/gh/mateumann/clouseau.svg?style=shield)](https://circleci.com/gh/mateumann/clouseau)
 
 Packet statistics collector (and analyser). The name is obviously inspired by famous Inspector Clouseau and his
 adventures.
