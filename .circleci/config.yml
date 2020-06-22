@@ -59,9 +59,9 @@ jobs:
   #    - codecov/upload:
   #        file: ${TEST_RESULTS}/coverage.html
 
-      - store_artifacts: # Upload test summary for display in Artifacts: https://circleci.com/docs/2.0/artifacts/
-          path: ${TEST_RESULTS}/coverage.html
-          destination: test-coverage-report.html
+#      - store_artifacts: # Upload test summary for display in Artifacts: https://circleci.com/docs/2.0/artifacts/
+#          path: ${TEST_RESULTS}/coverage.html
+#          destination: test-coverage-report.html
 
 
 #workflows:
