@@ -33,7 +33,7 @@ const (
 	BasicList
 	SubTemplateList
 	SubTemplateMultiList
-	Unknown
+	UnknownFieldType
 )
 
 // An ElementSpecifier identifies an IPFIX element
@@ -96,6 +96,13 @@ func (s FieldSpecifier) String() string {
 type FieldDefinition struct {
 	Type FieldType
 	Name string
+}
+
+func (d FieldDefinition) String() string {
+	if d.Type == UnknownFieldType {
+		return "Unknown Field"
+	}
+	return fmt.Sprintf("Field '%s'", d.Name)
 }
 
 type FieldModel map[ElementSpecifier]FieldDefinition
@@ -167,92 +174,9 @@ func InformationElement(s ElementSpecifier) (FieldDefinition, error) {
 	if fieldDefinition, ok := ipfixInformationElements()[s]; ok {
 		return fieldDefinition, nil
 	}
-	return FieldDefinition{Unknown, ""}, fmt.Errorf("IPFIX information element not found for %v", s)
+	return FieldDefinition{UnknownFieldType, ""}, fmt.Errorf("IPFIX information element not found for %v", s)
 }
 
 func (s FieldSpecifier) InformationElement() (FieldDefinition, error) {
 	return InformationElement(ElementSpecifier{s.ElementID, s.EnterpriseNumber})
 }
-
-/*
-import "reflect"
-
-// Abstract data types of the IPFIX information model
-// https://tools.ietf.org/html/rfc7012#section-3.1
-type FieldType uint16
-
-const (
-    OctetArray FieldType = iota
-    Uint8
-    Uint16
-    Uint32
-    Uint64
-    Int8
-    Int16
-    Int32
-    Int64
-    Float32
-    Float64
-    Boolean
-    MacAddress
-    String
-    DateTimeSeconds
-    DateTimeMilliseconds
-    DateTimeMicroseconds
-    DateTimeNanoseconds
-    IPv4Address
-    IPv6Address
-    BasicList
-    SubTemplateList
-    SubTemplateMultiList
-    Unknown
-)
-
-// ElementKey represents field specifier format ids
-type ElementKey struct {
-    ElementID    uint16
-    EnterpriseNo uint32
-}
-
-// InfoElementEntry represents standard name and
-// type for a field - RFC5102
-type InfoElementEntry struct {
-    FieldID uint16
-    Name    string
-    Type    FieldType
-}
-
-// IPFIX Information Elements
-// https://www.iana.org/assignments/ipfix/ipfix.xhtml
-type InformationElement struct {
-    ElementID uint16
-    Name                 string
-    Type                 reflect.Type
-}
-
-var IPFIXInformationElements = []InformationElement{
-    {1, "octetDeltaCount", reflect.TypeOf(reflect.Uint64)},
-    {2, "packetDeltaCount", reflect.Uint64},
-    {3, "deltaFlowCount", reflect.Uint64},
-    {4, "protocolIdentifier", reflect.Uint8},
-    {5, "ipClassOfService", reflect.Uint8},
-    {6, "tcpControlBits", reflect.Uint16},
-    {7, "sourceTransportPort", reflect.Uint16},
-    {8, "sourceIPv4Address", reflect.Uint32},
-    {9, "sourceIPv4PrefixLength", reflect.Uint8},
-    {10, "ingressInterface", reflect.Uint32},
-    {11, "destinationTransportPort", reflect.Uint16},
-    {12, "destinationIPv4Address", reflect.Uint32},
-    {13, "destinationIPv4PrefixLength", reflect.Uint8},
-    {14, "egressInterface", reflect.Uint32},
-    {15, "ipNextHopIPv4Address", reflect.Uint32},
-    {16, "bgpSourceAsNumber", reflect.Uint32},
-    {17, "bgpDestinationAsNumber", reflect.Uint32},
-    {18, "bgpNextHopIPv4Address", reflect.Uint32},
-    // there are many, let's focus on the ones used by MikroTik
-    {21, "flowEndSysUpTime", reflect.Uint32},
-    {22, "flowStartSysUpTime", reflect.Uint32},
-    {60, "ipVersion", reflect.Uint8},
-    {80, "destinationMacAddress", reflect.ArrayOf(6, reflect.Uint8)},
-}
-*/

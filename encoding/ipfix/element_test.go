@@ -191,3 +191,25 @@ func TestFieldSpecifier_Size(t *testing.T) {
 		})
 	}
 }
+
+func TestFieldSpecifier_InformationElement(t *testing.T) {
+	tests := []struct {
+		name string
+		arg  ElementSpecifier
+		want FieldDefinition
+		errMessage  string
+	}{
+		{
+			name: "Unknown Field Type",
+			arg:  ElementSpecifier{0, 0},
+			want: FieldDefinition{UnknownFieldType, ""},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got, _ := InformationElement(tt.arg); got != tt.want {
+				t.Errorf("InformationElement(%v) == %v, want %v", tt.arg, got, tt.want)
+			}
+		})
+	}
+}
