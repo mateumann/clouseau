@@ -74,7 +74,7 @@ func (s FieldSpecifier) E() bool {
 	return s.ElementID>>15 == 1
 }
 
-func (s *FieldSpecifier) ElementSpec() ElementSpecifier {
+func (s *FieldSpecifier) ElementSpecifier() ElementSpecifier {
 	return ElementSpecifier{s.ElementID, s.EnterpriseNumber}
 }
 
@@ -172,27 +172,6 @@ func InformationElement(s ElementSpecifier) (FieldDefinition, error) {
 
 func (s FieldSpecifier) InformationElement() (FieldDefinition, error) {
 	return InformationElement(ElementSpecifier{s.ElementID, s.EnterpriseNumber})
-}
-
-func (f FieldDefinition) NewPlaceholder() interface{} {
-	switch f.Type {
-	case Uint8:
-		return new(uint8)
-	case Uint16:
-		return new(uint16)
-	case Uint32:
-		return new(uint32)
-	case Uint64:
-		return new(uint64)
-	case IPv4Address:
-		return new(uint32)
-	case IPv6Address:
-		return new(uint64)
-	case MacAddress:
-		return new([6]byte)
-	default:
-		return nil
-	}
 }
 
 /*

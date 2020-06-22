@@ -3,7 +3,6 @@ package ipfix
 import (
 	"bytes"
 	"encoding/binary"
-	"fmt"
 )
 
 // TODO: what about padding (less bytes in data structures than declared message size)?
@@ -46,13 +45,13 @@ func Unmarshal(in []byte, templates *[]TemplateRecord, out *Message) error {
 				if err := binary.Read(reader, binary.BigEndian, &stream); err != nil {
 					return err
 				}
-			} else {
-				setBytesRead, err := readDataSet(reader, *templates, &dataSet)
-				if err != nil {
-					return err
-				}
-				out.Sets = append(out.Sets, dataSet)
-				bytesRead += setBytesRead
+				//} else {
+				//	setBytesRead, err := readDataSet(reader, *templates, &dataSet)
+				//	if err != nil {
+				//		return err
+				//	}
+				//	out.Sets = append(out.Sets, dataSet)
+				//	bytesRead += setBytesRead
 			}
 		default:
 		}
@@ -97,32 +96,32 @@ func readTemplateSet(reader *bytes.Reader, out *TemplateSet) (uint16, error) {
 	return bytesRead, nil
 }
 
-func readDataSet(reader *bytes.Reader, templates []TemplateRecord, out *DataSet) (uint16, error) {
-	var bytesRead uint16
-	template, err := getTemplate(templates, out.SetHeader)
-	if err != nil {
-		return 0, err
-	}
-	for bytesRead = setHeaderLength; bytesRead < out.SetHeader.Length; {
-		var dataRecord DataRecord
-		for _, s := range template.FieldSpecifiers {
-			value := ipfixInformationElements()[ElementSpecifier{s.ElementID, s.EnterpriseNumber}].NewPlaceholder()
-			if err := binary.Read(reader, binary.BigEndian, value); err != nil {
-				return bytesRead, err
-			}
-			dataRecord.FieldValues = append(dataRecord.FieldValues, value)
-			bytesRead += s.FieldLength
-		}
-		out.Records = append(out.Records, dataRecord)
-	}
-	return bytesRead, nil
-}
-
-func getTemplate(templates []TemplateRecord, setHeader SetHeader) (*TemplateRecord, error) {
-	for _, template := range templates {
-		if setHeader.SetID == template.Header.TemplateID {
-			return &template, nil
-		}
-	}
-	return nil, fmt.Errorf("template %d not found", setHeader.SetID)
-}
+//func readDataSet(reader *bytes.Reader, templates []TemplateRecord, out *DataSet) (uint16, error) {
+//	var bytesRead uint16
+//	template, err := getTemplate(templates, out.SetHeader)
+//	if err != nil {
+//		return 0, err
+//	}
+//	for bytesRead = setHeaderLength; bytesRead < out.SetHeader.Length; {
+//		var dataRecord DataRecord
+//		for _, s := range template.FieldSpecifiers {
+//			value := ipfixInformationElements()[ElementSpecifier{s.ElementID, s.EnterpriseNumber}].NewPlaceholder()
+//			if err := binary.Read(reader, binary.BigEndian, value); err != nil {
+//				return bytesRead, err
+//			}
+//			dataRecord.FieldValues = append(dataRecord.FieldValues, value)
+//			bytesRead += s.FieldLength
+//		}
+//		out.Records = append(out.Records, dataRecord)
+//	}
+//	return bytesRead, nil
+//}
+//
+//func getTemplate(templates []TemplateRecord, setHeader SetHeader) (*TemplateRecord, error) {
+//	for _, template := range templates {
+//		if setHeader.SetID == template.Header.TemplateID {
+//			return &template, nil
+//		}
+//	}
+//	return nil, fmt.Errorf("template %d not found", setHeader.SetID)
+//}
