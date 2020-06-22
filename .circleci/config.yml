@@ -41,9 +41,9 @@ jobs:
           name: Unit tests
           command: make test | tee ${TEST_RESULTS}/go-test.out
 
-      - run:
-          name: Store code coverage report
-          command: cp coverage.html ${TEST_RESULTS}/coverage.html
+#      - run:
+#          name: Store code coverage report
+#          command: cp coverage.html ${TEST_RESULTS}/coverage.html
 
       - run:
           name: Run linter
