@@ -13,6 +13,7 @@
 
 # Report created by the go coverage tool
 /coverage.html
+coverage.txt
 
 # Ignore compiled code
 /collector

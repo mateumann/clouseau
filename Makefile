@@ -31,12 +31,13 @@ test: make-tmp-dir test-ipfix create-coverage-report
 
 .PHONY: test-ipfix
 test-ipfix:
-	go test -cover -coverprofile=ipfix-c.out ./encoding/ipfix/
+	echo -n '' > ./encoding/ipfix/coverage.txt
+	go test -coverprofile=./encoding/ipfix/coverage.txt -covermode=atomic ./encoding/ipfix/
 
 .PHONY: create-coverage-report
 create-coverage-report:
-	go tool cover -html=ipfix-c.out -o coverage.html
-	rm *-c.out
+	cat encoding/ipfix/coverage.txt >> coverage.txt
+	rm encoding/ipfix/coverage.txt
 
 .PHONY: build
 build: build-collector

@@ -2,61 +2,67 @@
 #
 # Check https://circleci.com/docs/2.0/language-go/ for more details
 version: 2
+
+orbs:
+  codecov: codecov/codecov@1.0.2
+
+
 jobs:
-    build:
-        docker:
-            # specify the version
-            -   image: circleci/golang:1.14
+  build:
+    docker:
+      # specify the version
+      - image: circleci/golang:1.14
 
-            # Specify service dependencies here if necessary
-            # CircleCI maintains a library of pre-built images
-            # documented at https://circleci.com/docs/2.0/circleci-images/
-            # - image: circleci/postgres:9.4
+      # Specify service dependencies here if necessary
+      # CircleCI maintains a library of pre-built images
+      # documented at https://circleci.com/docs/2.0/circleci-images/
+      # - image: circleci/postgres:9.4
 
-        environment:
-        TEST_RESULTS: /tmp/test-results
+    environment:
+      TEST_RESULTS: /tmp/test-results
 
     working_directory: /go/src/github.com/mateumann/clouseau
 
     steps:
-        - checkout
-        -   restore_cache:
-                keys:
-                    - v1-pkg-cache
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-pkg-cache
 
-        -   run:
-                name: Install golangci-lint
-                command: |
-                    curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.27.0
-                    golangci-lint --version
+      - run:
+          name: Install golangci-lint
+          command: |
+            curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.27.0
+            golangci-lint --version
 
-        -   run: mkdir -p $TEST_RESULTS
+      - run: mkdir -p $TEST_RESULTS
 
-        -   run:
-                name: Unit tests
-                command: make test | tee ${TEST_RESULTS}/go-test.out
+      - run:
+          name: Unit tests
+          command: make test | tee ${TEST_RESULTS}/go-test.out
 
-        -   run:
-                name: Store code coverage report
-                command: cp coverage.html ${TEST_RESULTS}/coverage.html
+      - run:
+          name: Store code coverage report
+          command: cp coverage.html ${TEST_RESULTS}/coverage.html
 
-        -   run:
-                name: Run linter
-                command: make lint
+      - run:
+          name: Run linter
+          command: make lint
 
-        -   run: make build
+      - run: make build
 
-        -   save_cache: # Store cache in the /go/pkg directory
-                key: v1-pkg-cache
-                paths:
-                    - "/go/pkg"
+      - save_cache: # Store cache in the /go/pkg directory
+          key: v1-pkg-cache
+          paths:
+            - "/go/pkg"
+  #
+  #    - codecov/upload:
+  #        file: ${TEST_RESULTS}/coverage.html
 
-        #        -   store_artifacts: # Upload test summary for display in Artifacts: https://circleci.com/docs/2.0/artifacts/
-        #                path: /tmp/test-results
-        #                destination: raw-test-output
+      - store_artifacts: # Upload test summary for display in Artifacts: https://circleci.com/docs/2.0/artifacts/
+          path: ${TEST_RESULTS}/coverage.html
+          destination: test-coverage-report.html
 
-        -   store_test_results: # Upload test results for display in Test Summary: https://circleci.com/docs/2.0/collect-test-data/
-                path: $TEST_RESULTS
 
 #workflows:
 #    version: 2
