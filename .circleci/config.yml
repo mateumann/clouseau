@@ -39,7 +39,9 @@ jobs:
 
       - run:
           name: Unit tests
-          command: make test | tee ${TEST_RESULTS}/go-test.out
+          command: |
+            make test | tee ${TEST_RESULTS}/go-test.out
+            mv coverage.txt ${TEST_RESULTS}/coverage.txt
 
 #      - run:
 #          name: Store code coverage report
@@ -55,9 +57,9 @@ jobs:
           key: v1-pkg-cache
           paths:
             - "/go/pkg"
-  #
-  #    - codecov/upload:
-  #        file: ${TEST_RESULTS}/coverage.html
+
+      - codecov/upload:
+          file: ${TEST_RESULTS}/coverage.txt
 
 #      - store_artifacts: # Upload test summary for display in Artifacts: https://circleci.com/docs/2.0/artifacts/
 #          path: ${TEST_RESULTS}/coverage.html
