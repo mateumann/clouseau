@@ -4,7 +4,7 @@
 version: 2.1
 
 orbs:
-  codecov: codecov/codecov@1.0.2
+  codecov: codecov/codecov@1.1.0
 
 jobs:
   build:
@@ -59,6 +59,7 @@ jobs:
 
       - codecov/upload:
           file: ${TEST_RESULTS}/coverage.txt
+          token: ''
 
 #      - store_artifacts: # Upload test summary for display in Artifacts: https://circleci.com/docs/2.0/artifacts/
 #          path: ${TEST_RESULTS}/coverage.html
