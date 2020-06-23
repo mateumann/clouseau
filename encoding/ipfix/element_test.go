@@ -199,12 +199,87 @@ func TestFieldSpecifier_InformationElement(t *testing.T) {
 		want FieldDefinition
 		errMessage  string
 	}{
-		{
-			name: "Unknown Field Type",
-			arg:  ElementSpecifier{0, 0},
-			want: FieldDefinition{UnknownFieldType, ""},
-		},
-	}
+        {
+            name: "Unknown Field",
+            arg:  ElementSpecifier{0, 0},
+            want: FieldDefinition{UnknownFieldType, ""},
+        },
+        {
+            name: "octetDeltaCount Field",
+            arg:  ElementSpecifier{1, 0},
+            want: FieldDefinition{Uint64, "octetDeltaCount"},
+        },
+        {
+            name: "packetDeltaCount Field",
+            arg:  ElementSpecifier{2, 0},
+            want: FieldDefinition{Uint64, "packetDeltaCount"},
+        },
+        {
+            name: "deltaFlowCount Field",
+            arg:  ElementSpecifier{3, 0},
+            want: FieldDefinition{Uint64, "deltaFlowCount"},
+        },
+        {
+            name: "protocolIdentifier Field",
+            arg:  ElementSpecifier{4, 0},
+            want: FieldDefinition{Uint8, "protocolIdentifier"},
+        },
+        {
+            name: "ipClassOfService Field",
+            arg:  ElementSpecifier{5, 0},
+            want: FieldDefinition{Uint8, "ipClassOfService"},
+        },
+        {
+            name: "tcpControlBits Field",
+            arg:  ElementSpecifier{6, 0},
+            want: FieldDefinition{Uint16, "tcpControlBits"},
+        },
+        {
+            name: "sourceTransportPort Field",
+            arg:  ElementSpecifier{7, 0},
+            want: FieldDefinition{Uint16, "sourceTransportPort"},
+        },
+        {
+            name: "sourceIPv4Address Filed",
+            arg:  ElementSpecifier{8, 0},
+            want: FieldDefinition{IPv4Address, "sourceIPv4Address"},
+        },
+        {
+            name: "sourceIPv4PrefixLength Filed",
+            arg:  ElementSpecifier{9, 0},
+            want: FieldDefinition{Uint8, "sourceIPv4PrefixLength"},
+        },
+        {
+            name: "ingressInterface Filed",
+            arg:  ElementSpecifier{10, 0},
+            want: FieldDefinition{Uint32, "ingressInterface"},
+        },
+        {
+            name: "destinationTransportPort Filed",
+            arg:  ElementSpecifier{11, 0},
+            want: FieldDefinition{Uint16, "destinationTransportPort"},
+        },
+        {
+            name: "destinationIPv4Address Filed",
+            arg:  ElementSpecifier{12, 0},
+            want: FieldDefinition{IPv4Address, "destinationIPv4Address"},
+        },
+        {
+            name: "destinationIPv4PrefixLength Filed",
+            arg:  ElementSpecifier{13, 0},
+            want: FieldDefinition{Uint8, "destinationIPv4PrefixLength"},
+        },
+        {
+            name: "egressInterface Filed",
+            arg:  ElementSpecifier{14, 0},
+            want: FieldDefinition{Uint32, "egressInterface"},
+        },
+        {
+            name: "ipNextHopIPv4Address Filed",
+            arg:  ElementSpecifier{15, 0},
+            want: FieldDefinition{IPv4Address, "ipNextHopIPv4Address"},
+        },
+    }
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got, _ := InformationElement(tt.arg); got != tt.want {
