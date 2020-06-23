@@ -210,7 +210,6 @@ func TestTemplateSet_Header(t *testing.T) {
 	}
 }
 
-
 func TestDataSet_Type(t *testing.T) {
 	arg := DataSet{SetHeader{SetID: 2, Length: 22}, nil}
 	want := DataSetType
