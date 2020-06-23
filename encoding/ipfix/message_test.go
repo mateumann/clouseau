@@ -174,3 +174,38 @@ func TestSetHeader_String(t *testing.T) {
 	}
 }
 
+func TestTemplateSet_Type(t *testing.T) {
+	arg := TemplateSet{SetHeader{SetID: 2, Length: 22}, nil}
+	want := TemplateSetType
+	t.Run("Validate Template Set SetType()", func(t *testing.T) {
+		if got := arg.Type(); got != want {
+			t.Errorf("TemplateSet.Type() = %v, want %v", got, want)
+		}
+	})
+}
+
+func TestTemplateSet_Header(t *testing.T) {
+	tests := []struct {
+		name string
+		arg  TemplateSet
+		want SetHeader
+	}{
+		{
+			name: "Template Set with a Zero Set Header",
+			arg:  TemplateSet{SetHeader{0, 0}, nil},
+			want: SetHeader{0, 0},
+		},
+		{
+			name: "A valid Template Set (with proper SetHeader)",
+			arg:  TemplateSet{SetHeader{2, 0}, nil},
+			want: SetHeader{2, 0},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.arg.Header(); got != tt.want {
+				t.Errorf("TemplateSet.SetHeader() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
