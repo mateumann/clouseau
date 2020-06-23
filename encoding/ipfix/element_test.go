@@ -192,7 +192,7 @@ func TestFieldSpecifier_Size(t *testing.T) {
 	}
 }
 
-func TestFieldSpecifier_InformationElement(t *testing.T) {
+func TestElementSpecifier_InformationElement(t *testing.T) {
 	tests := []struct {
 		name       string
 		arg        ElementSpecifier
@@ -386,6 +386,138 @@ func TestFieldDefinition_String(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.arg.String(); got != tt.want {
 				t.Errorf("FieldDefinition.String() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestFieldSpecifier_InformationElement(t *testing.T) {
+	tests := []struct {
+		name       string
+		arg        FieldSpecifier
+		want       FieldDefinition
+		errMessage string
+	}{
+		{
+			name: "Unknown Field",
+			arg:  FieldSpecifier{0, 0, 0},
+			want: FieldDefinition{UnknownFieldType, ""},
+		},
+		{
+			name: "octetDeltaCount Field",
+			arg:  FieldSpecifier{1, 8, 0},
+			want: FieldDefinition{Uint64, "octetDeltaCount"},
+		},
+		{
+			name: "packetDeltaCount Field",
+			arg:  FieldSpecifier{2, 8, 0},
+			want: FieldDefinition{Uint64, "packetDeltaCount"},
+		},
+		{
+			name: "deltaFlowCount Field",
+			arg:  FieldSpecifier{3, 8, 0},
+			want: FieldDefinition{Uint64, "deltaFlowCount"},
+		},
+		{
+			name: "protocolIdentifier Field",
+			arg:  FieldSpecifier{4, 1, 0},
+			want: FieldDefinition{Uint8, "protocolIdentifier"},
+		},
+		{
+			name: "ipClassOfService Field",
+			arg:  FieldSpecifier{5, 1, 0},
+			want: FieldDefinition{Uint8, "ipClassOfService"},
+		},
+		{
+			name: "tcpControlBits Field",
+			arg:  FieldSpecifier{6, 2, 0},
+			want: FieldDefinition{Uint16, "tcpControlBits"},
+		},
+		{
+			name: "sourceTransportPort Field",
+			arg:  FieldSpecifier{7, 2, 0},
+			want: FieldDefinition{Uint16, "sourceTransportPort"},
+		},
+		{
+			name: "sourceIPv4Address Filed",
+			arg:  FieldSpecifier{8, 4, 0},
+			want: FieldDefinition{IPv4Address, "sourceIPv4Address"},
+		},
+		{
+			name: "sourceIPv4PrefixLength Filed",
+			arg:  FieldSpecifier{9, 1, 0},
+			want: FieldDefinition{Uint8, "sourceIPv4PrefixLength"},
+		},
+		{
+			name: "ingressInterface Filed",
+			arg:  FieldSpecifier{10, 4, 0},
+			want: FieldDefinition{Uint32, "ingressInterface"},
+		},
+		{
+			name: "destinationTransportPort Filed",
+			arg:  FieldSpecifier{11, 2, 0},
+			want: FieldDefinition{Uint16, "destinationTransportPort"},
+		},
+		{
+			name: "destinationIPv4Address Filed",
+			arg:  FieldSpecifier{12, 4, 0},
+			want: FieldDefinition{IPv4Address, "destinationIPv4Address"},
+		},
+		{
+			name: "destinationIPv4PrefixLength Filed",
+			arg:  FieldSpecifier{13, 1, 0},
+			want: FieldDefinition{Uint8, "destinationIPv4PrefixLength"},
+		},
+		{
+			name: "egressInterface Filed",
+			arg:  FieldSpecifier{14, 4, 0},
+			want: FieldDefinition{Uint32, "egressInterface"},
+		},
+		{
+			name: "ipNextHopIPv4Address Filed",
+			arg:  FieldSpecifier{15, 4, 0},
+			want: FieldDefinition{IPv4Address, "ipNextHopIPv4Address"},
+		},
+		{
+			name: "flowEndSysUpTime Filed",
+			arg:  FieldSpecifier{21, 4, 0},
+			want: FieldDefinition{Uint32, "flowEndSysUpTime"},
+		},
+		{
+			name: "flowStartSysUpTime Filed",
+			arg:  FieldSpecifier{22, 4, 0},
+			want: FieldDefinition{Uint32, "flowStartSysUpTime"},
+		},
+		{
+			name: "sourceMacAddress Filed",
+			arg:  FieldSpecifier{56, 6, 0},
+			want: FieldDefinition{MacAddress, "sourceMacAddress"},
+		},
+		{
+			name: "ipVersion Filed",
+			arg:  FieldSpecifier{60, 1, 0},
+			want: FieldDefinition{Uint8, "ipVersion"},
+		},
+		{
+			name: "ipNextHopIPv6Address Filed",
+			arg:  FieldSpecifier{62, 8, 0},
+			want: FieldDefinition{IPv6Address, "ipNextHopIPv6Address"},
+		},
+		{
+			name: "destinationMacAddress Filed",
+			arg:  FieldSpecifier{80, 6, 0},
+			want: FieldDefinition{MacAddress, "destinationMacAddress"},
+		},
+		{
+			name: "postSourceMacAddress Filed",
+			arg:  FieldSpecifier{81, 6, 0},
+			want: FieldDefinition{MacAddress, "postSourceMacAddress"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got, _ := tt.arg.InformationElement(); got != tt.want {
+				t.Errorf("FieldSpecifier.InformationElement() == %v, want %v", got, tt.want)
 			}
 		})
 	}

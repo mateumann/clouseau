@@ -144,4 +144,4 @@ func (s DataSet) Header() SetHeader {
 // A DataRecord represents a single portion of data transmitted in IPFIX Data Sets.
 // https://www.ietf.org/rfc/rfc7011.html#section-3.4.3
 //   * TemplateID defines a TemplateRecord used to parse data
-type DataRecord interface {}
+type DataRecord interface{}
