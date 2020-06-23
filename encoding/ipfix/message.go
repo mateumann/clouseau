@@ -72,11 +72,6 @@ type SetHeader struct {
 // A setHeaderLength defines the length of a IPFIX Set Header.
 const setHeaderLength uint16 = 4
 
-// Stringer implementation for IPFIX SetHeader
-func (h SetHeader) String() string {
-	return fmt.Sprintf("IPFIX Set Header (%s)", h.Type())
-}
-
 func (h SetHeader) Type() SetType {
 	switch {
 	case h.SetID == 2:
@@ -88,6 +83,11 @@ func (h SetHeader) Type() SetType {
 	default:
 		return UnknownSetType
 	}
+}
+
+// Stringer implementation for IPFIX SetHeader
+func (h SetHeader) String() string {
+	return fmt.Sprintf("IPFIX Set Header (%s)", h.Type())
 }
 
 // A Set represents any of three IPFIX sets: Data Set, Template Set or Options Template Set.
