@@ -59,18 +59,18 @@ func TestHeader_String(t *testing.T) {
 	}{
 		{
 			name: "Perfectly valid Message Header",
-			arg:  Header{10, 11, uint32(time.Date(2020, 2, 2, 2, 2, 2, 2, time.Local).Unix()), 1, 0},
+			arg:  Header{10, 11, uint32(time.Date(2020, 2, 2, 2, 2, 2, 2, time.UTC).Unix()), 1, 0},
 			want: "IPFIX Message Header (10) [domain 0; seq 1; exported at 02:02:02]",
 		},
 		{
 			name: "Somewhat strange Message Header",
-			arg:  Header{999, 9999, uint32(time.Date(2020, 2, 2, 2, 2, 2, 2, time.Local).Unix()), 99, 99999},
+			arg:  Header{999, 9999, uint32(time.Date(2020, 2, 2, 2, 2, 2, 2, time.UTC).Unix()), 99, 99999},
 			want: "IPFIX Message Header (999) [domain 99999; seq 99; exported at 02:02:02]",
 		},
 		{
 			name: "Zero (weird) Message Header",
 			arg:  Header{0, 0, 0, 0, 0},
-			want: "IPFIX Message Header (0) [domain 0; seq 0; exported at 01:00:00]",
+			want: "IPFIX Message Header (0) [domain 0; seq 0; exported at 00:00:00]",
 		},
 	}
 	for _, tt := range tests {

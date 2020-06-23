@@ -57,7 +57,7 @@ const headerLength uint16 = 16
 
 // Stringer implementation for IPFIX Header
 func (h Header) String() string {
-	timestamp := time.Unix(int64(h.ExportTime), 0)
+	timestamp := time.Unix(int64(h.ExportTime), 0).UTC()
 	return fmt.Sprintf("IPFIX Message Header (%v) [domain %v; seq %v; exported at %v]",
 		h.VersionNumber, h.ObservationDomainID, h.SequenceNumber, timestamp.Format("15:04:05"))
 }
