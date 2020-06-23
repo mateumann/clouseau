@@ -209,3 +209,40 @@ func TestTemplateSet_Header(t *testing.T) {
 		})
 	}
 }
+
+
+func TestDataSet_Type(t *testing.T) {
+	arg := DataSet{SetHeader{SetID: 2, Length: 22}, nil}
+	want := DataSetType
+	t.Run("Validate Data Set SetType()", func(t *testing.T) {
+		if got := arg.Type(); got != want {
+			t.Errorf("DataSet.Type() = %v, want %v", got, want)
+		}
+	})
+}
+
+func TestDataSet_Header(t *testing.T) {
+	tests := []struct {
+		name string
+		arg  DataSet
+		want SetHeader
+	}{
+		{
+			name: "Data Set with a Zero Set Header",
+			arg:  DataSet{SetHeader{0, 0}, nil},
+			want: SetHeader{0, 0},
+		},
+		{
+			name: "A valid Data Set (with proper SetHeader)",
+			arg:  DataSet{SetHeader{259, 0}, nil},
+			want: SetHeader{259, 0},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.arg.Header(); got != tt.want {
+				t.Errorf("DataSet.SetHeader() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
