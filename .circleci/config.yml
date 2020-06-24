@@ -7,6 +7,12 @@ orbs:
   codecov: codecov/codecov@1.1.0
   coverage-reporter: codacy/coverage-reporter@11.0.0
 
+workflows:
+  build:
+    jobs:
+      - build
+        context: default-context
+
 jobs:
   build:
     docker:
@@ -64,3 +70,4 @@ jobs:
 
       - coverage-reporter/send_report:
           coverage-reports: ${TEST_RESULTS}/coverage.txt
+          project-token: ${CODACY_TOKEN}
