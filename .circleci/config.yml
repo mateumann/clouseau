@@ -5,6 +5,7 @@ version: 2.1
 
 orbs:
   codecov: codecov/codecov@1.1.0
+  coverage-reporter: codacy/coverage-reporter@11.0.0
 
 jobs:
   build:
@@ -61,18 +62,7 @@ jobs:
           file: ${TEST_RESULTS}/coverage.txt
           token: ''
 
-#      - store_artifacts: # Upload test summary for display in Artifacts: https://circleci.com/docs/2.0/artifacts/
-#          path: ${TEST_RESULTS}/coverage.html
-#          destination: test-coverage-report.html
+      - coverage-reporter/send_report:
+          coverage-reports: ${TEST_RESULTS}/coverage.txt
+          project-token: ''
 
-
-#workflows:
-#    version: 2
-#    build:
-#        jobs: &build_jobs
-#            - build
-#            - test
-#            - lint
-#            -   build:
-#                    requires:
-#                        - lint
