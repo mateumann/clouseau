@@ -64,5 +64,3 @@ jobs:
 
       - coverage-reporter/send_report:
           coverage-reports: ${TEST_RESULTS}/coverage.txt
-          project-token: ''
-
