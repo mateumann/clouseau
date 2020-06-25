@@ -4,36 +4,36 @@ import (
 	"fmt"
 )
 
-// Abstract data types of the IPFIX information model
+// FieldType is an abstract data types of the IPFIX information model
 // https://tools.ietf.org/html/rfc7012#section-3.1
 // https://www.iana.org/assignments/ipfix/ipfix.xhtml#ipfix-information-element-data-types
 type FieldType uint8
 
 const (
-	OctetArray FieldType = iota
-	Uint8
-	Uint16
-	Uint32
-	Uint64
-	Int8
-	Int16
-	Int32
-	Int64
-	Float32
-	Float64
-	Boolean
-	MacAddress
-	String
-	DateTimeSeconds
-	DateTimeMilliseconds
-	DateTimeMicroseconds
-	DateTimeNanoseconds
-	IPv4Address
-	IPv6Address
-	BasicList
-	SubTemplateList
-	SubTemplateMultiList
-	UnknownFieldType
+	OctetArray           FieldType = iota // OctetArray represents a finite-length string of octets
+	Uint8                                 // Uint8 represents non-negative integer value in the range of 0 to 255
+	Uint16                                // Uint16 represents non-negative integer value in the range of 0 to 65535
+	Uint32                                // Uint32 represents non-negative integer value in the range of 0 to 4294967295
+	Uint64                                // Uint64 represents non-negative integer value in the range of 0 to 18446744073709551615
+	Int8                                  // Int8 represents an integer value in the range of -128 to 127
+	Int16                                 // Int16 represents an integer value in the range of -32768 to 32767
+	Int32                                 // Int32 represents an integer value in the range of -2147483648 to 2147483647
+	Int64                                 // Int64 represents an integer value in the range of -9223372036854775808 to 9223372036854775807
+	Float32                               // Float32 corresponds to an IEEE single-precision 32-bit floating-point type as defined in IEEE.754.2008
+	Float64                               // Float64 corresponds to an IEEE double-precision 64-bit floating-point type as defined in IEEE.754.2008
+	Boolean                               // Boolean represents a binary value.  The only allowed values are "true" and "false"
+	MacAddress                            // MacAddress represents a MAC-48 address as defined in IEEE.802-3.2012
+	String                                // String represents a finite-length string of valid characters from the Unicode coded character set ISO.10646
+	DateTimeSeconds                       // DateTimeSeconds represents a time value expressed with second-level precision
+	DateTimeMilliseconds                  // DateTimeMilliseconds represents a time value expressed with millisecond-level precision
+	DateTimeMicroseconds                  // DateTimeMicroseconds represents a time value expressed with microsecond-level precision
+	DateTimeNanoseconds                   // DateTimeNanoseconds represents a time value expressed with nanosecond-level precision
+	IPv4Address                           // IPv4Address represents an IPv4 address
+	IPv6Address                           // IPv6Address represents an IPv6 address
+	BasicList                             // BasicList supports structured data export as described in RFC6313
+	SubTemplateList                       // SubTemplateList supports structured data export as described in RFC6313
+	SubTemplateMultiList                  // SubTemplateMultiList supports structured data export as described in RFC6313
+	UnknownFieldType                      // UnknownFieldType represents an unknown (undefined) FiledType
 )
 
 // An ElementSpecifier identifies an IPFIX element
@@ -42,10 +42,10 @@ type ElementSpecifier struct {
 	EnterpriseNumber uint32
 }
 
-// Returns an Enterprise bit.  This is the first bit of the ElementSpecifier.  If this bit is zero, the Information
-// Element identifier identifies an Information Element in [IANA-IPFIX], and the four-octet Enterprise Number field
-// MUST NOT be present.  If this bit is one, the Information Element identifier identifies an enterprise-specific
-// Information Element, and the Enterprise Number field MUST be present.
+// E returns an Enterprise bit of an ElementSpecifier.  This is the first bit of the ElementSpecifier.  If this bit
+// is zero, the Information Element identifier identifies an Information Element in [IANA-IPFIX], and the four-octet
+// Enterprise Number field MUST NOT be present.  If this bit is one, the Information Element identifier identifies
+// an enterprise-specific Information Element, and the Enterprise Number field MUST be present.
 func (s ElementSpecifier) E() bool {
 	return s.ElementID>>15 == 1
 }
@@ -57,7 +57,7 @@ func (s ElementSpecifier) String() string {
 	return fmt.Sprintf("Element %d", s.ElementID)
 }
 
-// A FieldSpecifier represents a IPFIX field specification.
+// FieldSpecifier represents an IPFIX field specification.
 // https://www.ietf.org/rfc/rfc7011.html#section-3.2
 // https://www.iana.org/assignments/ipfix/ipfix.xhtml
 type FieldSpecifier struct {
@@ -66,10 +66,10 @@ type FieldSpecifier struct {
 	EnterpriseNumber uint32
 }
 
-// Returns an Enterprise bit.  This is the first bit of the FieldSpecifier.  If this bit is zero, the Information
-// Element identifier identifies an Information Element in [IANA-IPFIX], and the four-octet Enterprise Number field
-// MUST NOT be present.  If this bit is one, the Information Element identifier identifies an enterprise-specific
-// Information Element, and the Enterprise Number field MUST be present.
+// E returns an Enterprise bit of a FieldSpecifier.  This is the first bit of the FieldSpecifier.  If this bit is zero,
+// the Information Element identifier identifies an Information Element in [IANA-IPFIX], and the four-octet Enterprise
+// Number field MUST NOT be present.  If this bit is one, the Information Element identifier identifies an enterprise-
+// specific Information Element, and the Enterprise Number field MUST be present.
 func (s FieldSpecifier) E() bool {
 	return s.ElementID>>15 == 1
 }
@@ -78,7 +78,7 @@ func (s *FieldSpecifier) ElementSpecifier() ElementSpecifier {
 	return ElementSpecifier{s.ElementID, s.EnterpriseNumber}
 }
 
-// Returns a size of a FieldSpecifier.  This depends on Enterprise bit being set (or not).
+// Size returns a size of a FieldSpecifier.  This depends on Enterprise bit being set (or not).
 func (s FieldSpecifier) Size() uint16 {
 	if s.E() {
 		return 8
