@@ -112,10 +112,7 @@ func (s FieldSpecifier) Size() uint16 {
 }
 
 func (s FieldSpecifier) String() string {
-	if s.E() {
-		return fmt.Sprintf("Element %d, Enterprise number %d", s.ElementID, s.EnterpriseNumber)
-	}
-	return fmt.Sprintf("Element %d", s.ElementID)
+	return s.ElementSpecifier().String()
 }
 
 // FieldDefinition describes a IPFIX field (single data)
