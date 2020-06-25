@@ -9,8 +9,9 @@ orbs:
 workflows:
   build:
     jobs:
-      - build:
-          context: default-context
+#      - build:
+#          context: default-context
+      - build
 
 jobs:
   build:
