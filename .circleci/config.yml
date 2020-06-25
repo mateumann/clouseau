@@ -5,7 +5,6 @@ version: 2.1
 
 orbs:
   codecov: codecov/codecov@1.1.0
-  coverage-reporter: codacy/coverage-reporter@11.0.0
 
 workflows:
   build:
@@ -67,7 +66,3 @@ jobs:
       - codecov/upload:
           file: ${TEST_RESULTS}/coverage.txt
           token: ''
-
-      - coverage-reporter/send_report:
-          coverage-reports: ${TEST_RESULTS}/coverage.txt
-          project-token: ${CODACY_TOKEN}
