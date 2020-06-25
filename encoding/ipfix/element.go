@@ -10,30 +10,54 @@ import (
 type FieldType uint8
 
 const (
-	OctetArray           FieldType = iota // OctetArray represents a finite-length string of octets
-	Uint8                                 // Uint8 represents non-negative integer value in the range of 0 to 255
-	Uint16                                // Uint16 represents non-negative integer value in the range of 0 to 65535
-	Uint32                                // Uint32 represents non-negative integer value in the range of 0 to 4294967295
-	Uint64                                // Uint64 represents non-negative integer value in the range of 0 to 18446744073709551615
-	Int8                                  // Int8 represents an integer value in the range of -128 to 127
-	Int16                                 // Int16 represents an integer value in the range of -32768 to 32767
-	Int32                                 // Int32 represents an integer value in the range of -2147483648 to 2147483647
-	Int64                                 // Int64 represents an integer value in the range of -9223372036854775808 to 9223372036854775807
-	Float32                               // Float32 corresponds to an IEEE single-precision 32-bit floating-point type as defined in IEEE.754.2008
-	Float64                               // Float64 corresponds to an IEEE double-precision 64-bit floating-point type as defined in IEEE.754.2008
-	Boolean                               // Boolean represents a binary value.  The only allowed values are "true" and "false"
-	MacAddress                            // MacAddress represents a MAC-48 address as defined in IEEE.802-3.2012
-	String                                // String represents a finite-length string of valid characters from the Unicode coded character set ISO.10646
-	DateTimeSeconds                       // DateTimeSeconds represents a time value expressed with second-level precision
-	DateTimeMilliseconds                  // DateTimeMilliseconds represents a time value expressed with millisecond-level precision
-	DateTimeMicroseconds                  // DateTimeMicroseconds represents a time value expressed with microsecond-level precision
-	DateTimeNanoseconds                   // DateTimeNanoseconds represents a time value expressed with nanosecond-level precision
-	IPv4Address                           // IPv4Address represents an IPv4 address
-	IPv6Address                           // IPv6Address represents an IPv6 address
-	BasicList                             // BasicList supports structured data export as described in RFC6313
-	SubTemplateList                       // SubTemplateList supports structured data export as described in RFC6313
-	SubTemplateMultiList                  // SubTemplateMultiList supports structured data export as described in RFC6313
-	UnknownFieldType                      // UnknownFieldType represents an unknown (undefined) FiledType
+	// OctetArray represents a finite-length string of octets
+	OctetArray FieldType = iota
+	// Uint8 represents non-negative integer value in the range of 0 to 255
+	Uint8
+	// Uint16 represents non-negative integer value in the range of 0 to 65535
+	Uint16
+	// Uint32 represents non-negative integer value in the range of 0 to 4294967295
+	Uint32
+	// Uint64 represents non-negative integer value in the range of 0 to 18446744073709551615
+	Uint64
+	// Int8 represents an integer value in the range of -128 to 127
+	Int8
+	// Int16 represents an integer value in the range of -32768 to 32767
+	Int16
+	// Int32 represents an integer value in the range of -2147483648 to 2147483647
+	Int32
+	// Int64 represents an integer value in the range of -9223372036854775808 to 9223372036854775807
+	Int64
+	// Float32 corresponds to an IEEE single-precision 32-bit floating-point type as defined in IEEE.754.2008
+	Float32
+	// Float64 corresponds to an IEEE double-precision 64-bit floating-point type as defined in IEEE.754.2008
+	Float64
+	// Boolean represents a binary value.  The only allowed values are "true" and "false"
+	Boolean
+	// MacAddress represents a MAC-48 address as defined in IEEE.802-3.2012
+	MacAddress
+	// String represents a finite-length string of valid characters from the Unicode coded character set ISO.10646
+	String
+	// DateTimeSeconds represents a time value expressed with second-level precision
+	DateTimeSeconds
+	// DateTimeMilliseconds represents a time value expressed with millisecond-level precision
+	DateTimeMilliseconds
+	// DateTimeMicroseconds represents a time value expressed with microsecond-level precision
+	DateTimeMicroseconds
+	// DateTimeNanoseconds represents a time value expressed with nanosecond-level precision
+	DateTimeNanoseconds
+	// IPv4Address represents an IPv4 address
+	IPv4Address
+	// IPv6Address represents an IPv6 address
+	IPv6Address
+	// BasicList supports structured data export as described in RFC6313
+	BasicList
+	// SubTemplateList supports structured data export as described in RFC6313
+	SubTemplateList
+	// SubTemplateMultiList supports structured data export as described in RFC6313
+	SubTemplateMultiList
+	// UnknownFieldType represents an unknown (undefined) FiledType
+	UnknownFieldType
 )
 
 // An ElementSpecifier identifies an IPFIX element
