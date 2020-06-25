@@ -98,6 +98,7 @@ func (s FieldSpecifier) E() bool {
 	return s.ElementID>>15 == 1
 }
 
+// ElementSpecifier returns an ElementSpecifier created from FieldSpecifier ElementID and EnterpriseNumber
 func (s *FieldSpecifier) ElementSpecifier() ElementSpecifier {
 	return ElementSpecifier{s.ElementID, s.EnterpriseNumber}
 }
@@ -117,6 +118,7 @@ func (s FieldSpecifier) String() string {
 	return fmt.Sprintf("Element %d", s.ElementID)
 }
 
+// FieldDefinition describes a IPFIX field (single data)
 type FieldDefinition struct {
 	Type FieldType
 	Name string
@@ -129,6 +131,7 @@ func (d FieldDefinition) String() string {
 	return fmt.Sprintf("Field '%s'", d.Name)
 }
 
+// FieldModel is a mapping of ElementSpecifier to FieldDefinition
 type FieldModel map[ElementSpecifier]FieldDefinition
 
 // Kind of immutable map (as there is no such thing as constant map in Go)
@@ -194,6 +197,7 @@ func ipfixInformationElements() FieldModel {
 	}
 }
 
+// InformationElement retrieves a FieldDefinition from IPFIX FieldModel map
 func InformationElement(s ElementSpecifier) (FieldDefinition, error) {
 	if fieldDefinition, ok := ipfixInformationElements()[s]; ok {
 		return fieldDefinition, nil
@@ -201,6 +205,7 @@ func InformationElement(s ElementSpecifier) (FieldDefinition, error) {
 	return FieldDefinition{UnknownFieldType, ""}, fmt.Errorf("IPFIX information element not found for %v", s)
 }
 
+// InformationElement returns a FieldDefinition basing on provided FieldSpecifier
 func (s FieldSpecifier) InformationElement() (FieldDefinition, error) {
 	return InformationElement(ElementSpecifier{s.ElementID, s.EnterpriseNumber})
 }
