@@ -16,9 +16,13 @@ import (
 type SetType int8
 
 const (
+	// DataSetType represents Data Set type.
 	DataSetType SetType = iota
+	// TemplateSetType represents Template Set type.
 	TemplateSetType
+	// OptionsTemplateSetType represents Options Template Set type.
 	OptionsTemplateSetType
+	// UnknownSetType represents an unknown (or invalid) Set type.
 	UnknownSetType SetType = -128
 )
 
@@ -55,14 +59,14 @@ type Header struct {
 // A headerLength defines the length of a IPFIX Message Header.
 const headerLength uint16 = 16
 
-// Stringer implementation for IPFIX Header
+// Stringer implementation for IPFIX Header.
 func (h Header) String() string {
 	timestamp := time.Unix(int64(h.ExportTime), 0).UTC()
 	return fmt.Sprintf("IPFIX Message Header (%v) [domain %v; seq %v; exported at %v]",
 		h.VersionNumber, h.ObservationDomainID, h.SequenceNumber, timestamp.Format("15:04:05"))
 }
 
-// A SetHeader represents a IPFIX Set Header
+// A SetHeader represents a IPFIX Set Header.
 // https://www.ietf.org/rfc/rfc7011.html#section-3.3.2
 type SetHeader struct {
 	SetID  uint16
@@ -72,6 +76,7 @@ type SetHeader struct {
 // A setHeaderLength defines the length of a IPFIX Set Header.
 const setHeaderLength uint16 = 4
 
+// Type returns SetType based on SetId provided in IPFIX Set Header.
 func (h SetHeader) Type() SetType {
 	switch {
 	case h.SetID == 2:
@@ -85,7 +90,7 @@ func (h SetHeader) Type() SetType {
 	}
 }
 
-// Stringer implementation for IPFIX SetHeader
+// Stringer implementation for IPFIX SetHeader.
 func (h SetHeader) String() string {
 	return fmt.Sprintf("IPFIX Set Header (%s)", h.Type())
 }
@@ -103,14 +108,17 @@ type TemplateSet struct {
 	Records   []TemplateRecord
 }
 
+// Type function returns TemplateSetType for any TemplateSet.
 func (s TemplateSet) Type() SetType {
 	return TemplateSetType
 }
 
+// Header function returns Template Set's IPFIX Header.
 func (s TemplateSet) Header() SetHeader {
 	return s.SetHeader
 }
 
+// TemplateRecordHeader represents a IPFIX Template Record Header.
 type TemplateRecordHeader struct {
 	TemplateID uint16
 	FieldCount uint16
@@ -133,10 +141,12 @@ type DataSet struct {
 	Records   []DataRecord
 }
 
+// Type function returns DataSetType for any DataSet.
 func (s DataSet) Type() SetType {
 	return DataSetType
 }
 
+// Header function returns Data Set's IPFIX Header.
 func (s DataSet) Header() SetHeader {
 	return s.SetHeader
 }
