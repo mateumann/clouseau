@@ -2,7 +2,9 @@ package ipfix
 
 import (
 	"fmt"
+	"math/rand"
 	"testing"
+	"time"
 )
 
 func TestElementSpecifier_E(t *testing.T) {
@@ -87,14 +89,22 @@ func TestElementSpecifier_String(t *testing.T) {
 	}
 }
 
-func TestFieldSpecifier_ElementSpecifier(t *testing.T) {
+func TestFieldSpecifier_RandomNotEnterprise(t *testing.T) {
 	var fSpec FieldSpecifier
-	for i := uint16(1); i <= 1<<15; i++ {
+	rand.Seed(time.Now().UnixNano())
+	elementIds := []uint16{0, 1 << 15 - 1}
+	for i := 2 ; i <= 16 ; i++ {
+		elementIds = append(elementIds, uint16(rand.Intn(1<<15 +1)))
+	}
+	for _, i := range elementIds{
 		fSpec = FieldSpecifier{i, 11, 0}
 		t.Run(fmt.Sprintf("FieldSpecifier %v", fSpec), func(t *testing.T) {
 			eSpec := fSpec.ElementSpecifier()
 			if eSpec.ElementID != fSpec.ElementID || eSpec.EnterpriseNumber != fSpec.EnterpriseNumber {
 				t.Errorf("FieldSpecifier.ElementSpecifier() = %v for %v", eSpec, fSpec)
+			}
+			if fSpec.E() {
+				t.Errorf("FieldSpecifier.E() = %v for %v", fSpec.E(), fSpec)
 			}
 		})
 	}
@@ -141,6 +151,27 @@ func TestFieldSpecifier_E(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.arg.E(); got != tt.want {
 				t.Errorf("FieldSpecifier.E() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestFieldSpecifier_RandomEnterprise(t *testing.T) {
+	var fSpec FieldSpecifier
+	rand.Seed(time.Now().UnixNano())
+	elementIds := []uint16{1 << 15, 1 << 16 - 1}
+	for i := 2 ; i <= 16 ; i++ {
+		elementIds = append(elementIds, 1<<15 +1 + uint16(rand.Intn(1<<15 )))
+	}
+	for _, i := range elementIds{
+		fSpec = FieldSpecifier{i, 11, 0}
+		t.Run(fmt.Sprintf("FieldSpecifier %v", fSpec), func(t *testing.T) {
+			eSpec := fSpec.ElementSpecifier()
+			if eSpec.ElementID != fSpec.ElementID || eSpec.EnterpriseNumber != fSpec.EnterpriseNumber {
+				t.Errorf("FieldSpecifier.ElementSpecifier() = %v for %v", eSpec, fSpec)
+			}
+			if ! fSpec.E() {
+				t.Errorf("FieldSpecifier.E() = %v for %v", fSpec.E(), fSpec)
 			}
 		})
 	}
