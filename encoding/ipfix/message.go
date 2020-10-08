@@ -125,12 +125,12 @@ type TemplateRecordHeader struct {
 }
 
 // A templateRecordHeaderLength defines the length of a IPFIX Template Record Header.
-const templateRecordHeaderLength uint16 = 4
+//const templateRecordHeaderLength uint16 = 4
 
 // A TemplateRecord represents a IPFIX Template Record.
 // https://www.ietf.org/rfc/rfc7011.html#section-3.4.1
 type TemplateRecord struct {
-	Header          TemplateRecordHeader
+	//Header          TemplateRecordHeader
 	FieldSpecifiers []FieldSpecifier
 }
 

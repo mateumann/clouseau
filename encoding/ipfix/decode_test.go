@@ -7,17 +7,15 @@ import (
     "time"
 )
 
-func readFromFile(t* testing.T, fileName string) []byte {
+func readFromFile(fileName string) []byte {
 	file, err := os.Open(fileName)
 	if err != nil {
-        t.Errorf("Unable to read test stream file %v", fileName)
         return nil
 	}
 	defer file.Close()
 
 	bytes, err := ioutil.ReadAll(file)
     if err != nil {
-        t.Errorf("Unable to read test stream file %v", fileName)
         return nil
     }
 
@@ -32,7 +30,7 @@ func TestUnmarshal(t *testing.T) {
 	}{
 		{
 			name: "Unmarshal a Template Set",
-			arg: readFromFile(t, "../../test/stream/templates_258_259.bin"),
+			arg: readFromFile("../../test/stream/templates_258_259.bin"),
 			want: Message{
 				Header: Header{
                     VersionNumber: 10,
@@ -41,18 +39,27 @@ func TestUnmarshal(t *testing.T) {
                     SequenceNumber:      0,
                     ObservationDomainID: 0,
                 },
-				Sets: []Set{TemplateSet{
-					SetHeader: SetHeader{
-						SetID:  2,
-						Length: 280,
+				Sets: []Set{
+					TemplateSet{
+						SetHeader: SetHeader{
+							SetID:  258,
+							Length: 35,
+						},
+						Records:   nil,
 					},
-					Records:   nil,
-				}},
+					TemplateSet{
+						SetHeader: SetHeader{
+							SetID:  259,
+							Length: 32,
+						},
+						Records:   nil,
+					},
+				},
 			},
 		},
 	}
     var got Message
-    var templates = make([]TemplateRecord, 10)
+    var templates = make([]TemplateRecord, 0)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 		    if tt.arg == nil {
@@ -63,11 +70,12 @@ func TestUnmarshal(t *testing.T) {
             if got.Header != tt.want.Header {
                 t.Errorf("%v: got %v, want %v", tt.name, got.Header, tt.want.Header)
             }
-            //for index, set := range got.Sets {
-            //    if set.Header() != tt.want.Sets[index].Header() {
-            //        t.Errorf("%v: got %v, want %v", tt.name, set.Header(), tt.want.Sets[index].Header())
-            //    }
-            //}
+            for index, set := range got.Sets {
+               if set.Header() != tt.want.Sets[index].Header() {
+                   t.Errorf("%v: got %v, want %v", tt.name, set.Header(), tt.want.Sets[index].Header())
+               }
+            }
+            // TODO compare number of Tempates (Records?) in a TemplateSets to their declared length
         })
 	}
 }
