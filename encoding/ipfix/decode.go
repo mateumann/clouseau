@@ -3,6 +3,7 @@ package ipfix
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 )
 
 // TODO: what about padding (less bytes in data structures than declared message size)?
@@ -18,11 +19,11 @@ func Unmarshal(in []byte, templates *[]TemplateRecord, out *Message) error {
 	}
 
 	var setHeader SetHeader
-	for bytesRead := headerLength; bytesRead < out.Header.Length; {
-		// Read Set by Set starting with SetHeader
-		if err := binary.Read(reader, binary.BigEndian, &setHeader); err != nil {
-			return err
-		}
+	// Read Set by Set starting with SetHeader
+	if err := binary.Read(reader, binary.BigEndian, &setHeader); err != nil {
+		return err
+	}
+	for bytesRead := headerLength + setHeaderLength; bytesRead < out.Header.Length; {
 		switch setHeader.Type() {
 		case TemplateSetType:
 			var templateSet TemplateSet
@@ -31,7 +32,11 @@ func Unmarshal(in []byte, templates *[]TemplateRecord, out *Message) error {
 				return err
 			}
 			out.Sets = append(out.Sets, templateSet)
-			*templates = append(*templates, templateSet.Records...)
+			if templates != nil {
+				*templates = append(*templates, templateSet.Records...)
+			} else {
+				return errors.New("invalid syntax: provide a non-empty list of TemplateRecords")
+			}
 			bytesRead += setBytesRead
 		case OptionsTemplateSetType:
 			//var optionsTemplateRecord OptionsTemplateRecord
@@ -71,11 +76,11 @@ func readTemplateSet(reader *bytes.Reader, out *TemplateSet) (uint16, error) {
 
 	for bytesRead = setHeaderLength; bytesRead < out.SetHeader.Length; {
 		var templateRecord TemplateRecord
-		if err := binary.Read(reader, binary.BigEndian, &templateRecord.Header); err != nil {
-			return bytesRead, err
-		}
-		bytesRead += templateRecordHeaderLength
-		for i := uint16(0); i < templateRecord.Header.FieldCount; i++ {
+		//if err := binary.Read(reader, binary.BigEndian, &templateRecord.Header); err != nil {
+		//	return bytesRead, err
+		//}
+		//bytesRead += templateRecordHeaderLength
+		for i := uint16(0); i < out.Header().Length; i++ {
 			var fieldSpecifier = FieldSpecifier{0, 0, 0}
 			if err := binary.Read(reader, binary.BigEndian, &fieldSpecifier.ElementID); err != nil {
 				return bytesRead, err
