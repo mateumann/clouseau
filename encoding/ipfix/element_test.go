@@ -2,7 +2,9 @@ package ipfix
 
 import (
 	"fmt"
+	"math/rand"
 	"testing"
+	"time"
 )
 
 func TestElementSpecifier_E(t *testing.T) {
@@ -87,14 +89,25 @@ func TestElementSpecifier_String(t *testing.T) {
 	}
 }
 
-func TestFieldSpecifier_ElementSpecifier(t *testing.T) {
+func TestFieldSpecifier_SemiRandom(t *testing.T) {
 	var fSpec FieldSpecifier
-	for i := uint16(1); i <= 1<<15; i++ {
+	rand.Seed(time.Now().UnixNano())
+	elementIds := []uint16{0, 1 << 15 - 1, 1 << 15, 1 << 16 - 1}
+	for i := 4 ; i < 24 ; i++ {
+		elementIds = append(elementIds, uint16(rand.Intn(1<<16 +1)))
+	}
+	for _, i := range elementIds{
 		fSpec = FieldSpecifier{i, 11, 0}
 		t.Run(fmt.Sprintf("FieldSpecifier %v", fSpec), func(t *testing.T) {
 			eSpec := fSpec.ElementSpecifier()
 			if eSpec.ElementID != fSpec.ElementID || eSpec.EnterpriseNumber != fSpec.EnterpriseNumber {
 				t.Errorf("FieldSpecifier.ElementSpecifier() = %v for %v", eSpec, fSpec)
+			}
+			if ((i < 1<<15) && fSpec.E()) || ((i >= 1<<15) && ! fSpec.E()) {
+				t.Errorf("FieldSpecifier.E() = %v, which is unexpected for %v", fSpec.E(), fSpec)
+			}
+			if (i >= 1<<15) && fSpec.EnterpriseNumber != 0 {
+				t.Errorf("FieldSpecifier.EnterpriseNumber() = %v, should be 0 for %v", fSpec.EnterpriseNumber, fSpec)
 			}
 		})
 	}
