@@ -30,7 +30,7 @@ func TestUnmarshal(t *testing.T) {
 	}{
 		{
 			name: "Unmarshal a Template Set",
-			arg: readFromFile("../../test/stream/templates_258_259.bin"),
+			arg: readFromFile("../../testdata/stream/templates_258_259.bin"),
 			want: Message{
 				Header: Header{
                     VersionNumber: 10,
