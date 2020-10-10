@@ -4,63 +4,88 @@ import (
 	"fmt"
 )
 
+const (
+	fieldSpecifierSize            = 4
+	fieldSpecifierWEnterpriseSize = 8
+)
+
+// ErrorElement is an error definition associated with IPFIX Elements.
+type ElementError struct {
+	msg string
+	err error
+}
+
+// Associate Error() function to the ElementError.
+func (e *ElementError) Error() string {
+	return e.msg
+}
+
+// Define Unwrap function on the ElementError.
+func (e *ElementError) Unwrap() error { return e.err }
+
+// Then create an error object using MyError struct.
+func ElementErrorInstance(msg string, err error) error {
+	return &ElementError{msg, err}
+	// return errors.New("msg")
+}
+
 // FieldType is an abstract data types of the IPFIX information model
 // https://tools.ietf.org/html/rfc7012#section-3.1
 // https://www.iana.org/assignments/ipfix/ipfix.xhtml#ipfix-information-element-data-types
 type FieldType uint8
 
 const (
-	// OctetArray represents a finite-length string of octets
+	// OctetArray represents a finite-length string of octets.
 	OctetArray FieldType = iota
-	// Uint8 represents non-negative integer value in the range of 0 to 255
+	// Uint8 represents non-negative integer value in the range of 0 to 255.
 	Uint8
-	// Uint16 represents non-negative integer value in the range of 0 to 65535
+	// Uint16 represents non-negative integer value in the range of 0 to 65535.
 	Uint16
-	// Uint32 represents non-negative integer value in the range of 0 to 4294967295
+	// Uint32 represents non-negative integer value in the range of 0 to 4294967295.
 	Uint32
-	// Uint64 represents non-negative integer value in the range of 0 to 18446744073709551615
+	// Uint64 represents non-negative integer value in the range of 0 to 18446744073709551615.
 	Uint64
-	// Int8 represents an integer value in the range of -128 to 127
+	// Int8 represents an integer value in the range of -128 to 127.
 	Int8
-	// Int16 represents an integer value in the range of -32768 to 32767
+	// Int16 represents an integer value in the range of -32768 to 32767.
 	Int16
-	// Int32 represents an integer value in the range of -2147483648 to 2147483647
+	// Int32 represents an integer value in the range of -2147483648 to 2147483647.
 	Int32
-	// Int64 represents an integer value in the range of -9223372036854775808 to 9223372036854775807
+	// Int64 represents an integer value in the range of -9223372036854775808 to 9223372036854775807.
 	Int64
-	// Float32 corresponds to an IEEE single-precision 32-bit floating-point type as defined in IEEE.754.2008
+	// Float32 corresponds to an IEEE single-precision 32-bit floating-point type as defined in IEEE.754.2008.
 	Float32
-	// Float64 corresponds to an IEEE double-precision 64-bit floating-point type as defined in IEEE.754.2008
+	// Float64 corresponds to an IEEE double-precision 64-bit floating-point type as defined in IEEE.754.2008.
 	Float64
-	// Boolean represents a binary value.  The only allowed values are "true" and "false"
+	// Boolean represents a binary value.  The only allowed values are "true" and "false".
 	Boolean
-	// MacAddress represents a MAC-48 address as defined in IEEE.802-3.2012
+	// MacAddress represents a MAC-48 address as defined in IEEE.802-3.2012.
 	MacAddress
-	// String represents a finite-length string of valid characters from the Unicode coded character set ISO.10646
+	// String represents a finite-length string of valid characters from the Unicode coded character set ISO.10646.
 	String
-	// DateTimeSeconds represents a time value expressed with second-level precision
+	// DateTimeSeconds represents a time value expressed with second-level precision.
 	DateTimeSeconds
-	// DateTimeMilliseconds represents a time value expressed with millisecond-level precision
+	// DateTimeMilliseconds represents a time value expressed with millisecond-level precision.
 	DateTimeMilliseconds
-	// DateTimeMicroseconds represents a time value expressed with microsecond-level precision
+	// DateTimeMicroseconds represents a time value expressed with microsecond-level precision.
 	DateTimeMicroseconds
-	// DateTimeNanoseconds represents a time value expressed with nanosecond-level precision
+	// DateTimeNanoseconds represents a time value expressed with nanosecond-level precision.
 	DateTimeNanoseconds
-	// IPv4Address represents an IPv4 address
+	// IPv4Address represents an IPv4 address.
 	IPv4Address
-	// IPv6Address represents an IPv6 address
+	// IPv6Address represents an IPv6 address.
 	IPv6Address
-	// BasicList supports structured data export as described in RFC6313
+	// BasicList supports structured data export as described in RFC6313.
 	BasicList
-	// SubTemplateList supports structured data export as described in RFC6313
+	// SubTemplateList supports structured data export as described in RFC6313.
 	SubTemplateList
-	// SubTemplateMultiList supports structured data export as described in RFC6313
+	// SubTemplateMultiList supports structured data export as described in RFC6313.
 	SubTemplateMultiList
-	// UnknownFieldType represents an unknown (undefined) FiledType
+	// UnknownFieldType represents an unknown (undefined) FiledType.
 	UnknownFieldType
 )
 
-// An ElementSpecifier identifies an IPFIX element
+// An ElementSpecifier identifies an IPFIX element.
 type ElementSpecifier struct {
 	ElementID        uint16
 	EnterpriseNumber uint32
@@ -70,15 +95,16 @@ type ElementSpecifier struct {
 // is zero, the Information Element identifier identifies an Information Element in [IANA-IPFIX], and the four-octet
 // Enterprise Number field MUST NOT be present.  If this bit is one, the Information Element identifier identifies
 // an enterprise-specific Information Element, and the Enterprise Number field MUST be present.
-func (s ElementSpecifier) E() bool {
-	return s.ElementID>>15 == 1
+func (elementSpec ElementSpecifier) E() bool {
+	return elementSpec.ElementID>>15 == 1
 }
 
-func (s ElementSpecifier) String() string {
-	if s.E() {
-		return fmt.Sprintf("Element %d, Enterprise number %d", s.ElementID, s.EnterpriseNumber)
+func (elementSpec ElementSpecifier) String() string {
+	if elementSpec.E() {
+		return fmt.Sprintf("Element %d, Enterprise number %d", elementSpec.ElementID, elementSpec.EnterpriseNumber)
 	}
-	return fmt.Sprintf("Element %d", s.ElementID)
+
+	return fmt.Sprintf("Element %d", elementSpec.ElementID)
 }
 
 // FieldSpecifier represents an IPFIX field specification.
@@ -94,44 +120,46 @@ type FieldSpecifier struct {
 // the Information Element identifier identifies an Information Element in [IANA-IPFIX], and the four-octet Enterprise
 // Number field MUST NOT be present.  If this bit is one, the Information Element identifier identifies an enterprise-
 // specific Information Element, and the Enterprise Number field MUST be present.
-func (s FieldSpecifier) E() bool {
-	return s.ElementID>>15 == 1
+func (fieldSpec FieldSpecifier) E() bool {
+	return fieldSpec.ElementID>>15 == 1
 }
 
-// ElementSpecifier returns an ElementSpecifier created from FieldSpecifier ElementID and EnterpriseNumber
-func (s *FieldSpecifier) ElementSpecifier() ElementSpecifier {
-	return ElementSpecifier{s.ElementID, s.EnterpriseNumber}
+// ElementSpecifier returns an ElementSpecifier created from FieldSpecifier ElementID and EnterpriseNumber.
+func (fieldSpec *FieldSpecifier) ElementSpecifier() ElementSpecifier {
+	return ElementSpecifier{fieldSpec.ElementID, fieldSpec.EnterpriseNumber}
 }
 
 // Size returns a size of a FieldSpecifier.  This depends on Enterprise bit being set (or not).
-func (s FieldSpecifier) Size() uint16 {
-	if s.E() {
-		return 8
+func (fieldSpec FieldSpecifier) Size() uint16 {
+	if fieldSpec.E() {
+		return fieldSpecifierWEnterpriseSize
 	}
-	return 4
+
+	return fieldSpecifierSize
 }
 
-func (s FieldSpecifier) String() string {
-	return s.ElementSpecifier().String()
+func (fieldSpec FieldSpecifier) String() string {
+	return fieldSpec.ElementSpecifier().String()
 }
 
-// FieldDefinition describes a IPFIX field (single data)
+// FieldDefinition describes a IPFIX field (single data).
 type FieldDefinition struct {
 	Type FieldType
 	Name string
 }
 
-func (d FieldDefinition) String() string {
-	if d.Type == UnknownFieldType {
+func (fieldDef FieldDefinition) String() string {
+	if fieldDef.Type == UnknownFieldType {
 		return "Unknown Field"
 	}
-	return fmt.Sprintf("Field '%s'", d.Name)
+
+	return fmt.Sprintf("Field '%s'", fieldDef.Name)
 }
 
-// FieldModel is a mapping of ElementSpecifier to FieldDefinition
+// FieldModel is a mapping of ElementSpecifier to FieldDefinition.
 type FieldModel map[ElementSpecifier]FieldDefinition
 
-// Kind of immutable map (as there is no such thing as constant map in Go)
+// Kind of immutable map (as there is no such thing as constant map in Go).
 func ipfixInformationElements() FieldModel {
 	return FieldModel{
 		ElementSpecifier{1, 0}:  FieldDefinition{Uint64, "octetDeltaCount"},
@@ -194,15 +222,17 @@ func ipfixInformationElements() FieldModel {
 	}
 }
 
-// InformationElement retrieves a FieldDefinition from IPFIX FieldModel map
-func InformationElement(s ElementSpecifier) (FieldDefinition, error) {
-	if fieldDefinition, ok := ipfixInformationElements()[s]; ok {
+// InformationElement retrieves a FieldDefinition from IPFIX FieldModel map.
+func InformationElement(elementSpec ElementSpecifier) (FieldDefinition, error) {
+	if fieldDefinition, ok := ipfixInformationElements()[elementSpec]; ok {
 		return fieldDefinition, nil
 	}
-	return FieldDefinition{UnknownFieldType, ""}, fmt.Errorf("IPFIX information element not found for %v", s)
+
+	return FieldDefinition{UnknownFieldType, ""},
+		ElementErrorInstance(fmt.Sprintf("IPFIX information element (field definition) not found for %v", elementSpec), nil)
 }
 
-// InformationElement returns a FieldDefinition basing on provided FieldSpecifier
-func (s FieldSpecifier) InformationElement() (FieldDefinition, error) {
-	return InformationElement(ElementSpecifier{s.ElementID, s.EnterpriseNumber})
+// InformationElement returns a FieldDefinition basing on provided FieldSpecifier.
+func (fieldSpec FieldSpecifier) InformationElement() (FieldDefinition, error) {
+	return InformationElement(ElementSpecifier{fieldSpec.ElementID, fieldSpec.EnterpriseNumber})
 }

@@ -43,6 +43,7 @@ func TestSetType_String(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt // pin!
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.arg.String(); got != tt.want {
 				t.Errorf("SetType.String() = %v, want %v", got, tt.want)
@@ -74,6 +75,7 @@ func TestHeader_String(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt // pin!
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.arg.String(); got != tt.want {
 				t.Errorf("Header.String() = %v, want %v", got, tt.want)
@@ -120,6 +122,7 @@ func TestSetHeader_Type(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt // pin!
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.arg.Type(); got != tt.want {
 				t.Errorf("SetHeader.Type() = %v, want %v", got, tt.want)
@@ -166,6 +169,7 @@ func TestSetHeader_String(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt // pin!
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.arg.String(); got != tt.want {
 				t.Errorf("SetHeader.String() = %v, want %v", got, tt.want)
@@ -177,6 +181,7 @@ func TestSetHeader_String(t *testing.T) {
 func TestTemplateSet_Type(t *testing.T) {
 	arg := TemplateSet{SetHeader{SetID: 2, Length: 22}, nil}
 	want := TemplateSetType
+
 	t.Run("Validate Template Set SetType()", func(t *testing.T) {
 		if got := arg.Type(); got != want {
 			t.Errorf("TemplateSet.Type() = %v, want %v", got, want)
@@ -202,6 +207,7 @@ func TestTemplateSet_Header(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt // pin!
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.arg.Header(); got != tt.want {
 				t.Errorf("TemplateSet.SetHeader() = %v, want %v", got, tt.want)
@@ -213,6 +219,7 @@ func TestTemplateSet_Header(t *testing.T) {
 func TestDataSet_Type(t *testing.T) {
 	arg := DataSet{SetHeader{SetID: 2, Length: 22}, nil}
 	want := DataSetType
+
 	t.Run("Validate Data Set SetType()", func(t *testing.T) {
 		if got := arg.Type(); got != want {
 			t.Errorf("DataSet.Type() = %v, want %v", got, want)
@@ -238,6 +245,7 @@ func TestDataSet_Header(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt // pin!
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.arg.Header(); got != tt.want {
 				t.Errorf("DataSet.SetHeader() = %v, want %v", got, tt.want)

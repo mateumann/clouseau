@@ -45,6 +45,7 @@ func TestElementSpecifier_E(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt // pin!
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.arg.E(); got != tt.want {
 				t.Errorf("ElementSpecifier.E() = %v, want %v", got, tt.want)
@@ -81,6 +82,7 @@ func TestElementSpecifier_String(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt // pin!
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.arg.String(); got != tt.want {
 				t.Errorf("ElementSpecifier.String() = %v, want %v", got, tt.want)
@@ -91,19 +93,24 @@ func TestElementSpecifier_String(t *testing.T) {
 
 func TestFieldSpecifier_SemiRandom(t *testing.T) {
 	var fSpec FieldSpecifier
+
 	rand.Seed(time.Now().UnixNano())
-	elementIds := []uint16{0, 1 << 15 - 1, 1 << 15, 1 << 16 - 1}
-	for i := 4 ; i < 24 ; i++ {
-		elementIds = append(elementIds, uint16(rand.Intn(1<<16 +1)))
+
+	elementIds := []uint16{0, 1<<15 - 1, 1 << 15, 1<<16 - 1}
+
+	for i := 4; i < 24; i++ {
+		elementIds = append(elementIds, uint16(rand.Intn(1<<16+1))) //nolint:gosec
 	}
-	for _, i := range elementIds{
+
+	for _, i := range elementIds {
+		i := i // pin!
 		fSpec = FieldSpecifier{i, 11, 0}
 		t.Run(fmt.Sprintf("FieldSpecifier %v", fSpec), func(t *testing.T) {
 			eSpec := fSpec.ElementSpecifier()
 			if eSpec.ElementID != fSpec.ElementID || eSpec.EnterpriseNumber != fSpec.EnterpriseNumber {
 				t.Errorf("FieldSpecifier.ElementSpecifier() = %v for %v", eSpec, fSpec)
 			}
-			if ((i < 1<<15) && fSpec.E()) || ((i >= 1<<15) && ! fSpec.E()) {
+			if ((i < 1<<15) && fSpec.E()) || ((i >= 1<<15) && !fSpec.E()) {
 				t.Errorf("FieldSpecifier.E() = %v, which is unexpected for %v", fSpec.E(), fSpec)
 			}
 			if (i >= 1<<15) && fSpec.EnterpriseNumber != 0 {
@@ -151,6 +158,7 @@ func TestFieldSpecifier_E(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.arg.E(); got != tt.want {
 				t.Errorf("FieldSpecifier.E() = %v, want %v", got, tt.want)
@@ -197,6 +205,7 @@ func TestFieldSpecifier_Size(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.arg.Size(); got != tt.want {
 				t.Errorf("FieldSpecifier.Size() == %v, want % v", got, tt.want)
@@ -205,6 +214,7 @@ func TestFieldSpecifier_Size(t *testing.T) {
 	}
 }
 
+//nolint:funlen
 func TestElementSpecifier_InformationElement(t *testing.T) {
 	tests := []struct {
 		name       string
@@ -329,6 +339,7 @@ func TestElementSpecifier_InformationElement(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			if got, _ := InformationElement(tt.arg); got != tt.want {
 				t.Errorf("InformationElement(%v) == %v, want %v", tt.arg, got, tt.want)
@@ -365,6 +376,7 @@ func TestFieldSpecifier_String(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.arg.String(); got != tt.want {
 				t.Errorf("FieldSpecifier.String() = %v, want %v", got, tt.want)
@@ -396,6 +408,7 @@ func TestFieldDefinition_String(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.arg.String(); got != tt.want {
 				t.Errorf("FieldDefinition.String() = %v, want %v", got, tt.want)
@@ -404,6 +417,7 @@ func TestFieldDefinition_String(t *testing.T) {
 	}
 }
 
+//nolint:funlen
 func TestFieldSpecifier_InformationElement(t *testing.T) {
 	tests := []struct {
 		name       string
@@ -528,6 +542,7 @@ func TestFieldSpecifier_InformationElement(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt // pin!
 		t.Run(tt.name, func(t *testing.T) {
 			if got, _ := tt.arg.InformationElement(); got != tt.want {
 				t.Errorf("FieldSpecifier.InformationElement() == %v, want %v", got, tt.want)
