@@ -9,7 +9,7 @@ const (
 	fieldSpecifierWEnterpriseSize = 8
 )
 
-// ErrorElement is an error definition associated with IPFIX Elements.
+// ElementError is an error definition associated with IPFIX Elements.
 type ElementError struct {
 	msg string
 	err error
@@ -20,10 +20,10 @@ func (e *ElementError) Error() string {
 	return e.msg
 }
 
-// Define Unwrap function on the ElementError.
+// Unwrap is a function that returns an error wrapped in the ElementError.
 func (e *ElementError) Unwrap() error { return e.err }
 
-// Then create an error object using MyError struct.
+// ElementErrorInstance is a function which returns an ElementError with specified msg and err fields.
 func ElementErrorInstance(msg string, err error) error {
 	return &ElementError{msg, err}
 	// return errors.New("msg")
