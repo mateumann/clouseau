@@ -13,13 +13,13 @@ fmt: fmt-cmd fmt-ipfix
 
 .PHONY: fmt-cmd
 fmt-cmd:
-	gofmt -s -w cmd/collector/*.go
-	goimports -w cmd/collector/*.go
+	gofumpt -s -w cmd/collector/*.go
+	gofumports -w cmd/collector/*.go
 
 .PHONY: fmt-ipfix
 fmt-ipfix:
-	gofmt -s -w encoding/ipfix/*.go
-	goimports -w encoding/ipfix/*.go
+	gofumpt -s -w encoding/ipfix/*.go
+	gofumports -w encoding/ipfix/*.go
 
 .PHONY: lint
 lint:
