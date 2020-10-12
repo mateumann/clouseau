@@ -18,11 +18,26 @@ func TestUnmarshal_OutIsNil(t *testing.T) {
 	}
 }
 
+func TestUnmarshal_TmplatesAreNil(t *testing.T) {
+	var out Message
+
+	buffer := make([]byte, 60)
+
+	buffer[3] = 21
+	buffer[17] = 2
+
+	err := Unmarshal(buffer, nil, &out)
+
+	if err == nil {
+		t.Errorf("Error should have not been nil: %v", err)
+	}
+}
+
 func TestUnmarshal_ReadError(t *testing.T) {
+	var message Message
+
 	buffer := make([]byte, 60)
 	templates := make([]TemplateRecord, 2)
-
-	var message Message
 
 	err := Unmarshal(buffer, &templates, &message)
 	if err != nil {
