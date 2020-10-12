@@ -1,11 +1,84 @@
 package ipfix
 
 import (
+	"errors"
 	"fmt"
 	"math/rand"
 	"testing"
 	"time"
 )
+
+func TestElementError_Error(t *testing.T) {
+	testError1 := errors.New("test error created with errors.New")       // nolint:goerr113
+	testError2 := fmt.Errorf("test error created with %v", "fmt.Errorf") // nolint:goerr113
+	tests := []struct {
+		name string
+		arg  ElementError
+		want string
+	}{
+		{
+			name: "Error from errors.New",
+			arg: ElementError{
+				msg: "an error message one",
+				err: testError1,
+			},
+			want: "an error message one",
+		},
+		{
+			name: "Error from fmt.Errorf",
+			arg: ElementError{
+				msg: "an error message two",
+				err: testError2,
+			},
+			want: "an error message two",
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt // pin!
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.arg.Error(); got != tt.want {
+				t.Errorf("ElementError.Error() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestElementError_Unwrap(t *testing.T) {
+	testError1 := errors.New("test error created with errors.New")       // nolint:goerr113
+	testError2 := fmt.Errorf("test error created with %v", "fmt.Errorf") // nolint:goerr113
+	tests := []struct {
+		name string
+		arg  ElementError
+		want error
+	}{
+		{
+			name: "Error from errors.New",
+			arg: ElementError{
+				msg: "a message",
+				err: testError1,
+			},
+			want: testError1,
+		},
+		{
+			name: "Error from fmt.Errorf",
+			arg: ElementError{
+				msg: "a message",
+				err: testError2,
+			},
+			want: testError2,
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt // pin!
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.arg.Unwrap(); got != tt.want { // nolint:goerr113
+				t.Errorf("ElementError.Unwrap() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
 
 func TestElementSpecifier_E(t *testing.T) {
 	tests := []struct {

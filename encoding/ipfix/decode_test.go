@@ -7,19 +7,27 @@ import (
 	"time"
 )
 
-func readFromFile(fileName string) []byte {
-	file, err := os.Open(fileName)
-	if err != nil {
-		return nil
-	}
-	defer file.Close()
+func TestUnmarshal_OutIsNil(t *testing.T) {
+	buffer := make([]byte, 60)
+	templates := make([]TemplateRecord, 2)
 
-	bytes, err := ioutil.ReadAll(file)
-	if err != nil {
-		return nil
-	}
+	err := Unmarshal(buffer, &templates, nil)
 
-	return bytes
+	if err == nil {
+		t.Errorf("Error should have not been nil: %v", err)
+	}
+}
+
+func TestUnmarshal_ReadError(t *testing.T) {
+	buffer := make([]byte, 60)
+	templates := make([]TemplateRecord, 2)
+
+	var message Message
+
+	err := Unmarshal(buffer, &templates, &message)
+	if err != nil {
+		t.Errorf("Error during Unmarshallings: %v", err)
+	}
 }
 
 func TestUnmarshal(t *testing.T) {
@@ -83,4 +91,19 @@ func TestUnmarshal(t *testing.T) {
 			// TODO compare number of Tempates (Records?) in a TemplateSets to their declared length
 		})
 	}
+}
+
+func readFromFile(fileName string) []byte {
+	file, err := os.Open(fileName)
+	if err != nil {
+		return nil
+	}
+	defer file.Close()
+
+	bytes, err := ioutil.ReadAll(file)
+	if err != nil {
+		return nil
+	}
+
+	return bytes
 }

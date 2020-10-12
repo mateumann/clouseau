@@ -13,6 +13,10 @@ import (
 // A single Message consists of a Message Header and a number of Sets.
 // https://www.ietf.org/rfc/rfc7011.html#section-3
 func Unmarshal(in []byte, templates *[]TemplateRecord, out *Message) error {
+	if out == nil {
+		return errors.New("invalid syntax: output message pointer is nil") // nolint:goerr113
+	}
+
 	reader := bytes.NewReader(in)
 
 	if err := binary.Read(reader, binary.BigEndian, &out.Header); err != nil {
