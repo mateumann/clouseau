@@ -43,11 +43,11 @@ jobs:
 
       - run: mkdir -p $TEST_RESULTS
 
-#      - run:
-#          name: Run standard unit tests
-#          command: |
-#            make test | tee ${TEST_RESULTS}/go-test.out
-#            mv coverage.txt ${TEST_RESULTS}/coverage.txt
+      - run:
+          name: Run standard unit tests
+          command: |
+            make test | tee ${TEST_RESULTS}/go-test.out
+            mv coverage.txt ${TEST_RESULTS}/coverage.txt
 
       - run:
           name: Run unit tests

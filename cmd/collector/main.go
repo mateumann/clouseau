@@ -8,12 +8,16 @@ import (
 	"github.com/mateumann/clouseau/encoding/ipfix"
 )
 
+const (
+	eightKB   = 8 * 1024
+	ipfixPort = 4739
+)
+
 func main() {
 	conn, err := net.ListenUDP("udp", &net.UDPAddr{
-		Port: 4739,
+		Port: ipfixPort,
 		IP:   net.ParseIP("0.0.0.0"),
 	})
-
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -25,16 +29,21 @@ func main() {
 	var templates *[]ipfix.TemplateRecord
 
 	for {
-		buf := make([]byte, 8*1024)
+		buf := make([]byte, eightKB)
 		bufferLen, remote, err := conn.ReadFromUDP(buf)
+
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal(err) //nolint:gocritic
 		}
+
 		var message ipfix.Message
+
 		if err := ipfix.Unmarshal(buf, templates, &message); err != nil {
 			log.Fatal(err)
 		}
+
 		fmt.Printf("%s from %s (%d byte(s), %d set(s))\n", message.Header, remote.IP, bufferLen, len(message.Sets))
+
 		for i, v := range message.Sets {
 			fmt.Printf(" #%01d %s\n", i, v)
 		}

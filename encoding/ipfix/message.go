@@ -34,9 +34,11 @@ func (t SetType) String() string {
 		return "Template Set"
 	case OptionsTemplateSetType:
 		return "Options Template Set"
-	default:
+	case UnknownSetType:
 		return "Unknown Set"
 	}
+
+	return "Unknown Set"
 }
 
 // A Message represents a IPFIX Message.  It consists of a single Message Header and multiple Sets.
@@ -62,6 +64,7 @@ const headerLength uint16 = 16
 // Stringer implementation for IPFIX Header.
 func (h Header) String() string {
 	timestamp := time.Unix(int64(h.ExportTime), 0).UTC()
+
 	return fmt.Sprintf("IPFIX Message Header (%v) [domain %v; seq %v; exported at %v]",
 		h.VersionNumber, h.ObservationDomainID, h.SequenceNumber, timestamp.Format("15:04:05"))
 }
@@ -77,6 +80,7 @@ type SetHeader struct {
 const setHeaderLength uint16 = 4
 
 // Type returns SetType based on SetId provided in IPFIX Set Header.
+//nolint:gomnd
 func (h SetHeader) Type() SetType {
 	switch {
 	case h.SetID == 2:
@@ -125,12 +129,12 @@ type TemplateRecordHeader struct {
 }
 
 // A templateRecordHeaderLength defines the length of a IPFIX Template Record Header.
-//const templateRecordHeaderLength uint16 = 4
+// const templateRecordHeaderLength uint16 = 4
 
 // A TemplateRecord represents a IPFIX Template Record.
 // https://www.ietf.org/rfc/rfc7011.html#section-3.4.1
 type TemplateRecord struct {
-	//Header          TemplateRecordHeader
+	// Header          TemplateRecordHeader
 	FieldSpecifiers []FieldSpecifier
 }
 
