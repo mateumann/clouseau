@@ -96,7 +96,7 @@ func (h SetHeader) Type() SetType {
 
 // Stringer implementation for IPFIX SetHeader.
 func (h SetHeader) String() string {
-	return fmt.Sprintf("IPFIX Set Header (%s)", h.Type())
+	return fmt.Sprintf("IPFIX %s Header (id=%v, length=%v)", h.Type(), h.SetID, h.Length)
 }
 
 // A Set represents any of three IPFIX sets: Data Set, Template Set or Options Template Set.

@@ -140,32 +140,32 @@ func TestSetHeader_String(t *testing.T) {
 		{
 			name: "Zero Set Header",
 			arg:  SetHeader{0, 0},
-			want: "IPFIX Set Header (Unknown Set)",
+			want: "IPFIX Unknown Set Header (id=0, length=0)",
 		},
 		{
 			name: "Template Set Header",
 			arg:  SetHeader{2, 0},
-			want: "IPFIX Set Header (Template Set)",
+			want: "IPFIX Template Set Header (id=2, length=0)",
 		},
 		{
 			name: "Options Template Set Header",
 			arg:  SetHeader{3, 0},
-			want: "IPFIX Set Header (Options Template Set)",
+			want: "IPFIX Options Template Set Header (id=3, length=0)",
 		},
 		{
 			name: "Unknown Set Header",
 			arg:  SetHeader{255, 0},
-			want: "IPFIX Set Header (Unknown Set)",
+			want: "IPFIX Unknown Set Header (id=255, length=0)",
 		},
 		{
 			name: "Data Set Header (id=256)",
 			arg:  SetHeader{256, 0},
-			want: "IPFIX Set Header (Data Set)",
+			want: "IPFIX Data Set Header (id=256, length=0)",
 		},
 		{
 			name: "Another Data Set Header (id=258)",
 			arg:  SetHeader{258, 0},
-			want: "IPFIX Set Header (Data Set)",
+			want: "IPFIX Data Set Header (id=258, length=0)",
 		},
 	}
 	for _, tt := range tests {
