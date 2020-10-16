@@ -26,7 +26,6 @@ func (e *ElementError) Unwrap() error { return e.err }
 // ElementErrorInstance is a function which returns an ElementError with specified msg and err fields.
 func ElementErrorInstance(msg string, err error) error {
 	return &ElementError{msg, err}
-	// return errors.New("msg")
 }
 
 // FieldType is an abstract data types of the IPFIX information model

@@ -60,7 +60,7 @@ func Unmarshal(in []byte, templates *[]TemplateRecord, out *Message) error {
 					return err
 				}
 
-				bytesRead += dataSet.SetHeader.Length
+				bytesRead += dataSet.SetHeader.Length - setHeaderLength
 
 				out.Sets = append(out.Sets, dataSet)
 			}
