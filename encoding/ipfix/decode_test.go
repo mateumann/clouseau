@@ -45,6 +45,7 @@ func TestUnmarshal_ReadError(t *testing.T) {
 	}
 }
 
+//nolint:funlen
 func TestUnmarshal(t *testing.T) {
 	tests := []struct {
 		name string
@@ -58,7 +59,7 @@ func TestUnmarshal(t *testing.T) {
 				Header: Header{
 					VersionNumber:       10,
 					Length:              296,
-					ExportTime:          uint32(time.Date(2020, 0o6, 15, 0o6, 31, 13, 0, time.UTC).Unix()),
+					ExportTime:          uint32(time.Date(2020, 6, 15, 6, 31, 13, 0, time.UTC).Unix()),
 					SequenceNumber:      0,
 					ObservationDomainID: 0,
 				},
@@ -80,13 +81,35 @@ func TestUnmarshal(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "Unmarshal a single Data Set with padding",
+			arg:  readFromFile("../../testdata/stream/data_258_1set_padding.bin"),
+			want: Message{
+				Header: Header{
+					VersionNumber:       10,
+					Length:              124,
+					ExportTime:          uint32(time.Date(2020, 6, 15, 6, 33, 23, 0, time.UTC).Unix()),
+					SequenceNumber:      188,
+					ObservationDomainID: 0,
+				},
+				Sets: []Set{
+					DataSet{
+						SetHeader: SetHeader{
+							SetID:  258,
+							Length: 108,
+						},
+						Records: nil,
+					},
+				},
+			},
+		},
 	}
 
-	var got Message
-
-	templates := make([]TemplateRecord, 0)
-
 	for _, tt := range tests {
+		var got Message
+
+		templates := make([]TemplateRecord, 0)
+
 		tt := tt // pin!
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.arg == nil {

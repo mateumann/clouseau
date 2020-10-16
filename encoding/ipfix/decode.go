@@ -17,6 +17,10 @@ func Unmarshal(in []byte, templates *[]TemplateRecord, out *Message) error {
 		return errors.New("invalid syntax: output message pointer is nil") // nolint:goerr113
 	}
 
+	if templates == nil {
+		return errors.New("invalid syntax: templates list is nil") // nolint:goerr113
+	}
+
 	reader := bytes.NewReader(in)
 
 	if err := binary.Read(reader, binary.BigEndian, &out.Header); err != nil {
@@ -33,38 +37,37 @@ func Unmarshal(in []byte, templates *[]TemplateRecord, out *Message) error {
 		switch setHeader.Type() {
 		case TemplateSetType:
 			var templateSet TemplateSet
-			setBytesRead, err := readTemplateSet(reader, &templateSet)
 
+			setBytesRead, err := readTemplateSet(reader, &templateSet)
 			if err != nil {
 				return err
 			}
 
 			out.Sets = append(out.Sets, templateSet)
 
-			if templates != nil {
-				*templates = append(*templates, templateSet.Records...)
-			} else {
-				return errors.New("invalid syntax: provide a non-empty list of TemplateRecords") // nolint:goerr113
-			}
+			*templates = append(*templates, templateSet.Records...)
 
 			bytesRead += setBytesRead
+
 		case OptionsTemplateSetType:
 		case DataSetType:
 			var dataSet DataSet
 			dataSet.SetHeader = setHeader
 			// if templates are empty, there is nothing but reading dataSet.SetHeader.Length octets to be done
-			if templates == nil {
+			if len(*templates) == 0 {
 				stream := make([]uint8, dataSet.SetHeader.Length-setHeaderLength)
 				if err := binary.Read(reader, binary.BigEndian, &stream); err != nil {
 					return err
 				}
-				// TODO
+
+				bytesRead += dataSet.SetHeader.Length
+
+				out.Sets = append(out.Sets, dataSet)
 			}
 
 		case UnknownSetType:
 		default:
-			// TODO there is (could be) some issue with padding, maybe not always bytesRead would be equeal to
-			//      setBytesRead but rather setHeader.Length ???
+			bytesRead++ // FIXME this is a temporary solution while not everything is yet implemented
 		}
 	}
 
