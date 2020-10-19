@@ -10,7 +10,7 @@ import (
 // TODO: what about padding (less bytes in data structures than declared message size)?
 
 // Unmarshal stream of bytes into a IPFIX Message.
-// A single Message consists of a Message Header and a number of Sets.
+// A single Message consists of a MessageHeader and an array of Set-s.
 // https://www.ietf.org/rfc/rfc7011.html#section-3
 func Unmarshal(in []byte, templates *[]TemplateRecord, out *Message) error {
 	if out == nil {
@@ -27,16 +27,24 @@ func Unmarshal(in []byte, templates *[]TemplateRecord, out *Message) error {
 		return err
 	}
 
-	var setHeader SetHeader
-	// Read Set by Set starting with SetHeader
-	if err := binary.Read(reader, binary.BigEndian, &setHeader); err != nil {
-		return err
-	}
+	// There can be more than one sets in each Message, so…
 
-	for bytesRead := headerLength + setHeaderLength; bytesRead < out.Header.Length; {
+	for bytesRead := messageHeaderLength; bytesRead < out.Header.Length; {
+		var setHeader SetHeader
+
+		// Read Set by Set starting with header
+		if err := binary.Read(reader, binary.BigEndian, &setHeader); err != nil {
+			return err
+		}
+
+		bytesRead += setHeaderLength
+
 		switch setHeader.Type() {
 		case TemplateSetType:
-			var templateSet TemplateSet
+			templateSet := TemplateSet{
+				header:  setHeader,
+				records: nil,
+			}
 
 			setBytesRead, err := readTemplateSet(reader, &templateSet)
 			if err != nil {
@@ -45,22 +53,22 @@ func Unmarshal(in []byte, templates *[]TemplateRecord, out *Message) error {
 
 			out.Sets = append(out.Sets, templateSet)
 
-			*templates = append(*templates, templateSet.Records...)
+			*templates = append(*templates, templateSet.records...)
 
 			bytesRead += setBytesRead
 
 		case OptionsTemplateSetType:
 		case DataSetType:
 			var dataSet DataSet
-			dataSet.SetHeader = setHeader
-			// if templates are empty, there is nothing but reading dataSet.SetHeader.Length octets to be done
+			dataSet.header = setHeader
+			// if templates are empty, there is nothing but reading dataSet.header.Length octets to be done
 			if len(*templates) == 0 {
-				stream := make([]uint8, dataSet.SetHeader.Length-setHeaderLength)
+				stream := make([]uint8, dataSet.header.Length-setHeaderLength)
 				if err := binary.Read(reader, binary.BigEndian, &stream); err != nil {
 					return err
 				}
 
-				bytesRead += dataSet.SetHeader.Length - setHeaderLength
+				bytesRead += dataSet.header.Length - setHeaderLength
 
 				out.Sets = append(out.Sets, dataSet)
 			}
@@ -74,22 +82,21 @@ func Unmarshal(in []byte, templates *[]TemplateRecord, out *Message) error {
 	return nil
 }
 
+// TODO: implement as some kind of super-method that would “automagically” allow for
+//       things like binary.Read(reader, binary.BinEndian, &aTemplateSet)
 func readTemplateSet(reader io.Reader, out *TemplateSet) (uint16, error) {
-	// TODO: implement as some kind of super-method that would “automagically” allow for
-	//       things like binary.Read(reader, binary.BinEndian, &aTemplateSet)
 	var bytesRead uint16
 
-	if err := binary.Read(reader, binary.BigEndian, &out.SetHeader); err != nil {
-		return 0, err
-	}
-
-	for bytesRead = setHeaderLength; bytesRead < out.SetHeader.Length; {
+	for bytesRead = 0; bytesRead < out.header.Length-setHeaderLength; {
 		var templateRecord TemplateRecord
-		// if err := binary.Read(reader, binary.BigEndian, &templateRecord.Header); err != nil {
-		// 	return bytesRead, err
-		// }
-		// bytesRead += templateRecordHeaderLength
-		for i := uint16(0); i < out.Header().Length; i++ {
+
+		if err := binary.Read(reader, binary.BigEndian, &templateRecord.TemplateHeader); err != nil {
+			return 0, err
+		}
+
+		bytesRead += templateRecordHeaderLength
+
+		for i := uint16(0); i < templateRecord.TemplateHeader.FieldCount; i++ {
 			fieldSpecifier := FieldSpecifier{0, 0, 0}
 
 			if err := binary.Read(reader, binary.BigEndian, &fieldSpecifier.ElementID); err != nil {
@@ -110,7 +117,7 @@ func readTemplateSet(reader io.Reader, out *TemplateSet) (uint16, error) {
 			bytesRead += fieldSpecifier.Size()
 		}
 
-		out.Records = append(out.Records, templateRecord)
+		out.records = append(out.records, templateRecord)
 	}
 
 	return bytesRead, nil
