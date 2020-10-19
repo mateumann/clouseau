@@ -156,7 +156,7 @@ func (s DataSet) Type() SetType {
 	return DataSetType
 }
 
-// MessageHeader function returns Data Set's IPFIX MessageHeader.
+// Header function returns Data Set's IPFIX SetHeader.
 func (s DataSet) Header() SetHeader {
 	return s.header
 }
