@@ -1,5 +1,5 @@
 .PHONY: all
-all: fmt lint test build
+all: lint test build
 
 .PHONY: clean
 clean: clean-bin
