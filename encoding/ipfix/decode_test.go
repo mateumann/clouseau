@@ -3,43 +3,74 @@ package ipfix
 import (
 	"io/ioutil"
 	"os"
+	"reflect"
 	"testing"
 	"time"
 )
 
-func TestUnmarshal_OutIsNil(t *testing.T) {
-	buffer := make([]byte, 60)
-	templates := make([]TemplateRecord, 2)
+func TestUnmarshal_ValueIsNil(t *testing.T) {
+	var decode Decode
 
-	err := Unmarshal(buffer, &templates, nil)
+	buffer := make([]byte, 60)
+
+	err := decode.Unmarshal(buffer, nil)
 
 	if err == nil {
 		t.Errorf("Error should have not been nil: %v", err)
 	}
 }
 
-func TestUnmarshal_TmplatesAreNil(t *testing.T) {
-	var out Message
+func TestInvalidUnmarshalError_Error(t *testing.T) {
+	tests := []struct {
+		name string
+		arg  interface{}
+		want string
+	}{
+		{
+			name: "Unmarshal nil",
+			arg:  nil,
+			want: "ipfix: Unmarshal(nil)",
+		},
+		{
+			name: "Unmarshal integer",
+			arg:  1,
+			want: "ipfix: Unmarshal(non-pointer int)",
+		},
+		{
+			name: "Unmarshal string",
+			arg:  "A message",
+			want: "ipfix: Unmarshal(non-pointer string)",
+		},
+		{
+			name: "ipfix: Unmarshal ipfix.Message",
+			arg: Message{
+				Header: MessageHeader{},
+				Sets:   nil,
+			},
+			want: "ipfix: Unmarshal(non-pointer ipfix.Message)",
+		},
+	}
 
-	buffer := make([]byte, 60)
+	for _, tt := range tests {
+		tt := tt // pin!
 
-	buffer[3] = 21
-	buffer[17] = 2
-
-	err := Unmarshal(buffer, nil, &out)
-
-	if err == nil {
-		t.Errorf("Error should have not been nil: %v", err)
+		t.Run(tt.name, func(t *testing.T) {
+			err := &InvalidUnmarshalError{reflect.TypeOf(tt.arg)}
+			if err.Error() != tt.want {
+				t.Errorf("%v: got %v, want %v", tt.name, err, tt.want)
+			}
+		})
 	}
 }
 
 func TestUnmarshal_ReadError(t *testing.T) {
+	var decode Decode
+
 	var message Message
 
 	buffer := make([]byte, 60)
-	templates := make([]TemplateRecord, 2)
 
-	err := Unmarshal(buffer, &templates, &message)
+	err := decode.Unmarshal(buffer, &message)
 	if err != nil {
 		t.Errorf("Error during Unmarshallings: %v", err)
 	}
@@ -452,9 +483,9 @@ func TestUnmarshal(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		var got Message
+		var decode Decode
 
-		templates := make([]TemplateRecord, 0)
+		var got Message
 
 		tt := tt // pin!
 
@@ -464,7 +495,7 @@ func TestUnmarshal(t *testing.T) {
 
 				return
 			}
-			_ = Unmarshal(tt.arg, &templates, &got)
+			_ = decode.Unmarshal(tt.arg, &got)
 			if got.Header != tt.want.Header {
 				t.Errorf("%v: got %v, want %v", tt.name, got.Header, tt.want.Header)
 			}

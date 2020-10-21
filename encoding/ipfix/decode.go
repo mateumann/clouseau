@@ -3,83 +3,110 @@ package ipfix
 import (
 	"bytes"
 	"encoding/binary"
-	"errors"
 	"io"
+	"reflect"
 )
 
 // TODO: what about padding (less bytes in data structures than declared message size)?
 
+// An InvalidUnmarshalError describes an invalid argument passed to Unmarshal.
+// (The argument to Unmarshal must be a non-nil pointer.)
+type InvalidUnmarshalError struct {
+	Type reflect.Type
+}
+
+func (e *InvalidUnmarshalError) Error() string {
+	if e.Type == nil {
+		return "ipfix: Unmarshal(nil)"
+	}
+
+	if e.Type.Kind() != reflect.Ptr {
+		return "ipfix: Unmarshal(non-pointer " + e.Type.String() + ")"
+	}
+
+	return "ipfix: Unmarshal(nil " + e.Type.String() + ")"
+}
+
+type Decode struct {
+	templates []TemplateRecord
+}
+
 // Unmarshal stream of bytes into a IPFIX Message.
 // A single Message consists of a MessageHeader and an array of Set-s.
 // https://www.ietf.org/rfc/rfc7011.html#section-3
-func Unmarshal(in []byte, templates *[]TemplateRecord, out *Message) error {
-	if out == nil {
-		return errors.New("invalid syntax: output message pointer is nil") // nolint:goerr113
-	}
-
-	if templates == nil {
-		return errors.New("invalid syntax: templates list is nil") // nolint:goerr113
+func (d *Decode) Unmarshal(in []byte, message *Message) error {
+	rv := reflect.ValueOf(message)
+	if rv.Kind() != reflect.Ptr || rv.IsNil() {
+		return &InvalidUnmarshalError{reflect.TypeOf(message)}
 	}
 
 	reader := bytes.NewReader(in)
 
-	if err := binary.Read(reader, binary.BigEndian, &out.Header); err != nil {
+	if err := binary.Read(reader, binary.BigEndian, &message.Header); err != nil {
 		return err
 	}
 
-	// There can be more than one sets in each Message, so…
+	for bytesRead := messageHeaderLength; bytesRead < message.Header.Length; {
+		setBytesRead, err := d.readSet(reader, message)
 
-	for bytesRead := messageHeaderLength; bytesRead < out.Header.Length; {
-		var setHeader SetHeader
-
-		// Read Set by Set starting with header
-		if err := binary.Read(reader, binary.BigEndian, &setHeader); err != nil {
+		if err != nil {
 			return err
 		}
 
-		bytesRead += setHeaderLength
-
-		switch setHeader.Type() {
-		case TemplateSetType:
-			templateSet := TemplateSet{
-				header:  setHeader,
-				records: nil,
-			}
-
-			setBytesRead, err := readTemplateSet(reader, &templateSet)
-			if err != nil {
-				return err
-			}
-
-			out.Sets = append(out.Sets, templateSet)
-
-			*templates = append(*templates, templateSet.records...)
-
-			bytesRead += setBytesRead
-
-		case OptionsTemplateSetType:
-		case DataSetType:
-			var dataSet DataSet
-			dataSet.header = setHeader
-			// if templates are empty, there is nothing but reading dataSet.header.Length octets to be done
-			if len(*templates) == 0 {
-				stream := make([]uint8, dataSet.header.Length-setHeaderLength)
-				if err := binary.Read(reader, binary.BigEndian, &stream); err != nil {
-					return err
-				}
-
-				bytesRead += dataSet.header.Length - setHeaderLength
-
-				out.Sets = append(out.Sets, dataSet)
-			}
-
-		case UnknownSetType:
-		default:
-			bytesRead++ // FIXME this is a temporary solution while not everything is yet implemented
-		}
+		bytesRead += setBytesRead
 	}
 
 	return nil
+}
+
+func (d *Decode) readSet(reader io.Reader, message *Message) (uint16, error) {
+	var setHeader SetHeader
+	if err := binary.Read(reader, binary.BigEndian, &setHeader); err != nil {
+		return 0, err
+	}
+
+	bytesRead := setHeaderLength
+
+	switch setHeader.Type() {
+	case TemplateSetType:
+		templateSet := TemplateSet{
+			header:  setHeader,
+			records: nil,
+		}
+
+		setBytesRead, err := readTemplateSet(reader, &templateSet)
+		if err != nil {
+			return bytesRead, err
+		}
+
+		message.Sets = append(message.Sets, templateSet)
+
+		d.templates = append(d.templates, templateSet.records...)
+
+		bytesRead += setBytesRead
+
+	case OptionsTemplateSetType:
+	case DataSetType:
+		var dataSet DataSet
+		dataSet.header = setHeader
+		// if templates are empty, there is nothing but reading dataSet.header.Length octets to be done
+		if len(d.templates) == 0 {
+			stream := make([]uint8, dataSet.header.Length-setHeaderLength)
+			if err := binary.Read(reader, binary.BigEndian, &stream); err != nil {
+				return bytesRead, err
+			}
+
+			bytesRead += dataSet.header.Length - setHeaderLength
+
+			message.Sets = append(message.Sets, dataSet)
+		}
+
+	case UnknownSetType:
+	default:
+		bytesRead++ // FIXME this is a temporary solution while not everything is yet implemented
+	}
+
+	return bytesRead, nil
 }
 
 // TODO: implement as some kind of super-method that would “automagically” allow for
