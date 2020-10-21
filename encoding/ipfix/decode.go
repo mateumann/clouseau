@@ -27,6 +27,7 @@ func (e *InvalidUnmarshalError) Error() string {
 	return "ipfix: Unmarshal(nil " + e.Type.String() + ")"
 }
 
+// Decode represents the data used to decode IPFIX messages.
 type Decode struct {
 	templates []TemplateRecord
 }
