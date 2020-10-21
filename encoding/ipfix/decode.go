@@ -3,7 +3,7 @@ package ipfix
 import (
 	"bytes"
 	"encoding/binary"
-	"io"
+	"fmt"
 	"reflect"
 )
 
@@ -47,9 +47,8 @@ func (d *Decode) Unmarshal(in []byte, message *Message) error {
 		return err
 	}
 
-	for bytesRead := messageHeaderLength; bytesRead < message.Header.Length; {
+	for bytesRead := messageHeaderLength; bytesRead < int64(message.Header.Length); {
 		setBytesRead, err := d.readSet(reader, message)
-
 		if err != nil {
 			return err
 		}
@@ -60,13 +59,13 @@ func (d *Decode) Unmarshal(in []byte, message *Message) error {
 	return nil
 }
 
-func (d *Decode) readSet(reader io.Reader, message *Message) (uint16, error) {
+// readSet reads a single Set from the reader and stores it in the Message or
+// Decode structures depending on its type.
+func (d *Decode) readSet(reader *bytes.Reader, message *Message) (int64, error) {
 	var setHeader SetHeader
 	if err := binary.Read(reader, binary.BigEndian, &setHeader); err != nil {
 		return 0, err
 	}
-
-	bytesRead := setHeaderLength
 
 	switch setHeader.Type() {
 	case TemplateSetType:
@@ -75,16 +74,14 @@ func (d *Decode) readSet(reader io.Reader, message *Message) (uint16, error) {
 			records: nil,
 		}
 
-		setBytesRead, err := readTemplateSet(reader, &templateSet)
+		_, err := readTemplateSet(reader, &templateSet)
 		if err != nil {
-			return bytesRead, err
+			return reader.Size() - int64(reader.Len()), err
 		}
 
 		message.Sets = append(message.Sets, templateSet)
 
 		d.templates = append(d.templates, templateSet.records...)
-
-		bytesRead += setBytesRead
 
 	case OptionsTemplateSetType:
 	case DataSetType:
@@ -94,25 +91,24 @@ func (d *Decode) readSet(reader io.Reader, message *Message) (uint16, error) {
 		if len(d.templates) == 0 {
 			stream := make([]uint8, dataSet.header.Length-setHeaderLength)
 			if err := binary.Read(reader, binary.BigEndian, &stream); err != nil {
-				return bytesRead, err
+				return reader.Size() - int64(reader.Len()), err
 			}
-
-			bytesRead += dataSet.header.Length - setHeaderLength
 
 			message.Sets = append(message.Sets, dataSet)
 		}
 
 	case UnknownSetType:
 	default:
-		bytesRead++ // FIXME this is a temporary solution while not everything is yet implemented
+		// FIXME this is a temporary solution while not everything is yet implemented
+		fmt.Printf("ipfix Decode.readSet at %v", reader.Len())
 	}
 
-	return bytesRead, nil
+	return reader.Size() - int64(reader.Len()), nil
 }
 
 // TODO: implement as some kind of super-method that would “automagically” allow for
 //       things like binary.Read(reader, binary.BinEndian, &aTemplateSet)
-func readTemplateSet(reader io.Reader, out *TemplateSet) (uint16, error) {
+func readTemplateSet(reader *bytes.Reader, out *TemplateSet) (int64, error) {
 	var bytesRead uint16
 
 	for bytesRead = 0; bytesRead < out.header.Length-setHeaderLength; {
@@ -128,16 +124,16 @@ func readTemplateSet(reader io.Reader, out *TemplateSet) (uint16, error) {
 			fieldSpecifier := FieldSpecifier{0, 0, 0}
 
 			if err := binary.Read(reader, binary.BigEndian, &fieldSpecifier.ElementID); err != nil {
-				return bytesRead, err
+				return reader.Size() - int64(reader.Len()), err
 			}
 
 			if err := binary.Read(reader, binary.BigEndian, &fieldSpecifier.FieldLength); err != nil {
-				return bytesRead + 2, err
+				return reader.Size() - int64(reader.Len()), err
 			}
 
 			if fieldSpecifier.E() {
 				if err := binary.Read(reader, binary.BigEndian, &fieldSpecifier.EnterpriseNumber); err != nil {
-					return bytesRead + 4, err
+					return reader.Size() - int64(reader.Len()), err
 				}
 			}
 
@@ -148,5 +144,5 @@ func readTemplateSet(reader io.Reader, out *TemplateSet) (uint16, error) {
 		out.records = append(out.records, templateRecord)
 	}
 
-	return bytesRead, nil
+	return reader.Size() - int64(reader.Len()), nil
 }

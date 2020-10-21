@@ -59,7 +59,7 @@ type MessageHeader struct {
 }
 
 // A messageHeaderLength defines the length of a IPFIX Message MessageHeader.
-const messageHeaderLength uint16 = 16
+const messageHeaderLength int64 = 16
 
 // Stringer implementation for IPFIX MessageHeader.
 func (h MessageHeader) String() string {

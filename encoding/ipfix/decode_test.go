@@ -1,12 +1,60 @@
 package ipfix
 
 import (
+	"bytes"
 	"io/ioutil"
 	"os"
 	"reflect"
 	"testing"
 	"time"
 )
+
+func TestReadSet_EmptySet(t *testing.T) {
+	var decode Decode
+
+	message := Message{
+		Header: MessageHeader{
+			Length: 4,
+		},
+	}
+
+	buffer := []byte{0x00, 0x00, 0x00, 0x00}
+	reader := bytes.NewReader(buffer)
+	bytesRead, err := decode.readSet(reader, &message)
+
+	if err != nil {
+		t.Errorf("Error should not have occurred: %v", err)
+	}
+
+	if bytesRead != int64(message.Header.Length) {
+		// t.Errorf("%v: got %v, want %v", tt.name, err, tt.want)
+		t.Errorf("Read empty set got %v, want %v", bytesRead, message.Header.Length)
+	}
+}
+
+func TestReadSet_UnexpectedEOF(t *testing.T) {
+	var decode Decode
+
+	message := Message{
+		Header: MessageHeader{
+			Length: 1,
+		},
+	}
+
+	buffer := []byte{0x00, 0x00, 0x00}
+	reader := bytes.NewReader(buffer)
+	bytesRead, err := decode.readSet(reader, &message)
+
+	if err == nil {
+		t.Errorf("Error should have occurred (but didn't)")
+	} else if err.Error() != "unexpected EOF" {
+		t.Errorf("Was expecting 'unexpected EOF' error but got: %v", err)
+	}
+
+	if bytesRead != 0 {
+		t.Errorf("Should read 0 bytes, but read instead: %v", bytesRead)
+	}
+}
 
 func TestUnmarshal_ValueIsNil(t *testing.T) {
 	var decode Decode
@@ -17,6 +65,8 @@ func TestUnmarshal_ValueIsNil(t *testing.T) {
 
 	if err == nil {
 		t.Errorf("Error should have not been nil: %v", err)
+	} else if err.Error() != "ipfix: Unmarshal(nil *ipfix.Message)" {
+		t.Errorf("Was expecting 'ipfix: Unmarshal(nil *ipfix.Message)' error but got: %v", err)
 	}
 }
 
