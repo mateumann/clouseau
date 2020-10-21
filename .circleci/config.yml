@@ -77,6 +77,6 @@ jobs:
       - store_test_results: # upload test results for display in Test Summary
           path: /tmp/test-results
 
-#      - codecov/upload:
-#          file: ${TEST_RESULTS}/coverage.txt
-#          token: ''
+      - codecov/upload:
+          file: ${TEST_RESULTS}/coverage.txt
+          token: ''
