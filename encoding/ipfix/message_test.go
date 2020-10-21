@@ -55,22 +55,22 @@ func TestSetType_String(t *testing.T) {
 func TestHeader_String(t *testing.T) {
 	tests := []struct {
 		name string
-		arg  Header
+		arg  MessageHeader
 		want string
 	}{
 		{
 			name: "Perfectly valid Message Header",
-			arg:  Header{10, 11, uint32(time.Date(2020, 2, 2, 2, 2, 2, 2, time.UTC).Unix()), 1, 0},
+			arg:  MessageHeader{10, 11, uint32(time.Date(2020, 2, 2, 2, 2, 2, 2, time.UTC).Unix()), 1, 0},
 			want: "IPFIX Message Header (10) [domain 0; seq 1; exported at 02:02:02]",
 		},
 		{
 			name: "Somewhat strange Message Header",
-			arg:  Header{999, 9999, uint32(time.Date(2020, 2, 2, 2, 2, 2, 2, time.UTC).Unix()), 99, 99999},
+			arg:  MessageHeader{999, 9999, uint32(time.Date(2020, 2, 2, 2, 2, 2, 2, time.UTC).Unix()), 99, 99999},
 			want: "IPFIX Message Header (999) [domain 99999; seq 99; exported at 02:02:02]",
 		},
 		{
 			name: "Zero (weird) Message Header",
-			arg:  Header{0, 0, 0, 0, 0},
+			arg:  MessageHeader{0, 0, 0, 0, 0},
 			want: "IPFIX Message Header (0) [domain 0; seq 0; exported at 00:00:00]",
 		},
 	}
@@ -78,7 +78,7 @@ func TestHeader_String(t *testing.T) {
 		tt := tt // pin!
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.arg.String(); got != tt.want {
-				t.Errorf("Header.String() = %v, want %v", got, tt.want)
+				t.Errorf("MessageHeader.String() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -91,32 +91,32 @@ func TestSetHeader_Type(t *testing.T) {
 		want SetType
 	}{
 		{
-			name: "Zero Set Header",
+			name: "Zero Set MessageHeader",
 			arg:  SetHeader{0, 0},
 			want: UnknownSetType,
 		},
 		{
-			name: "Template Set Header",
+			name: "Template Set MessageHeader",
 			arg:  SetHeader{2, 0},
 			want: TemplateSetType,
 		},
 		{
-			name: "Options Template Set Header",
+			name: "Options Template Set MessageHeader",
 			arg:  SetHeader{3, 0},
 			want: OptionsTemplateSetType,
 		},
 		{
-			name: "Unknown Set Header",
+			name: "Unknown Set MessageHeader",
 			arg:  SetHeader{255, 0},
 			want: UnknownSetType,
 		},
 		{
-			name: "Data Set Header (id=256)",
+			name: "Data Set MessageHeader (id=256)",
 			arg:  SetHeader{256, 0},
 			want: DataSetType,
 		},
 		{
-			name: "Another Data Set Header (id=258)",
+			name: "Another Data Set MessageHeader (id=258)",
 			arg:  SetHeader{258, 0},
 			want: DataSetType,
 		},
@@ -125,7 +125,7 @@ func TestSetHeader_Type(t *testing.T) {
 		tt := tt // pin!
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.arg.Type(); got != tt.want {
-				t.Errorf("SetHeader.Type() = %v, want %v", got, tt.want)
+				t.Errorf("header.Type() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -138,41 +138,41 @@ func TestSetHeader_String(t *testing.T) {
 		want string
 	}{
 		{
-			name: "Zero Set Header",
+			name: "Zero Set MessageHeader",
 			arg:  SetHeader{0, 0},
-			want: "IPFIX Set Header (Unknown Set)",
+			want: "IPFIX Unknown Set Header (id=0, length=0)",
 		},
 		{
-			name: "Template Set Header",
+			name: "Template Set MessageHeader",
 			arg:  SetHeader{2, 0},
-			want: "IPFIX Set Header (Template Set)",
+			want: "IPFIX Template Set Header (id=2, length=0)",
 		},
 		{
-			name: "Options Template Set Header",
+			name: "Options Template Set MessageHeader",
 			arg:  SetHeader{3, 0},
-			want: "IPFIX Set Header (Options Template Set)",
+			want: "IPFIX Options Template Set Header (id=3, length=0)",
 		},
 		{
-			name: "Unknown Set Header",
+			name: "Unknown Set MessageHeader",
 			arg:  SetHeader{255, 0},
-			want: "IPFIX Set Header (Unknown Set)",
+			want: "IPFIX Unknown Set Header (id=255, length=0)",
 		},
 		{
-			name: "Data Set Header (id=256)",
+			name: "Data Set MessageHeader (id=256)",
 			arg:  SetHeader{256, 0},
-			want: "IPFIX Set Header (Data Set)",
+			want: "IPFIX Data Set Header (id=256, length=0)",
 		},
 		{
-			name: "Another Data Set Header (id=258)",
+			name: "Another Data Set MessageHeader (id=258)",
 			arg:  SetHeader{258, 0},
-			want: "IPFIX Set Header (Data Set)",
+			want: "IPFIX Data Set Header (id=258, length=0)",
 		},
 	}
 	for _, tt := range tests {
 		tt := tt // pin!
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.arg.String(); got != tt.want {
-				t.Errorf("SetHeader.String() = %v, want %v", got, tt.want)
+				t.Errorf("header.String() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -196,12 +196,12 @@ func TestTemplateSet_Header(t *testing.T) {
 		want SetHeader
 	}{
 		{
-			name: "Template Set with a Zero Set Header",
+			name: "Template Set with a Zero Set MessageHeader",
 			arg:  TemplateSet{SetHeader{0, 0}, nil},
 			want: SetHeader{0, 0},
 		},
 		{
-			name: "A valid Template Set (with proper SetHeader)",
+			name: "A valid Template Set (with proper header)",
 			arg:  TemplateSet{SetHeader{2, 0}, nil},
 			want: SetHeader{2, 0},
 		},
@@ -210,7 +210,7 @@ func TestTemplateSet_Header(t *testing.T) {
 		tt := tt // pin!
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.arg.Header(); got != tt.want {
-				t.Errorf("TemplateSet.SetHeader() = %v, want %v", got, tt.want)
+				t.Errorf("TemplateSet.header() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -234,12 +234,12 @@ func TestDataSet_Header(t *testing.T) {
 		want SetHeader
 	}{
 		{
-			name: "Data Set with a Zero Set Header",
+			name: "Data Set with a Zero Set MessageHeader",
 			arg:  DataSet{SetHeader{0, 0}, nil},
 			want: SetHeader{0, 0},
 		},
 		{
-			name: "A valid Data Set (with proper SetHeader)",
+			name: "A valid Data Set (with proper header)",
 			arg:  DataSet{SetHeader{259, 0}, nil},
 			want: SetHeader{259, 0},
 		},
@@ -248,7 +248,7 @@ func TestDataSet_Header(t *testing.T) {
 		tt := tt // pin!
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.arg.Header(); got != tt.want {
-				t.Errorf("DataSet.SetHeader() = %v, want %v", got, tt.want)
+				t.Errorf("DataSet.header() = %v, want %v", got, tt.want)
 			}
 		})
 	}

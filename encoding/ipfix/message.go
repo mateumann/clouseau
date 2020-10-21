@@ -41,16 +41,16 @@ func (t SetType) String() string {
 	return "Unknown Set"
 }
 
-// A Message represents a IPFIX Message.  It consists of a single Message Header and multiple Sets.
+// A Message represents a IPFIX Message.  It consists of a single Message MessageHeader and multiple Sets.
 // https://www.ietf.org/rfc/rfc7011.html#section-3
 type Message struct {
-	Header Header
+	Header MessageHeader
 	Sets   []Set
 }
 
-// A Header represents a IPFIX header.
+// A MessageHeader represents a IPFIX header.
 // see https://tools.ietf.org/html/rfc7011#section-3.1
-type Header struct {
+type MessageHeader struct {
 	VersionNumber       uint16
 	Length              uint16
 	ExportTime          uint32
@@ -58,28 +58,28 @@ type Header struct {
 	ObservationDomainID uint32
 }
 
-// A headerLength defines the length of a IPFIX Message Header.
-const headerLength uint16 = 16
+// A messageHeaderLength defines the length of a IPFIX Message MessageHeader.
+const messageHeaderLength int64 = 16
 
-// Stringer implementation for IPFIX Header.
-func (h Header) String() string {
+// Stringer implementation for IPFIX MessageHeader.
+func (h MessageHeader) String() string {
 	timestamp := time.Unix(int64(h.ExportTime), 0).UTC()
 
 	return fmt.Sprintf("IPFIX Message Header (%v) [domain %v; seq %v; exported at %v]",
 		h.VersionNumber, h.ObservationDomainID, h.SequenceNumber, timestamp.Format("15:04:05"))
 }
 
-// A SetHeader represents a IPFIX Set Header.
+// A SetHeader represents a IPFIX Set MessageHeader.
 // https://www.ietf.org/rfc/rfc7011.html#section-3.3.2
 type SetHeader struct {
 	SetID  uint16
 	Length uint16
 }
 
-// A setHeaderLength defines the length of a IPFIX Set Header.
+// A setHeaderLength defines the length of a IPFIX Set MessageHeader.
 const setHeaderLength uint16 = 4
 
-// Type returns SetType based on SetId provided in IPFIX Set Header.
+// Type returns SetType based on SetId provided in IPFIX Set MessageHeader.
 //nolint:gomnd
 func (h SetHeader) Type() SetType {
 	switch {
@@ -96,20 +96,21 @@ func (h SetHeader) Type() SetType {
 
 // Stringer implementation for IPFIX SetHeader.
 func (h SetHeader) String() string {
-	return fmt.Sprintf("IPFIX Set Header (%s)", h.Type())
+	return fmt.Sprintf("IPFIX %s Header (id=%v, length=%v)", h.Type(), h.SetID, h.Length)
 }
 
 // A Set represents any of three IPFIX sets: Data Set, Template Set or Options Template Set.
 type Set interface {
 	Type() SetType
 	Header() SetHeader
+	TemplateRecords() []TemplateRecord
 }
 
 // A TemplateSet type represents a IPFIX Template Set.  It consists of a SetHeader and number of TemplateRecords.
 // https://www.ietf.org/rfc/rfc7011.html#section-3.4.1
 type TemplateSet struct {
-	SetHeader SetHeader
-	Records   []TemplateRecord
+	header  SetHeader
+	records []TemplateRecord
 }
 
 // Type function returns TemplateSetType for any TemplateSet.
@@ -119,30 +120,35 @@ func (s TemplateSet) Type() SetType {
 
 // Header function returns Template Set's IPFIX Header.
 func (s TemplateSet) Header() SetHeader {
-	return s.SetHeader
+	return s.header
 }
 
-// TemplateRecordHeader represents a IPFIX Template Record Header.
+// TemplateRecords function returns Template Set's records.
+func (s TemplateSet) TemplateRecords() []TemplateRecord {
+	return s.records
+}
+
+// TemplateRecordHeader represents a IPFIX Template Record MessageHeader.
 type TemplateRecordHeader struct {
 	TemplateID uint16
 	FieldCount uint16
 }
 
-// A templateRecordHeaderLength defines the length of a IPFIX Template Record Header.
-// const templateRecordHeaderLength uint16 = 4
+// A templateRecordHeaderLength defines the length of a IPFIX Template Record MessageHeader.
+const templateRecordHeaderLength uint16 = 4
 
 // A TemplateRecord represents a IPFIX Template Record.
 // https://www.ietf.org/rfc/rfc7011.html#section-3.4.1
 type TemplateRecord struct {
-	// Header          TemplateRecordHeader
+	TemplateHeader  TemplateRecordHeader
 	FieldSpecifiers []FieldSpecifier
 }
 
 // A DataSet type represents a IPFIX Data Set.  It consists of a SetHeader and number of DataRecords.
 // https://tools.ietf.org/html/rfc7011#section-3.4.3
 type DataSet struct {
-	SetHeader SetHeader
-	Records   []DataRecord
+	header  SetHeader
+	records []DataRecord
 }
 
 // Type function returns DataSetType for any DataSet.
@@ -150,9 +156,14 @@ func (s DataSet) Type() SetType {
 	return DataSetType
 }
 
-// Header function returns Data Set's IPFIX Header.
+// Header function returns Data Set's IPFIX SetHeader.
 func (s DataSet) Header() SetHeader {
-	return s.SetHeader
+	return s.header
+}
+
+// TemplateRecords function returns nil.
+func (s DataSet) TemplateRecords() []TemplateRecord {
+	return nil
 }
 
 // A DataRecord represents a single portion of data transmitted in IPFIX Data Sets.

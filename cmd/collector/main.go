@@ -26,7 +26,7 @@ func main() {
 
 	fmt.Printf("Server listening %s\n", conn.LocalAddr().String())
 
-	var templates *[]ipfix.TemplateRecord
+	// var templates *[]ipfix.TemplateRecord
 
 	for {
 		buf := make([]byte, eightKB)
@@ -36,9 +36,11 @@ func main() {
 			log.Fatal(err) //nolint:gocritic
 		}
 
+		var decode ipfix.Decode
+
 		var message ipfix.Message
 
-		if err := ipfix.Unmarshal(buf, templates, &message); err != nil {
+		if err := decode.Unmarshal(buf, &message); err != nil {
 			log.Fatal(err)
 		}
 
