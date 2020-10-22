@@ -5,12 +5,12 @@
 [![codecov](https://codecov.io/gh/mateumann/clouseau/branch/master/graph/badge.svg)](https://codecov.io/gh/mateumann/clouseau)
 [![license](https://img.shields.io/github/license/mateumann/clouseau)](https://github.com/mateumann/clouseau/blob/master/LICENSE)
 
-Packet statistics collector (and analyser). The name is inspired by the famous
+Packet statistics collector (and analyser). The name comes from the famous
 Inspector Clouseau and his adventures.
 
 ## Architecture
 
-Project (will be) built from components, each of them doing exactly one job.
+Project (will be) built from components, each of them performing one task only.
 The first one is collector which listenes for incomming
 [IP Flow Information Export (IPFIX)](https://tools.ietf.org/html/rfc7011)
 packets.
