@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"io/ioutil"
 	"os"
-	"reflect"
 	"testing"
 	"time"
 )
@@ -27,7 +26,6 @@ func TestReadSet_EmptySet(t *testing.T) {
 	}
 
 	if bytesRead != int64(message.Header.Length) {
-		// t.Errorf("%v: got %v, want %v", tt.name, err, tt.want)
 		t.Errorf("Read empty set got %v, want %v", bytesRead, message.Header.Length)
 	}
 }
@@ -65,51 +63,8 @@ func TestUnmarshal_ValueIsNil(t *testing.T) {
 
 	if err == nil {
 		t.Errorf("Error should have not been nil: %v", err)
-	} else if err.Error() != "ipfix: Unmarshal(nil *ipfix.Message)" {
-		t.Errorf("Was expecting 'ipfix: Unmarshal(nil *ipfix.Message)' error but got: %v", err)
-	}
-}
-
-func TestInvalidUnmarshalError_Error(t *testing.T) {
-	tests := []struct {
-		name string
-		arg  interface{}
-		want string
-	}{
-		{
-			name: "Unmarshal nil",
-			arg:  nil,
-			want: "ipfix: Unmarshal(nil)",
-		},
-		{
-			name: "Unmarshal integer",
-			arg:  1,
-			want: "ipfix: Unmarshal(non-pointer int)",
-		},
-		{
-			name: "Unmarshal string",
-			arg:  "A message",
-			want: "ipfix: Unmarshal(non-pointer string)",
-		},
-		{
-			name: "ipfix: Unmarshal ipfix.Message",
-			arg: Message{
-				Header: MessageHeader{},
-				Sets:   nil,
-			},
-			want: "ipfix: Unmarshal(non-pointer ipfix.Message)",
-		},
-	}
-
-	for _, tt := range tests {
-		tt := tt // pin!
-
-		t.Run(tt.name, func(t *testing.T) {
-			err := &InvalidUnmarshalError{reflect.TypeOf(tt.arg)}
-			if err.Error() != tt.want {
-				t.Errorf("%v: got %v, want %v", tt.name, err, tt.want)
-			}
-		})
+	} else if err.Error() != "ipfix: Unmarshal(nil)" {
+		t.Errorf("Was expecting 'ipfix: Unmarshal(nil)' error but got: %v", err)
 	}
 }
 
