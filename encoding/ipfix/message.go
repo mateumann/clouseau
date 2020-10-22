@@ -162,7 +162,7 @@ func (s DataSet) Header() SetHeader {
 }
 
 // TemplateRecords function returns nil.
-func (s DataSet) TemplateRecords() []TemplateRecord {
+func (_ DataSet) TemplateRecords() []TemplateRecord {
 	return nil
 }
 
