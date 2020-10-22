@@ -26,7 +26,6 @@ func TestReadSet_EmptySet(t *testing.T) {
 	}
 
 	if bytesRead != int64(message.Header.Length) {
-		// t.Errorf("%v: got %v, want %v", tt.name, err, tt.want)
 		t.Errorf("Read empty set got %v, want %v", bytesRead, message.Header.Length)
 	}
 }
