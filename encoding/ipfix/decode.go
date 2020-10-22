@@ -4,27 +4,17 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"reflect"
 )
 
 // TODO: what about padding (less bytes in data structures than declared message size)?
 
 // An InvalidUnmarshalError describes an invalid argument passed to Unmarshal.
-// (The argument to Unmarshal must be a non-nil pointer.)
+// (The argument to Unmarshal must be a non-nil pointer to the Message struct.)
 type InvalidUnmarshalError struct {
-	Type reflect.Type
 }
 
 func (e *InvalidUnmarshalError) Error() string {
-	if e.Type == nil {
-		return "ipfix: Unmarshal(nil)"
-	}
-
-	if e.Type.Kind() != reflect.Ptr {
-		return "ipfix: Unmarshal(non-pointer " + e.Type.String() + ")"
-	}
-
-	return "ipfix: Unmarshal(nil " + e.Type.String() + ")"
+	return "ipfix: Unmarshal(nil)"
 }
 
 // Decode represents the data used to decode IPFIX messages.
@@ -36,9 +26,8 @@ type Decode struct {
 // A single Message consists of a MessageHeader and an array of Set-s.
 // https://www.ietf.org/rfc/rfc7011.html#section-3
 func (d *Decode) Unmarshal(in []byte, message *Message) error {
-	rv := reflect.ValueOf(message)
-	if rv.Kind() != reflect.Ptr || rv.IsNil() {
-		return &InvalidUnmarshalError{reflect.TypeOf(message)}
+	if message == nil {
+		return &InvalidUnmarshalError{}
 	}
 
 	reader := bytes.NewReader(in)
