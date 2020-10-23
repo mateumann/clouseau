@@ -12,7 +12,7 @@ func TestReadSet_EmptySet(t *testing.T) {
 	var decode Decode
 
 	message := Message{
-		Header: MessageHeader{
+		Header: messageHeader{
 			Length: 4,
 		},
 	}
@@ -34,7 +34,7 @@ func TestReadSet_UnexpectedEOF(t *testing.T) {
 	var decode Decode
 
 	message := Message{
-		Header: MessageHeader{
+		Header: messageHeader{
 			Length: 1,
 		},
 	}
@@ -89,30 +89,30 @@ func TestUnmarshal(t *testing.T) {
 		want Message
 	}{
 		{
-			name: "Unmarshal a Template Set",
+			name: "Unmarshal a Template set",
 			arg:  readFromFile("../../testdata/stream/templates_258_259.bin"),
 			want: Message{
-				Header: MessageHeader{
+				Header: messageHeader{
 					VersionNumber:       10,
 					Length:              296,
 					ExportTime:          uint32(time.Date(2020, 6, 15, 6, 31, 13, 0, time.UTC).Unix()),
 					SequenceNumber:      0,
 					ObservationDomainID: 0,
 				},
-				// missing Flow Set header: Id (uint16) = 2, Length (uint16) = 280
-				Sets: []Set{
-					TemplateSet{
-						header: SetHeader{
+				// missing Flow set header: Id (uint16) = 2, Length (uint16) = 280
+				Sets: []set{
+					templateSet{
+						header: setHeader{
 							SetID:  2,
 							Length: 280,
 						},
-						records: []TemplateRecord{
+						records: []templateRecord{
 							{
-								TemplateHeader: TemplateRecordHeader{
+								TemplateHeader: templateRecordHeader{
 									TemplateID: 258,
 									FieldCount: 35,
 								},
-								FieldSpecifiers: []FieldSpecifier{
+								FieldSpecifiers: []fieldSpecifier{
 									{
 										ElementID:        60,
 										FieldLength:      1,
@@ -291,11 +291,11 @@ func TestUnmarshal(t *testing.T) {
 								},
 							},
 							{
-								TemplateHeader: TemplateRecordHeader{
+								TemplateHeader: templateRecordHeader{
 									TemplateID: 259,
 									FieldCount: 32,
 								},
-								FieldSpecifiers: []FieldSpecifier{
+								FieldSpecifiers: []fieldSpecifier{
 									{
 										ElementID:        60,
 										FieldLength:      1,
@@ -464,23 +464,23 @@ func TestUnmarshal(t *testing.T) {
 			},
 		},
 		{
-			name: "Unmarshal a single Data Set with padding",
+			name: "Unmarshal a single Data set with padding",
 			arg:  readFromFile("../../testdata/stream/data_258_1set_padding.bin"),
 			want: Message{
-				Header: MessageHeader{
+				Header: messageHeader{
 					VersionNumber:       10,
 					Length:              124,
 					ExportTime:          uint32(time.Date(2020, 6, 15, 6, 33, 23, 0, time.UTC).Unix()),
 					SequenceNumber:      188,
 					ObservationDomainID: 0,
 				},
-				Sets: []Set{
-					DataSet{
-						header: SetHeader{
+				Sets: []set{
+					dataSet{
+						header: setHeader{
 							SetID:  258,
 							Length: 108,
 						},
-						records: []DataRecord{},
+						records: []dataRecord{},
 					},
 				},
 			},
