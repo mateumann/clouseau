@@ -114,7 +114,7 @@ type templateSet struct {
 }
 
 // Type function returns TemplateSetType for any templateSet.
-func (s templateSet) Type() SetType {
+func (templateSet) Type() SetType {
 	return TemplateSetType
 }
 
@@ -152,7 +152,7 @@ type dataSet struct {
 }
 
 // Type function returns DataSetType for any dataSet.
-func (s dataSet) Type() SetType {
+func (dataSet) Type() SetType {
 	return DataSetType
 }
 

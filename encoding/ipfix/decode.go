@@ -12,7 +12,7 @@ import (
 // (The argument to Unmarshal must be a non-nil pointer to the Message struct.)
 type InvalidUnmarshalError struct{}
 
-func (e *InvalidUnmarshalError) Error() string {
+func (*InvalidUnmarshalError) Error() string {
 	return "ipfix: Unmarshal(nil)"
 }
 
