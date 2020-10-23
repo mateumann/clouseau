@@ -26,7 +26,7 @@ func main() {
 
 	fmt.Printf("Server listening %s\n", conn.LocalAddr().String())
 
-	// var templates *[]ipfix.TemplateRecord
+	// var templates *[]ipfix.templateRecord
 
 	for {
 		buf := make([]byte, eightKB)

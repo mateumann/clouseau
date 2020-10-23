@@ -10,20 +10,19 @@ import (
 
 // An InvalidUnmarshalError describes an invalid argument passed to Unmarshal.
 // (The argument to Unmarshal must be a non-nil pointer to the Message struct.)
-type InvalidUnmarshalError struct {
-}
+type InvalidUnmarshalError struct{}
 
-func (e *InvalidUnmarshalError) Error() string {
+func (*InvalidUnmarshalError) Error() string {
 	return "ipfix: Unmarshal(nil)"
 }
 
 // Decode represents the data used to decode IPFIX messages.
 type Decode struct {
-	templates []TemplateRecord
+	templates []templateRecord
 }
 
 // Unmarshal stream of bytes into a IPFIX Message.
-// A single Message consists of a MessageHeader and an array of Set-s.
+// A single Message consists of a messageHeader and an array of set-s.
 // https://www.ietf.org/rfc/rfc7011.html#section-3
 func (d *Decode) Unmarshal(in []byte, message *Message) error {
 	if message == nil {
@@ -48,17 +47,17 @@ func (d *Decode) Unmarshal(in []byte, message *Message) error {
 	return nil
 }
 
-// readSet reads a single Set from the reader and stores it in the Message or
+// readSet reads a single set from the reader and stores it in the Message or
 // Decode structures depending on its type.
 func (d *Decode) readSet(reader *bytes.Reader, message *Message) (int64, error) {
-	var setHeader SetHeader
+	var setHeader setHeader
 	if err := binary.Read(reader, binary.BigEndian, &setHeader); err != nil {
 		return 0, err
 	}
 
 	switch setHeader.Type() {
 	case TemplateSetType:
-		templateSet := TemplateSet{
+		templateSet := templateSet{
 			header:  setHeader,
 			records: nil,
 		}
@@ -74,7 +73,7 @@ func (d *Decode) readSet(reader *bytes.Reader, message *Message) (int64, error) 
 
 	case OptionsTemplateSetType:
 	case DataSetType:
-		var dataSet DataSet
+		var dataSet dataSet
 		dataSet.header = setHeader
 		// if templates are empty, there is nothing but reading dataSet.header.Length octets to be done
 		if len(d.templates) == 0 {
@@ -97,11 +96,11 @@ func (d *Decode) readSet(reader *bytes.Reader, message *Message) (int64, error) 
 
 // TODO: implement as some kind of super-method that would “automagically” allow for
 //       things like binary.Read(reader, binary.BinEndian, &aTemplateSet)
-func readTemplateSet(reader *bytes.Reader, out *TemplateSet) (int64, error) {
+func readTemplateSet(reader *bytes.Reader, out *templateSet) (int64, error) {
 	var bytesRead uint16
 
 	for bytesRead = 0; bytesRead < out.header.Length-setHeaderLength; {
-		var templateRecord TemplateRecord
+		var templateRecord templateRecord
 
 		if err := binary.Read(reader, binary.BigEndian, &templateRecord.TemplateHeader); err != nil {
 			return 0, err
@@ -110,7 +109,7 @@ func readTemplateSet(reader *bytes.Reader, out *TemplateSet) (int64, error) {
 		bytesRead += templateRecordHeaderLength
 
 		for i := uint16(0); i < templateRecord.TemplateHeader.FieldCount; i++ {
-			fieldSpecifier := FieldSpecifier{0, 0, 0}
+			fieldSpecifier := fieldSpecifier{0, 0, 0}
 
 			if err := binary.Read(reader, binary.BigEndian, &fieldSpecifier.ElementID); err != nil {
 				return reader.Size() - int64(reader.Len()), err
