@@ -9,23 +9,14 @@ const (
 	fieldSpecifierWEnterpriseSize = 8
 )
 
-// ElementError is an error definition associated with IPFIX Elements.
-type ElementError struct {
+// elementError is an error definition associated with IPFIX Elements.
+type elementError struct {
 	msg string
-	err error
 }
 
-// Associate Error() function to the ElementError.
-func (e *ElementError) Error() string {
+// Associate Error() function to the elementError.
+func (e *elementError) Error() string {
 	return e.msg
-}
-
-// Unwrap is a function that returns an error wrapped in the ElementError.
-func (e *ElementError) Unwrap() error { return e.err }
-
-// ElementErrorInstance is a function which returns an ElementError with specified msg and err fields.
-func ElementErrorInstance(msg string, err error) error {
-	return &ElementError{msg, err}
 }
 
 // FieldType is an abstract data types of the IPFIX information model
@@ -228,7 +219,7 @@ func informationElement(elementSpec elementSpecifier) (fieldDefinition, error) {
 	}
 
 	return fieldDefinition{UnknownFieldType, ""},
-		ElementErrorInstance(fmt.Sprintf("IPFIX information element (field definition) not found for %v", elementSpec), nil)
+		&elementError{fmt.Sprintf("ipfix: field definition not found for %v", elementSpec)}
 }
 
 // informationElement returns a fieldDefinition basing on provided fieldSpecifier.
