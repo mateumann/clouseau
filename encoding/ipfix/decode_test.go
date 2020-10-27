@@ -20,7 +20,6 @@ func TestReadSet_EmptySet(t *testing.T) {
 	buffer := []byte{0x00, 0x00, 0x00, 0x00}
 	reader := bytes.NewReader(buffer)
 	bytesRead, err := decode.readSet(reader, &message)
-
 	if err != nil {
 		t.Errorf("Error should not have occurred: %v", err)
 	}
