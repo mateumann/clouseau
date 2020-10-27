@@ -19,14 +19,14 @@ func (e *elementError) Error() string {
 	return e.msg
 }
 
-// FieldType is an abstract data types of the IPFIX information model
+// fieldType is an abstract data types of the IPFIX information model
 // https://tools.ietf.org/html/rfc7012#section-3.1
 // https://www.iana.org/assignments/ipfix/ipfix.xhtml#ipfix-information-element-data-types
-type FieldType uint8
+type fieldType uint8
 
 const (
 	// OctetArray represents a finite-length string of octets.
-	OctetArray FieldType = iota
+	OctetArray fieldType = iota
 	// Uint8 represents non-negative integer value in the range of 0 to 255.
 	Uint8
 	// Uint16 represents non-negative integer value in the range of 0 to 65535.
@@ -134,7 +134,7 @@ func (fieldSpec fieldSpecifier) String() string {
 
 // fieldDefinition describes a IPFIX field (single data).
 type fieldDefinition struct {
-	Type FieldType
+	Type fieldType
 	Name string
 }
 
