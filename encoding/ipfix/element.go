@@ -128,9 +128,13 @@ func (fieldSpec fieldSpecifier) Size() uint16 {
 	return fieldSpecifierSize
 }
 
-// func (fieldSpec fieldSpecifier) String() string {
-// 	return fieldSpec.ElementSpecifier().String()
-// }
+func (fieldSpec fieldSpecifier) String() string {
+	if fieldSpec.E() {
+		return fmt.Sprintf("Element %d, Enterprise number %d", fieldSpec.elementID, fieldSpec.enterpriseNumber)
+	}
+
+	return fmt.Sprintf("Element %d", fieldSpec.elementID)
+}
 
 // fieldDefinition describes a IPFIX field (single data).
 type fieldDefinition struct {
@@ -146,115 +150,76 @@ func (fieldDef fieldDefinition) String() string {
 	return fmt.Sprintf("Field '%s'", fieldDef.Name)
 }
 
-// Kind of immutable map (as there is no such thing as constant map in Go).
-func ipfixInformationElements(elementID uint16, enterpriseNumber uint32) fieldDefinition {
+func informationElement(elementID uint16, enterpriseNumber uint32) fieldDefinition {
 	if enterpriseNumber == 0 {
-		switch elementID {
-		case 1:
-			return fieldDefinition{Uint64, "octetDeltaCount"}
-		case 2:
-			return fieldDefinition{Uint64, "packetDeltaCount"}
-		case 3:
-			return fieldDefinition{Uint64, "deltaFlowCount"}
-		case 4:
-			return fieldDefinition{Uint8, "protocolIdentifier"}
-		case 5:
-			return fieldDefinition{Uint8, "ipClassOfService"}
-		case 6:
-			return fieldDefinition{Uint16, "tcpControlBits"}
-		case 7:
-			return fieldDefinition{Uint16, "sourceTransportPort"}
-		case 8:
-			return fieldDefinition{IPv4Address, "sourceIPv4Address"}
-		case 9:
-			return fieldDefinition{Uint8, "sourceIPv4PrefixLength"}
-		case 10:
-			return fieldDefinition{Uint32, "ingressInterface"}
-		case 11:
-			return fieldDefinition{Uint16, "destinationTransportPort"}
-		case 12:
-			return fieldDefinition{IPv4Address, "destinationIPv4Address"}
-		case 13:
-			return fieldDefinition{Uint8, "destinationIPv4PrefixLength"}
-		case 14:
-			return fieldDefinition{Uint32, "egressInterface"}
-		case 15:
-			return fieldDefinition{IPv4Address, "ipNextHopIPv4Address"}
-		// many, many more, but let's focus on those actually used by my MikroTik
-		case 21:
-			return fieldDefinition{Uint32, "flowEndSysUpTime"}
-		case 22:
-			return fieldDefinition{Uint32, "flowStartSysUpTime"}
-		// many, many more, but let's focus on those actually used by my MikroTik
-		case 27:
-			return fieldDefinition{IPv6Address, "sourceIPv6Address"}
-		case 28:
-			return fieldDefinition{IPv6Address, "destinationIPv6Address"}
-		case 29:
-			return fieldDefinition{Uint8, "sourceIPv6PrefixLength"}
-		case 30:
-			return fieldDefinition{Uint8, "destinationIPv6PrefixLength"}
-		case 31:
-			return fieldDefinition{Uint32, "flowLabelIPv6"}
-		case 32:
-			return fieldDefinition{Uint16, "icmpTypeCodeIPv4"}
-		case 33:
-			return fieldDefinition{Uint8, "igmpType"}
-		// many, many more, but let's focus on those actually used by my MikroTik
-		case 56:
-			return fieldDefinition{MacAddress, "sourceMacAddress"}
-		// many, many more, but let's focus on those actually used by my MikroTik
-		case 60:
-			return fieldDefinition{Uint8, "ipVersion"}
-		// many, many more, but let's focus on those actually used by my MikroTik
-		case 62:
-			return fieldDefinition{IPv6Address, "ipNextHopIPv6Address"}
-		// many, many more, but let's focus on those actually used by my MikroTik
-		case 80:
-			return fieldDefinition{MacAddress, "destinationMacAddress"}
-		case 81:
-			return fieldDefinition{MacAddress, "postSourceMacAddress"}
-		// many, many more, but let's focus on those actually used by my MikroTik
-		case 176:
-			return fieldDefinition{Uint8, "icmpTypeIPv4"}
-		case 177:
-			return fieldDefinition{Uint8, "icmpCodeIPv4"}
-		case 178:
-			return fieldDefinition{Uint8, "icmpTypeIPv6"}
-		case 179:
-			return fieldDefinition{Uint8, "icmpCodeIPv6"}
-		// many, many more, but let's focus on those actually used by my MikroTik
-		case 184:
-			return fieldDefinition{Uint32, "tcpSequenceNumber"}
-		case 185:
-			return fieldDefinition{Uint32, "tcpAcknowledgementNumber"}
-		case 186:
-			return fieldDefinition{Uint16, "tcpWindowSize"}
-		// many, many more, but let's focus on those actually used by my MikroTik
-		case 189:
-			return fieldDefinition{Uint8, "ipHeaderLength"}
-		// many, many more, but let's focus on those actually used by my MikroTik
-		case 192:
-			return fieldDefinition{Uint8, "ipTTL"}
-		// many, many more, but let's focus on those actually used by my MikroTik
-		case 205:
-			return fieldDefinition{Uint16, "udpMessageLength"}
-		case 206:
-			return fieldDefinition{Uint8, "isMulticast"}
-		// many, many more, but let's focus on those actually used by my MikroTik
-		case 224:
-			return fieldDefinition{Uint64, "ipTotalLength"}
-		case 225:
-			return fieldDefinition{IPv4Address, "postNATSourceIPv4Address"}
-		case 226:
-			return fieldDefinition{IPv4Address, "postNATDestinationIPv4Address"}
-		case 227:
-			return fieldDefinition{Uint16, "postNAPTSourceTransportPort"}
-		case 228:
-			return fieldDefinition{Uint16, "postNAPTDestinationTransportPort"}
+		if val, ok := ipfixInformationElement()[elementID]; ok {
+			return val
 		}
 	}
-	return fieldDefinition{UnknownFieldType, "unknown field"}
+	return fieldDefinition{UnknownFieldType, ""}
+}
+
+// Kind of immutable map (as there is no such thing as constant map in Go).
+func ipfixInformationElement() map[uint16]fieldDefinition {
+	return map[uint16]fieldDefinition{
+		1:  {Uint64, "octetDeltaCount"},
+		2:  {Uint64, "packetDeltaCount"},
+		3:  {Uint64, "deltaFlowCount"},
+		4:  {Uint8, "protocolIdentifier"},
+		5:  {Uint8, "ipClassOfService"},
+		6:  {Uint16, "tcpControlBits"},
+		7:  {Uint16, "sourceTransportPort"},
+		8:  {IPv4Address, "sourceIPv4Address"},
+		9:  {Uint8, "sourceIPv4PrefixLength"},
+		10: {Uint32, "ingressInterface"},
+		11: {Uint16, "destinationTransportPort"},
+		12: {IPv4Address, "destinationIPv4Address"},
+		13: {Uint8, "destinationIPv4PrefixLength"},
+		14: {Uint32, "egressInterface"},
+		15: {IPv4Address, "ipNextHopIPv4Address"},
+		// many, many more, but let's focus on those actually used by my MikroTik
+		21: {Uint32, "flowEndSysUpTime"},
+		22: {Uint32, "flowStartSysUpTime"},
+		// many, many more, but let's focus on those actually used by my MikroTik
+		27: {IPv6Address, "sourceIPv6Address"},
+		28: {IPv6Address, "destinationIPv6Address"},
+		29: {Uint8, "sourceIPv6PrefixLength"},
+		30: {Uint8, "destinationIPv6PrefixLength"},
+		31: {Uint32, "flowLabelIPv6"},
+		32: {Uint16, "icmpTypeCodeIPv4"},
+		33: {Uint8, "igmpType"},
+		// many, many more, but let's focus on those actually used by my MikroTik
+		56: {MacAddress, "sourceMacAddress"},
+		// many, many more, but let's focus on those actually used by my MikroTik
+		60: {Uint8, "ipVersion"},
+		// many, many more, but let's focus on those actually used by my MikroTik
+		62: {IPv6Address, "ipNextHopIPv6Address"},
+		// many, many more, but let's focus on those actually used by my MikroTik
+		80: {MacAddress, "destinationMacAddress"},
+		81: {MacAddress, "postSourceMacAddress"},
+		// many, many more, but let's focus on those actually used by my MikroTik
+		176: {Uint8, "icmpTypeIPv4"},
+		177: {Uint8, "icmpCodeIPv4"},
+		178: {Uint8, "icmpTypeIPv6"},
+		179: {Uint8, "icmpCodeIPv6"},
+		// many, many more, but let's focus on those actually used by my MikroTik
+		184: {Uint32, "tcpSequenceNumber"},
+		185: {Uint32, "tcpAcknowledgementNumber"},
+		186: {Uint16, "tcpWindowSize"},
+		// many, many more, but let's focus on those actually used by my MikroTik
+		189: {Uint8, "ipHeaderLength"},
+		// many, many more, but let's focus on those actually used by my MikroTik
+		192: {Uint8, "ipTTL"},
+		// many, many more, but let's focus on those actually used by my MikroTik
+		205: {Uint16, "udpMessageLength"},
+		206: {Uint8, "isMulticast"},
+		// many, many more, but let's focus on those actually used by my MikroTik
+		224: {Uint64, "ipTotalLength"},
+		225: {IPv4Address, "postNATSourceIPv4Address"},
+		226: {IPv4Address, "postNATDestinationIPv4Address"},
+		227: {Uint16, "postNAPTSourceTransportPort"},
+		228: {Uint16, "postNAPTDestinationTransportPort"},
+	}
 }
 
 // // informationElement retrieves a fieldDefinition from IPFIX fieldModel map.
