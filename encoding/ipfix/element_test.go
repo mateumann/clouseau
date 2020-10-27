@@ -46,32 +46,32 @@ func TestElementSpecifier_E(t *testing.T) {
 		want bool
 	}{
 		{
-			name: "Enterprise bit not set for small ElementID",
+			name: "Enterprise bit not set for small elementID",
 			arg:  elementSpecifier{0, 0},
 			want: false,
 		},
 		{
-			name: "Enterprise bit not set for larger ElementID",
+			name: "Enterprise bit not set for larger elementID",
 			arg:  elementSpecifier{19349, 0},
 			want: false,
 		},
 		{
-			name: "Enterprise bit not set for ElementID = 2^15 - 1",
+			name: "Enterprise bit not set for elementID = 2^15 - 1",
 			arg:  elementSpecifier{1<<15 - 1, 0},
 			want: false,
 		},
 		{
-			name: "Enterprise bit set for ElementID = 2^15",
+			name: "Enterprise bit set for elementID = 2^15",
 			arg:  elementSpecifier{1 << 15, 10},
 			want: true,
 		},
 		{
-			name: "Enterprise bit set for quite large ElementID",
+			name: "Enterprise bit set for quite large elementID",
 			arg:  elementSpecifier{43882, 11},
 			want: true,
 		},
 		{
-			name: "Enterprise bit set for maximum ElementID",
+			name: "Enterprise bit set for maximum elementID",
 			arg:  elementSpecifier{^uint16(0), 12},
 			want: true,
 		},
@@ -93,22 +93,22 @@ func TestElementSpecifier_String(t *testing.T) {
 		want string
 	}{
 		{
-			name: "elementSpecifier with no Enterprise bit set (ElementID = 0)",
+			name: "elementSpecifier with no Enterprise bit set (elementID = 0)",
 			arg:  elementSpecifier{0, 0},
 			want: "Element 0",
 		},
 		{
-			name: "elementSpecifier with no Enterprise bit set (ElementID = 19349)",
+			name: "elementSpecifier with no Enterprise bit set (elementID = 19349)",
 			arg:  elementSpecifier{19349, 0},
 			want: "Element 19349",
 		},
 		{
-			name: "elementSpecifier with Enterprise bit set for (ElementID = 43882)",
+			name: "elementSpecifier with Enterprise bit set for (elementID = 43882)",
 			arg:  elementSpecifier{43882, 10},
 			want: "Element 43882, Enterprise number 10",
 		},
 		{
-			name: "elementSpecifier with Enterprise bit set for maximum ElementID",
+			name: "elementSpecifier with Enterprise bit set for maximum elementID",
 			arg:  elementSpecifier{^uint16(0), 11},
 			want: "Element 65535, Enterprise number 11",
 		},
@@ -139,14 +139,14 @@ func TestFieldSpecifier_SemiRandom(t *testing.T) {
 		fSpec = fieldSpecifier{i, 11, 0}
 		t.Run(fmt.Sprintf("fieldSpecifier %v", fSpec), func(t *testing.T) {
 			eSpec := fSpec.ElementSpecifier()
-			if eSpec.ElementID != fSpec.ElementID || eSpec.EnterpriseNumber != fSpec.EnterpriseNumber {
+			if eSpec.elementID != fSpec.elementID || eSpec.enterpriseNumber != fSpec.enterpriseNumber {
 				t.Errorf("fieldSpecifier.elementSpecifier() = %v for %v", eSpec, fSpec)
 			}
 			if ((i < 1<<15) && fSpec.E()) || ((i >= 1<<15) && !fSpec.E()) {
 				t.Errorf("fieldSpecifier.E() = %v, which is unexpected for %v", fSpec.E(), fSpec)
 			}
-			if (i >= 1<<15) && fSpec.EnterpriseNumber != 0 {
-				t.Errorf("fieldSpecifier.EnterpriseNumber() = %v, should be 0 for %v", fSpec.EnterpriseNumber, fSpec)
+			if (i >= 1<<15) && fSpec.enterpriseNumber != 0 {
+				t.Errorf("fieldSpecifier.enterpriseNumber() = %v, should be 0 for %v", fSpec.enterpriseNumber, fSpec)
 			}
 		})
 	}
@@ -159,32 +159,32 @@ func TestFieldSpecifier_E(t *testing.T) {
 		want bool
 	}{
 		{
-			name: "Enterprise bit not set for small ElementID",
+			name: "Enterprise bit not set for small elementID",
 			arg:  fieldSpecifier{3, 8, 0},
 			want: false,
 		},
 		{
-			name: "Enterprise bit not set for larger ElementID",
+			name: "Enterprise bit not set for larger elementID",
 			arg:  fieldSpecifier{19349, 1, 0},
 			want: false,
 		},
 		{
-			name: "Enterprise bit not set for ElementID = 2^15 - 1",
+			name: "Enterprise bit not set for elementID = 2^15 - 1",
 			arg:  fieldSpecifier{1<<15 - 1, 1, 0},
 			want: false,
 		},
 		{
-			name: "Enterprise bit set for ElementID = 2^15",
+			name: "Enterprise bit set for elementID = 2^15",
 			arg:  fieldSpecifier{1 << 15, 8, 10},
 			want: true,
 		},
 		{
-			name: "Enterprise bit set for quite large ElementID",
+			name: "Enterprise bit set for quite large elementID",
 			arg:  fieldSpecifier{43882, 16, 11},
 			want: true,
 		},
 		{
-			name: "Enterprise bit set for maximum ElementID",
+			name: "Enterprise bit set for maximum elementID",
 			arg:  fieldSpecifier{^uint16(0), 32, 12},
 			want: true,
 		},
@@ -206,32 +206,32 @@ func TestFieldSpecifier_Size(t *testing.T) {
 		want uint16
 	}{
 		{
-			name: "Size of 4 octets for small ElementID",
+			name: "Size of 4 octets for small elementID",
 			arg:  fieldSpecifier{3, 8, 0},
 			want: uint16(4),
 		},
 		{
-			name: "Size of 4 octets for larger ElementID",
+			name: "Size of 4 octets for larger elementID",
 			arg:  fieldSpecifier{19349, 1, 0},
 			want: uint16(4),
 		},
 		{
-			name: "Size of 4 octets for ElementID = 2^15 - 1",
+			name: "Size of 4 octets for elementID = 2^15 - 1",
 			arg:  fieldSpecifier{1<<15 - 1, 1, 0},
 			want: uint16(4),
 		},
 		{
-			name: "Size of 8 octets for ElementID = 2^15",
+			name: "Size of 8 octets for elementID = 2^15",
 			arg:  fieldSpecifier{1 << 15, 8, 10},
 			want: uint16(8),
 		},
 		{
-			name: "Size of 8 octets for quite large ElementID",
+			name: "Size of 8 octets for quite large elementID",
 			arg:  fieldSpecifier{43882, 16, 11},
 			want: uint16(8),
 		},
 		{
-			name: "Size of 8 octets for maximum ElementID",
+			name: "Size of 8 octets for maximum elementID",
 			arg:  fieldSpecifier{^uint16(0), 32, 12},
 			want: uint16(8),
 		},
@@ -387,22 +387,22 @@ func TestFieldSpecifier_String(t *testing.T) {
 		want string
 	}{
 		{
-			name: "fieldSpecifier with no Enterprise bit set (ElementID = 0)",
+			name: "fieldSpecifier with no Enterprise bit set (elementID = 0)",
 			arg:  fieldSpecifier{0, 0, 0},
 			want: "Element 0",
 		},
 		{
-			name: "fieldSpecifier with no Enterprise bit set (ElementID = 19349)",
+			name: "fieldSpecifier with no Enterprise bit set (elementID = 19349)",
 			arg:  fieldSpecifier{19349, 11, 0},
 			want: "Element 19349",
 		},
 		{
-			name: "fieldSpecifier with Enterprise bit set for (ElementID = 43882)",
+			name: "fieldSpecifier with Enterprise bit set for (elementID = 43882)",
 			arg:  fieldSpecifier{43882, 12, 10},
 			want: "Element 43882, Enterprise number 10",
 		},
 		{
-			name: "fieldSpecifier with Enterprise bit set for maximum ElementID",
+			name: "fieldSpecifier with Enterprise bit set for maximum elementID",
 			arg:  fieldSpecifier{^uint16(0), ^uint16(0), 11},
 			want: "Element 65535, Enterprise number 11",
 		},

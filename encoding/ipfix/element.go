@@ -77,8 +77,8 @@ const (
 
 // An elementSpecifier identifies an IPFIX element.
 type elementSpecifier struct {
-	ElementID        uint16
-	EnterpriseNumber uint32
+	elementID        uint16
+	enterpriseNumber uint32
 }
 
 // E returns an Enterprise bit of an elementSpecifier.  This is the first bit of the elementSpecifier.  If this bit
@@ -86,24 +86,24 @@ type elementSpecifier struct {
 // Enterprise Number field MUST NOT be present.  If this bit is one, the Information Element identifier identifies
 // an enterprise-specific Information Element, and the Enterprise Number field MUST be present.
 func (elementSpec elementSpecifier) E() bool {
-	return elementSpec.ElementID>>15 == 1
+	return elementSpec.elementID>>15 == 1
 }
 
 func (elementSpec elementSpecifier) String() string {
 	if elementSpec.E() {
-		return fmt.Sprintf("Element %d, Enterprise number %d", elementSpec.ElementID, elementSpec.EnterpriseNumber)
+		return fmt.Sprintf("Element %d, Enterprise number %d", elementSpec.elementID, elementSpec.enterpriseNumber)
 	}
 
-	return fmt.Sprintf("Element %d", elementSpec.ElementID)
+	return fmt.Sprintf("Element %d", elementSpec.elementID)
 }
 
 // fieldSpecifier represents an IPFIX field specification.
 // https://www.ietf.org/rfc/rfc7011.html#section-3.2
 // https://www.iana.org/assignments/ipfix/ipfix.xhtml
 type fieldSpecifier struct {
-	ElementID        uint16
-	FieldLength      uint16
-	EnterpriseNumber uint32
+	elementID        uint16
+	length           uint16
+	enterpriseNumber uint32
 }
 
 // E returns an Enterprise bit of a fieldSpecifier.  This is the first bit of the fieldSpecifier.  If this bit is zero,
@@ -111,12 +111,12 @@ type fieldSpecifier struct {
 // Number field MUST NOT be present.  If this bit is one, the Information Element identifier identifies an enterprise-
 // specific Information Element, and the Enterprise Number field MUST be present.
 func (fieldSpec fieldSpecifier) E() bool {
-	return fieldSpec.ElementID>>15 == 1
+	return fieldSpec.elementID>>15 == 1
 }
 
-// elementSpecifier returns an elementSpecifier created from fieldSpecifier ElementID and EnterpriseNumber.
+// elementSpecifier returns an elementSpecifier created from fieldSpecifier elementID and enterpriseNumber.
 func (fieldSpec *fieldSpecifier) ElementSpecifier() elementSpecifier {
-	return elementSpecifier{fieldSpec.ElementID, fieldSpec.EnterpriseNumber}
+	return elementSpecifier{fieldSpec.elementID, fieldSpec.enterpriseNumber}
 }
 
 // Size returns a size of a fieldSpecifier.  This depends on Enterprise bit being set (or not).
@@ -224,5 +224,5 @@ func informationElement(elementSpec elementSpecifier) (fieldDefinition, error) {
 
 // informationElement returns a fieldDefinition basing on provided fieldSpecifier.
 func (fieldSpec fieldSpecifier) InformationElement() (fieldDefinition, error) {
-	return informationElement(elementSpecifier{fieldSpec.ElementID, fieldSpec.EnterpriseNumber})
+	return informationElement(elementSpecifier{fieldSpec.elementID, fieldSpec.enterpriseNumber})
 }

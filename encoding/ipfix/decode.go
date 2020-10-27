@@ -111,16 +111,16 @@ func readTemplateSet(reader *bytes.Reader, out *templateSet) (int64, error) {
 		for i := uint16(0); i < templateRecord.TemplateHeader.FieldCount; i++ {
 			fieldSpecifier := fieldSpecifier{0, 0, 0}
 
-			if err := binary.Read(reader, binary.BigEndian, &fieldSpecifier.ElementID); err != nil {
+			if err := binary.Read(reader, binary.BigEndian, &fieldSpecifier.elementID); err != nil {
 				return reader.Size() - int64(reader.Len()), err
 			}
 
-			if err := binary.Read(reader, binary.BigEndian, &fieldSpecifier.FieldLength); err != nil {
+			if err := binary.Read(reader, binary.BigEndian, &fieldSpecifier.length); err != nil {
 				return reader.Size() - int64(reader.Len()), err
 			}
 
 			if fieldSpecifier.E() {
-				if err := binary.Read(reader, binary.BigEndian, &fieldSpecifier.EnterpriseNumber); err != nil {
+				if err := binary.Read(reader, binary.BigEndian, &fieldSpecifier.enterpriseNumber); err != nil {
 					return reader.Size() - int64(reader.Len()), err
 				}
 			}
