@@ -1,238 +1,536 @@
 package ipfix
 
-import (
-	"fmt"
-)
+import "reflect"
+
+// https://www.iana.org/assignments/ipfix/ipfix.xhtml#ipfix-information-element-semantics
+type informationElementSemantics uint8
 
 const (
-	fieldSpecifierSize            = 4
-	fieldSpecifierWEnterpriseSize = 8
+	defaultElementSemantic informationElementSemantics = iota
+	quantity
+	totalCounter
+	deltaCounter
+	identifier
+	flags
+	list
+	snmpCounter
+	snmpGauge
+	unassignedElementSemantic
 )
 
-// elementError is an error definition associated with IPFIX Elements.
-type elementError struct {
-	msg string
-}
-
-// Associate Error() function to the elementError.
-func (e *elementError) Error() string {
-	return e.msg
-}
-
-// fieldType is an abstract data types of the IPFIX information model
-// https://tools.ietf.org/html/rfc7012#section-3.1
-// https://www.iana.org/assignments/ipfix/ipfix.xhtml#ipfix-information-element-data-types
-type fieldType uint8
+// https://www.iana.org/assignments/ipfix/ipfix.xhtml#ipfix-information-element-units
+type informationElementUnits uint16
 
 const (
-	// OctetArray represents a finite-length string of octets.
-	OctetArray fieldType = iota
-	// Uint8 represents non-negative integer value in the range of 0 to 255.
-	Uint8
-	// Uint16 represents non-negative integer value in the range of 0 to 65535.
-	Uint16
-	// Uint32 represents non-negative integer value in the range of 0 to 4294967295.
-	Uint32
-	// Uint64 represents non-negative integer value in the range of 0 to 18446744073709551615.
-	Uint64
-	// Int8 represents an integer value in the range of -128 to 127.
-	Int8
-	// Int16 represents an integer value in the range of -32768 to 32767.
-	Int16
-	// Int32 represents an integer value in the range of -2147483648 to 2147483647.
-	Int32
-	// Int64 represents an integer value in the range of -9223372036854775808 to 9223372036854775807.
-	Int64
-	// Float32 corresponds to an IEEE single-precision 32-bit floating-point type as defined in IEEE.754.2008.
-	Float32
-	// Float64 corresponds to an IEEE double-precision 64-bit floating-point type as defined in IEEE.754.2008.
-	Float64
-	// Boolean represents a binary value.  The only allowed values are "true" and "false".
-	Boolean
-	// MacAddress represents a MAC-48 address as defined in IEEE.802-3.2012.
-	MacAddress
-	// String represents a finite-length string of valid characters from the Unicode coded character set ISO.10646.
-	String
-	// DateTimeSeconds represents a time value expressed with second-level precision.
-	DateTimeSeconds
-	// DateTimeMilliseconds represents a time value expressed with millisecond-level precision.
-	DateTimeMilliseconds
-	// DateTimeMicroseconds represents a time value expressed with microsecond-level precision.
-	DateTimeMicroseconds
-	// DateTimeNanoseconds represents a time value expressed with nanosecond-level precision.
-	DateTimeNanoseconds
-	// IPv4Address represents an IPv4 address.
-	IPv4Address
-	// IPv6Address represents an IPv6 address.
-	IPv6Address
-	// BasicList supports structured data export as described in RFC6313.
-	BasicList
-	// SubTemplateList supports structured data export as described in RFC6313.
-	SubTemplateList
-	// SubTemplateMultiList supports structured data export as described in RFC6313.
-	SubTemplateMultiList
-	// UnknownFieldType represents an unknown (undefined) FiledType.
-	UnknownFieldType
+	noneElementUnit informationElementUnits = iota
+	bits
+	octets
+	packets
+	flows
+	seconds
+	milliseconds
+	microseconds
+	nanoseconds
+	fourOctetWords
+	messages
+	hops
+	entries
+	frames
+	ports
+	inferred
+	unassignedElementUnit
 )
 
-// // An elementSpecifier identifies an IPFIX element.
-// type elementSpecifier struct {
-// 	elementID        uint16
-// 	enterpriseNumber uint32
-// }
-
-// // E returns an Enterprise bit of an elementSpecifier.  This is the first bit of the elementSpecifier.  If this bit
-// // is zero, the Information Element identifier identifies an Information Element in [IANA-IPFIX], and the four-octet
-// // Enterprise Number field MUST NOT be present.  If this bit is one, the Information Element identifier identifies
-// // an enterprise-specific Information Element, and the Enterprise Number field MUST be present.
-// func (elementSpec elementSpecifier) E() bool {
-// 	return elementSpec.elementID>>15 == 1
-// }
-//
-// func (elementSpec elementSpecifier) String() string {
-// 	if elementSpec.E() {
-// 		return fmt.Sprintf("Element %d, Enterprise number %d", elementSpec.elementID, elementSpec.enterpriseNumber)
-// 	}
-//
-// 	return fmt.Sprintf("Element %d", elementSpec.elementID)
-// }
-
-// fieldSpecifier represents an IPFIX field specification.
-// https://www.ietf.org/rfc/rfc7011.html#section-3.2
-// https://www.iana.org/assignments/ipfix/ipfix.xhtml
-type fieldSpecifier struct {
-	elementID        uint16
-	length           uint16
-	enterpriseNumber uint32
+type informationElement struct {
+	id                uint16
+	name              string
+	dataType          reflect.Kind
+	dataTypeSemantics informationElementSemantics
+	units             informationElementUnits
 }
 
-// E returns an Enterprise bit of a fieldSpecifier.  This is the first bit of the fieldSpecifier.  If this bit is zero,
-// the Information Element identifier identifies an Information Element in [IANA-IPFIX], and the four-octet Enterprise
-// Number field MUST NOT be present.  If this bit is one, the Information Element identifier identifies an enterprise-
-// specific Information Element, and the Enterprise Number field MUST be present.
-func (fieldSpec fieldSpecifier) E() bool {
-	return fieldSpec.elementID>>15 == 1
+//nolint:funlen
+func informationElements() map[uint16]informationElement {
+	return map[uint16]informationElement{
+		0:  {0, "Reserved", reflect.Invalid, defaultElementSemantic, noneElementUnit},
+		1:  {1, "octetDeltaCount", reflect.Uint64, deltaCounter, octets},
+		2:  {2, "packetDeltaCount", reflect.Uint64, deltaCounter, packets},
+		3:  {3, "deltaFlowCount", reflect.Uint64, deltaCounter, flows},
+		4:  {4, "protocolIdentifier", reflect.Uint8, identifier, noneElementUnit},
+		5:  {5, "ipClassOfService", reflect.Uint8, identifier, noneElementUnit},
+		6:  {6, "tcpControlBits", reflect.Uint16, flags, noneElementUnit},
+		7:  {7, "sourceTransportPort", reflect.Uint16, identifier, noneElementUnit},
+		8:  {8, "sourceIPv4Address", reflect.Uint32, defaultElementSemantic, noneElementUnit},
+		9:  {9, "sourceIPv4PrefixLength", reflect.Uint8, defaultElementSemantic, bits},
+		10: {10, "ingressInterface", reflect.Uint32, identifier, noneElementUnit},
+		11: {11, "destinationTransportPort", reflect.Uint16, identifier, noneElementUnit},
+		12: {12, "destinationIPv4Address", reflect.Uint32, defaultElementSemantic, noneElementUnit},
+		13: {13, "destinationIPv4PrefixLength", reflect.Uint8, defaultElementSemantic, bits},
+		14: {14, "egressInterface", reflect.Uint32, identifier, noneElementUnit},
+		15: {15, "ipNextHopIPv4Address", reflect.Uint32, defaultElementSemantic, noneElementUnit},
+		16: {16, "bgpSourceAsNumber", reflect.Uint32, identifier, noneElementUnit},
+		17: {17, "bgpDestinationAsNumber", reflect.Uint32, identifier, noneElementUnit},
+		18: {18, "bgpNextHopIPv4Address", reflect.Uint32, defaultElementSemantic, noneElementUnit},
+		19: {19, "postMCastPacketDeltaCount", reflect.Uint64, deltaCounter, packets},
+		20: {20, "postMCastOctetDeltaCount", reflect.Uint64, deltaCounter, octets},
+		21: {21, "flowEndSysUpTime", reflect.Uint32, defaultElementSemantic, milliseconds},
+		22: {22, "flowStartSysUpTime", reflect.Uint32, defaultElementSemantic, milliseconds},
+		23: {23, "postOctetDeltaCount", reflect.Uint64, deltaCounter, octets},
+		24: {24, "postPacketDeltaCount", reflect.Uint64, deltaCounter, packets},
+		25: {25, "minimumIpTotalLength", reflect.Uint64, defaultElementSemantic, octets},
+		26: {26, "maximumIpTotalLength", reflect.Uint64, defaultElementSemantic, octets},
+		27: {27, "sourceIPv6Address", reflect.Uint64, defaultElementSemantic, noneElementUnit},
+		28: {28, "destinationIPv6Address", reflect.Uint64, defaultElementSemantic, noneElementUnit},
+		29: {29, "sourceIPv6PrefixLength", reflect.Uint8, defaultElementSemantic, bits},
+		30: {30, "destinationIPv6PrefixLength", reflect.Uint8, defaultElementSemantic, bits},
+		31: {31, "flowLabelIPv6", reflect.Uint32, identifier, noneElementUnit},
+		32: {32, "icmpTypeCodeIPv4", reflect.Uint16, identifier, noneElementUnit},
+		33: {33, "igmpType", reflect.Uint8, identifier, noneElementUnit},
+		34: {34, "samplingInterval", reflect.Uint32, quantity, packets},
+		35: {35, "samplingAlgorithm", reflect.Uint8, identifier, noneElementUnit},
+		36: {36, "flowActiveTimeout", reflect.Uint16, defaultElementSemantic, seconds},
+		37: {37, "flowIdleTimeout", reflect.Uint16, defaultElementSemantic, seconds},
+		38: {38, "engineType", reflect.Uint8, identifier, noneElementUnit},
+		39: {39, "engineId", reflect.Uint8, identifier, noneElementUnit},
+		40: {40, "exportedOctetTotalCount", reflect.Uint64, totalCounter, octets},
+		41: {41, "exportedMessageTotalCount", reflect.Uint64, totalCounter, messages},
+		42: {42, "exportedFlowRecordTotalCount", reflect.Uint64, totalCounter, flows},
+		43: {43, "ipv4RouterSc", reflect.Uint32, defaultElementSemantic, noneElementUnit},
+		44: {44, "sourceIPv4Prefix", reflect.Uint32, defaultElementSemantic, noneElementUnit},
+		45: {45, "destinationIPv4Prefix", reflect.Uint32, defaultElementSemantic, noneElementUnit},
+		46: {46, "mplsTopLabelType", reflect.Uint8, identifier, noneElementUnit},
+		47: {47, "mplsTopLabelIPv4Address", reflect.Uint32, defaultElementSemantic, noneElementUnit},
+		48: {48, "samplerId", reflect.Uint8, identifier, noneElementUnit},
+		49: {49, "samplerMode", reflect.Uint8, identifier, noneElementUnit},
+		50: {50, "samplerRandomInterval", reflect.Uint32, quantity, noneElementUnit},
+		51: {51, "classId", reflect.Uint8, identifier, noneElementUnit},
+		52: {52, "minimumTTL", reflect.Uint8, defaultElementSemantic, hops},
+		53: {53, "maximumTTL", reflect.Uint8, defaultElementSemantic, hops},
+		54: {54, "fragmentIdentification", reflect.Uint32, identifier, noneElementUnit},
+		55: {55, "postIpClassOfService", reflect.Uint8, identifier, noneElementUnit},
+		56: {56, "sourceMacAddress", reflect.Array, defaultElementSemantic, noneElementUnit},
+		57: {57, "postDestinationMacAddress", reflect.Array, defaultElementSemantic, noneElementUnit},
+		58: {58, "vlanId", reflect.Uint16, identifier, noneElementUnit},
+		59: {59, "postVlanId", reflect.Uint16, identifier, noneElementUnit},
+		60: {60, "ipVersion", reflect.Uint8, identifier, noneElementUnit},
+		61: {61, "flowDirection", reflect.Uint8, identifier, noneElementUnit},
+		62: {62, "ipNextHopIPv6Address", reflect.Uint64, defaultElementSemantic, noneElementUnit},
+		63: {63, "bgpNextHopIPv6Address", reflect.Uint64, defaultElementSemantic, noneElementUnit},
+		64: {64, "ipv6ExtensionHeaders", reflect.Uint32, flags, noneElementUnit},
+		// 65-69	Assigned for NetFlow v9 compatibility
+		70: {70, "mplsTopLabelStackSection", reflect.Slice, defaultElementSemantic, noneElementUnit},
+		71: {71, "mplsLabelStackSection2", reflect.Slice, defaultElementSemantic, noneElementUnit},
+		72: {72, "mplsLabelStackSection3", reflect.Slice, defaultElementSemantic, noneElementUnit},
+		73: {73, "mplsLabelStackSection4", reflect.Slice, defaultElementSemantic, noneElementUnit},
+		74: {74, "mplsLabelStackSection5", reflect.Slice, defaultElementSemantic, noneElementUnit},
+		75: {75, "mplsLabelStackSection6", reflect.Slice, defaultElementSemantic, noneElementUnit},
+		76: {76, "mplsLabelStackSection7", reflect.Slice, defaultElementSemantic, noneElementUnit},
+		77: {77, "mplsLabelStackSection8", reflect.Slice, defaultElementSemantic, noneElementUnit},
+		78: {78, "mplsLabelStackSection9", reflect.Slice, defaultElementSemantic, noneElementUnit},
+		79: {79, "mplsLabelStackSection10", reflect.Slice, defaultElementSemantic, noneElementUnit},
+		80: {80, "destinationMacAddress", reflect.Array, defaultElementSemantic, noneElementUnit},
+		81: {81, "postSourceMacAddress", reflect.Array, defaultElementSemantic, noneElementUnit},
+		82: {82, "interfaceName", reflect.String, defaultElementSemantic, noneElementUnit},
+		83: {83, "interfaceDescription", reflect.String, defaultElementSemantic, noneElementUnit},
+		84: {84, "samplerName", reflect.String, defaultElementSemantic, noneElementUnit},
+		85: {85, "octetTotalCount", reflect.Uint64, totalCounter, octets},
+		86: {86, "packetTotalCount", reflect.Uint64, totalCounter, packets},
+		87: {87, "flagsAndSamplerId", reflect.Uint32, identifier, noneElementUnit},
+		88: {88, "fragmentOffset", reflect.Uint16, quantity, noneElementUnit},
+		89: {89, "forwardingStatus", reflect.Uint8, identifier, noneElementUnit},
+		90: {90, "mplsVpnRouteDistinguisher", reflect.Slice, defaultElementSemantic, noneElementUnit},
+		91: {91, "mplsTopLabelPrefixLength", reflect.Uint8, quantity, bits},
+		92: {92, "srcTrafficIndex", reflect.Uint32, identifier, noneElementUnit},
+		93: {93, "dstTrafficIndex", reflect.Uint32, identifier, noneElementUnit},
+		94: {94, "applicationDescription", reflect.String, defaultElementSemantic, noneElementUnit},
+		95: {95, "applicationId", reflect.Slice, defaultElementSemantic, noneElementUnit},
+		96: {96, "applicationName", reflect.String, defaultElementSemantic, noneElementUnit},
+		// 97	Assigned for NetFlow v9 compatibility
+		98:  {98, "postIpDiffServCodePoint", reflect.Uint8, identifier, noneElementUnit},
+		99:  {99, "multicastReplicationFactor", reflect.Uint32, quantity, noneElementUnit},
+		100: {100, "className", reflect.String, defaultElementSemantic, noneElementUnit},
+		101: {101, "classificationEngineId", reflect.Uint8, identifier, noneElementUnit},
+		102: {102, "layer2packetSectionOffset", reflect.Uint16, quantity, noneElementUnit},
+		103: {103, "layer2packetSectionSize", reflect.Uint16, quantity, noneElementUnit},
+		104: {104, "layer2packetSectionData", reflect.Slice, defaultElementSemantic, noneElementUnit},
+		// 105-127	Assigned for NetFlow v9 compatibility
+		128: {128, "bgpNextAdjacentAsNumber", reflect.Uint32, identifier, noneElementUnit},
+		129: {129, "bgpPrevAdjacentAsNumber", reflect.Uint32, identifier, noneElementUnit},
+		130: {130, "exporterIPv4Address", reflect.Uint32, defaultElementSemantic, noneElementUnit},
+		131: {131, "exporterIPv6Address", reflect.Uint64, defaultElementSemantic, noneElementUnit},
+		132: {132, "droppedOctetDeltaCount", reflect.Uint64, deltaCounter, octets},
+		133: {133, "droppedPacketDeltaCount", reflect.Uint64, deltaCounter, packets},
+		134: {134, "droppedOctetTotalCount", reflect.Uint64, totalCounter, octets},
+		135: {135, "droppedPacketTotalCount", reflect.Uint64, totalCounter, packets},
+		136: {136, "flowEndReason", reflect.Uint8, identifier, noneElementUnit},
+		137: {137, "commonPropertiesId", reflect.Uint64, identifier, noneElementUnit},
+		138: {138, "observationPointId", reflect.Uint64, identifier, noneElementUnit},
+		139: {139, "icmpTypeCodeIPv6", reflect.Uint16, identifier, noneElementUnit},
+		140: {140, "mplsTopLabelIPv6Address", reflect.Uint64, defaultElementSemantic, noneElementUnit},
+		141: {141, "lineCardId", reflect.Uint32, identifier, noneElementUnit},
+		142: {142, "portId", reflect.Uint32, identifier, noneElementUnit},
+		143: {143, "meteringProcessId", reflect.Uint32, identifier, noneElementUnit},
+		144: {144, "exportingProcessId", reflect.Uint32, identifier, noneElementUnit},
+		145: {145, "templateId", reflect.Uint16, identifier, noneElementUnit},
+		146: {146, "wlanChannelId", reflect.Uint8, identifier, noneElementUnit},
+		147: {147, "wlanSSID", reflect.String, defaultElementSemantic, noneElementUnit},
+		148: {148, "flowId", reflect.Uint64, identifier, noneElementUnit},
+		149: {149, "observationDomainId", reflect.Uint32, identifier, noneElementUnit},
+		150: {150, "flowStartSeconds", reflect.Uint32, defaultElementSemantic, seconds},
+		151: {151, "flowEndSeconds", reflect.Uint32, defaultElementSemantic, seconds},
+		152: {152, "flowStartMilliseconds", reflect.Uint64, defaultElementSemantic, milliseconds},
+		153: {153, "flowEndMilliseconds", reflect.Uint64, defaultElementSemantic, milliseconds},
+		154: {154, "flowStartMicroseconds", reflect.Uint64, defaultElementSemantic, microseconds},
+		155: {155, "flowEndMicroseconds", reflect.Uint64, defaultElementSemantic, microseconds},
+		156: {156, "flowStartNanoseconds", reflect.Uint64, defaultElementSemantic, nanoseconds},
+		157: {157, "flowEndNanoseconds", reflect.Uint64, defaultElementSemantic, nanoseconds},
+		158: {158, "flowStartDeltaMicroseconds", reflect.Uint32, defaultElementSemantic, microseconds},
+		159: {159, "flowEndDeltaMicroseconds", reflect.Uint32, defaultElementSemantic, microseconds},
+		160: {160, "systemInitTimeMilliseconds", reflect.Uint64, defaultElementSemantic, milliseconds},
+		161: {161, "flowDurationMilliseconds", reflect.Uint32, defaultElementSemantic, milliseconds},
+		162: {162, "flowDurationMicroseconds", reflect.Uint32, defaultElementSemantic, microseconds},
+		163: {163, "observedFlowTotalCount", reflect.Uint64, totalCounter, flows},
+		164: {164, "ignoredPacketTotalCount", reflect.Uint64, totalCounter, packets},
+		165: {165, "ignoredOctetTotalCount", reflect.Uint64, totalCounter, octets},
+		166: {166, "notSentFlowTotalCount", reflect.Uint64, totalCounter, flows},
+		167: {167, "notSentPacketTotalCount", reflect.Uint64, totalCounter, packets},
+		168: {168, "notSentOctetTotalCount", reflect.Uint64, totalCounter, octets},
+		169: {169, "destinationIPv6Prefix", reflect.Uint64, defaultElementSemantic, noneElementUnit},
+		170: {170, "sourceIPv6Prefix", reflect.Uint64, defaultElementSemantic, noneElementUnit},
+		171: {171, "postOctetTotalCount", reflect.Uint64, totalCounter, octets},
+		172: {172, "postPacketTotalCount", reflect.Uint64, totalCounter, packets},
+		173: {173, "flowKeyIndicator", reflect.Uint64, flags, noneElementUnit},
+		174: {174, "postMCastPacketTotalCount", reflect.Uint64, totalCounter, packets},
+		175: {175, "postMCastOctetTotalCount", reflect.Uint64, totalCounter, octets},
+		176: {176, "icmpTypeIPv4", reflect.Uint8, identifier, noneElementUnit},
+		177: {177, "icmpCodeIPv4", reflect.Uint8, identifier, noneElementUnit},
+		178: {178, "icmpTypeIPv6", reflect.Uint8, identifier, noneElementUnit},
+		179: {179, "icmpCodeIPv6", reflect.Uint8, identifier, noneElementUnit},
+		180: {180, "udpSourcePort", reflect.Uint16, identifier, noneElementUnit},
+		181: {181, "udpDestinationPort", reflect.Uint16, identifier, noneElementUnit},
+		182: {182, "tcpSourcePort", reflect.Uint16, identifier, noneElementUnit},
+		183: {183, "tcpDestinationPort", reflect.Uint16, identifier, noneElementUnit},
+		184: {184, "tcpSequenceNumber", reflect.Uint32, defaultElementSemantic, noneElementUnit},
+		185: {185, "tcpAcknowledgementNumber", reflect.Uint32, defaultElementSemantic, noneElementUnit},
+		186: {186, "tcpWindowSize", reflect.Uint16, defaultElementSemantic, noneElementUnit},
+		187: {187, "tcpUrgentPointer", reflect.Uint16, defaultElementSemantic, noneElementUnit},
+		188: {188, "tcpHeaderLength", reflect.Uint8, defaultElementSemantic, octets},
+		189: {189, "ipHeaderLength", reflect.Uint8, defaultElementSemantic, octets},
+		190: {190, "totalLengthIPv4", reflect.Uint16, defaultElementSemantic, octets},
+		191: {191, "payloadLengthIPv6", reflect.Uint16, defaultElementSemantic, octets},
+		192: {192, "ipTTL", reflect.Uint8, defaultElementSemantic, hops},
+		193: {193, "nextHeaderIPv6", reflect.Uint8, defaultElementSemantic, noneElementUnit},
+		194: {194, "mplsPayloadLength", reflect.Uint32, defaultElementSemantic, octets},
+		195: {195, "ipDiffServCodePoint", reflect.Uint8, identifier, noneElementUnit},
+		196: {196, "ipPrecedence", reflect.Uint8, identifier, noneElementUnit},
+		197: {197, "fragmentFlags", reflect.Uint8, flags, noneElementUnit},
+		198: {198, "octetDeltaSumOfSquares", reflect.Uint64, defaultElementSemantic, noneElementUnit},
+		199: {199, "octetTotalSumOfSquares", reflect.Uint64, defaultElementSemantic, octets},
+		200: {200, "mplsTopLabelTTL", reflect.Uint8, defaultElementSemantic, hops},
+		201: {201, "mplsLabelStackLength", reflect.Uint32, defaultElementSemantic, octets},
+		202: {202, "mplsLabelStackDepth", reflect.Uint32, defaultElementSemantic, entries},
+		203: {203, "mplsTopLabelExp", reflect.Uint8, flags, noneElementUnit},
+		204: {204, "ipPayloadLength", reflect.Uint32, defaultElementSemantic, octets},
+		205: {205, "udpMessageLength", reflect.Uint16, defaultElementSemantic, octets},
+		206: {206, "isMulticast", reflect.Uint8, flags, noneElementUnit},
+		207: {207, "ipv4IHL", reflect.Uint8, defaultElementSemantic, fourOctetWords},
+		208: {208, "ipv4Options", reflect.Uint32, flags, noneElementUnit},
+		209: {209, "tcpOptions", reflect.Uint64, flags, noneElementUnit},
+		210: {210, "paddingOctets", reflect.Slice, defaultElementSemantic, noneElementUnit},
+		211: {211, "collectorIPv4Address", reflect.Uint32, defaultElementSemantic, noneElementUnit},
+		212: {212, "collectorIPv6Address", reflect.Uint64, defaultElementSemantic, noneElementUnit},
+		213: {213, "exportInterface", reflect.Uint32, identifier, noneElementUnit},
+		214: {214, "exportProtocolVersion", reflect.Uint8, identifier, noneElementUnit},
+		215: {215, "exportTransportProtocol", reflect.Uint8, identifier, noneElementUnit},
+		216: {216, "collectorTransportPort", reflect.Uint16, identifier, noneElementUnit},
+		217: {217, "exporterTransportPort", reflect.Uint16, identifier, noneElementUnit},
+		218: {218, "tcpSynTotalCount", reflect.Uint64, totalCounter, packets},
+		219: {219, "tcpFinTotalCount", reflect.Uint64, totalCounter, packets},
+		220: {220, "tcpRstTotalCount", reflect.Uint64, totalCounter, packets},
+		221: {221, "tcpPshTotalCount", reflect.Uint64, totalCounter, packets},
+		222: {222, "tcpAckTotalCount", reflect.Uint64, totalCounter, packets},
+		223: {223, "tcpUrgTotalCount", reflect.Uint64, totalCounter, packets},
+		224: {224, "ipTotalLength", reflect.Uint64, defaultElementSemantic, octets},
+		225: {225, "postNATSourceIPv4Address", reflect.Uint32, defaultElementSemantic, noneElementUnit},
+		226: {226, "postNATDestinationIPv4Address", reflect.Uint32, defaultElementSemantic, noneElementUnit},
+		227: {227, "postNAPTSourceTransportPort", reflect.Uint16, identifier, noneElementUnit},
+		228: {228, "postNAPTDestinationTransportPort", reflect.Uint16, identifier, noneElementUnit},
+		229: {229, "natOriginatingAddressRealm", reflect.Uint8, identifier, noneElementUnit},
+		230: {230, "natEvent", reflect.Uint8, identifier, noneElementUnit},
+		231: {231, "initiatorOctets", reflect.Uint64, deltaCounter, octets},
+		232: {232, "responderOctets", reflect.Uint64, deltaCounter, octets},
+		233: {233, "firewallEvent", reflect.Uint8, defaultElementSemantic, noneElementUnit},
+		234: {234, "ingressVRFID", reflect.Uint32, defaultElementSemantic, noneElementUnit},
+		235: {235, "egressVRFID", reflect.Uint32, defaultElementSemantic, noneElementUnit},
+		236: {236, "VRFname", reflect.String, defaultElementSemantic, noneElementUnit},
+		237: {237, "postMplsTopLabelExp", reflect.Uint8, flags, noneElementUnit},
+		238: {238, "tcpWindowScale", reflect.Uint16, defaultElementSemantic, noneElementUnit},
+		239: {239, "biflowDirection", reflect.Uint8, identifier, noneElementUnit},
+		240: {240, "ethernetHeaderLength", reflect.Uint8, quantity, octets},
+		241: {241, "ethernetPayloadLength", reflect.Uint16, quantity, octets},
+		242: {242, "ethernetTotalLength", reflect.Uint16, quantity, octets},
+		243: {243, "dot1qVlanId", reflect.Uint16, identifier, noneElementUnit},
+		244: {244, "dot1qPriority", reflect.Uint8, identifier, noneElementUnit},
+		245: {245, "dot1qCustomerVlanId", reflect.Uint16, identifier, noneElementUnit},
+		246: {246, "dot1qCustomerPriority", reflect.Uint8, identifier, noneElementUnit},
+		247: {247, "metroEvcId", reflect.String, defaultElementSemantic, noneElementUnit},
+		248: {248, "metroEvcType", reflect.Uint8, identifier, noneElementUnit},
+		249: {249, "pseudoWireId", reflect.Uint32, identifier, noneElementUnit},
+		250: {250, "pseudoWireType", reflect.Uint16, identifier, noneElementUnit},
+		251: {251, "pseudoWireControlWord", reflect.Uint32, identifier, noneElementUnit},
+		252: {252, "ingressPhysicalInterface", reflect.Uint32, identifier, noneElementUnit},
+		253: {253, "egressPhysicalInterface", reflect.Uint32, identifier, noneElementUnit},
+		254: {254, "postDot1qVlanId", reflect.Uint16, identifier, noneElementUnit},
+		255: {255, "postDot1qCustomerVlanId", reflect.Uint16, identifier, noneElementUnit},
+		256: {256, "ethernetType", reflect.Uint16, identifier, noneElementUnit},
+		257: {257, "postIpPrecedence", reflect.Uint8, identifier, noneElementUnit},
+		258: {258, "collectionTimeMilliseconds", reflect.Uint64, defaultElementSemantic, milliseconds},
+		259: {259, "exportSctpStreamId", reflect.Uint16, identifier, noneElementUnit},
+		260: {260, "maxExportSeconds", reflect.Uint32, defaultElementSemantic, seconds},
+		261: {261, "maxFlowEndSeconds", reflect.Uint32, defaultElementSemantic, seconds},
+		262: {262, "messageMD5Checksum", reflect.Slice, defaultElementSemantic, noneElementUnit},
+		263: {263, "messageScope", reflect.Uint8, defaultElementSemantic, noneElementUnit},
+		264: {264, "minExportSeconds", reflect.Uint32, defaultElementSemantic, seconds},
+		265: {265, "minFlowStartSeconds", reflect.Uint32, defaultElementSemantic, seconds},
+		266: {266, "opaqueOctets", reflect.Slice, defaultElementSemantic, noneElementUnit},
+		267: {267, "sessionScope", reflect.Uint8, defaultElementSemantic, noneElementUnit},
+		268: {268, "maxFlowEndMicroseconds", reflect.Uint64, defaultElementSemantic, microseconds},
+		269: {269, "maxFlowEndMilliseconds", reflect.Uint64, defaultElementSemantic, milliseconds},
+		270: {270, "maxFlowEndNanoseconds", reflect.Uint64, defaultElementSemantic, nanoseconds},
+		271: {271, "minFlowStartMicroseconds", reflect.Uint64, defaultElementSemantic, microseconds},
+		272: {272, "minFlowStartMilliseconds", reflect.Uint64, defaultElementSemantic, milliseconds},
+		273: {273, "minFlowStartNanoseconds", reflect.Uint64, defaultElementSemantic, nanoseconds},
+		274: {274, "collectorCertificate", reflect.Slice, defaultElementSemantic, noneElementUnit},
+		275: {275, "exporterCertificate", reflect.Slice, defaultElementSemantic, noneElementUnit},
+		276: {276, "dataRecordsReliability", reflect.Bool, defaultElementSemantic, noneElementUnit},
+		277: {277, "observationPointType", reflect.Uint8, identifier, noneElementUnit},
+		278: {278, "newConnectionDeltaCount", reflect.Uint32, deltaCounter, noneElementUnit},
+		279: {279, "connectionSumDurationSeconds", reflect.Uint64, defaultElementSemantic, seconds},
+		280: {280, "connectionTransactionId", reflect.Uint64, identifier, noneElementUnit},
+		281: {281, "postNATSourceIPv6Address", reflect.Uint64, defaultElementSemantic, noneElementUnit},
+		282: {282, "postNATDestinationIPv6Address", reflect.Uint64, defaultElementSemantic, noneElementUnit},
+		283: {283, "natPoolId", reflect.Uint32, identifier, noneElementUnit},
+		284: {284, "natPoolName", reflect.String, defaultElementSemantic, noneElementUnit},
+		285: {285, "anonymizationFlags", reflect.Uint16, flags, noneElementUnit},
+		286: {286, "anonymizationTechnique", reflect.Uint16, identifier, noneElementUnit},
+		287: {287, "informationElementIndex", reflect.Uint16, identifier, noneElementUnit},
+		288: {288, "p2pTechnology", reflect.String, defaultElementSemantic, noneElementUnit},
+		289: {289, "tunnelTechnology", reflect.String, defaultElementSemantic, noneElementUnit},
+		290: {290, "encryptedTechnology", reflect.String, defaultElementSemantic, noneElementUnit},
+		291: {291, "basicList", reflect.Slice, list, noneElementUnit},
+		292: {292, "subTemplateList", reflect.Slice, list, noneElementUnit},
+		293: {293, "subTemplateMultiList", reflect.Slice, list, noneElementUnit},
+		294: {294, "bgpValidityState", reflect.Uint8, identifier, noneElementUnit},
+		295: {295, "IPSecSPI", reflect.Uint32, identifier, noneElementUnit},
+		296: {296, "greKey", reflect.Uint32, identifier, noneElementUnit},
+		297: {297, "natType", reflect.Uint8, identifier, noneElementUnit},
+		298: {298, "initiatorPackets", reflect.Uint64, deltaCounter, packets},
+		299: {299, "responderPackets", reflect.Uint64, deltaCounter, packets},
+		300: {300, "observationDomainName", reflect.String, defaultElementSemantic, noneElementUnit},
+		301: {301, "selectionSequenceId", reflect.Uint64, identifier, noneElementUnit},
+		302: {302, "selectorId", reflect.Uint64, identifier, noneElementUnit},
+		303: {303, "informationElementId", reflect.Uint16, identifier, noneElementUnit},
+		304: {304, "selectorAlgorithm", reflect.Uint16, identifier, noneElementUnit},
+		305: {305, "samplingPacketInterval", reflect.Uint32, quantity, packets},
+		306: {306, "samplingPacketSpace", reflect.Uint32, quantity, packets},
+		307: {307, "samplingTimeInterval", reflect.Uint32, quantity, microseconds},
+		308: {308, "samplingTimeSpace", reflect.Uint32, quantity, microseconds},
+		309: {309, "samplingSize", reflect.Uint32, quantity, packets},
+		310: {310, "samplingPopulation", reflect.Uint32, quantity, packets},
+		311: {311, "samplingProbability", reflect.Float64, quantity, noneElementUnit},
+		312: {312, "dataLinkFrameSize", reflect.Uint16, quantity, noneElementUnit},
+		313: {313, "ipHeaderPacketSection", reflect.Slice, defaultElementSemantic, noneElementUnit},
+		314: {314, "ipPayloadPacketSection", reflect.Slice, defaultElementSemantic, noneElementUnit},
+		315: {315, "dataLinkFrameSection", reflect.Slice, defaultElementSemantic, noneElementUnit},
+		316: {316, "mplsLabelStackSection", reflect.Slice, defaultElementSemantic, noneElementUnit},
+		317: {317, "mplsPayloadPacketSection", reflect.Slice, defaultElementSemantic, noneElementUnit},
+		318: {318, "selectorIdTotalPktsObserved", reflect.Uint64, totalCounter, packets},
+		319: {319, "selectorIdTotalPktsSelected", reflect.Uint64, totalCounter, packets},
+		320: {320, "absoluteError", reflect.Float64, quantity, inferred},
+		321: {321, "relativeError", reflect.Float64, quantity, noneElementUnit},
+		322: {322, "observationTimeSeconds", reflect.Uint32, defaultElementSemantic, seconds},
+		323: {323, "observationTimeMilliseconds", reflect.Uint64, defaultElementSemantic, milliseconds},
+		324: {324, "observationTimeMicroseconds", reflect.Uint64, defaultElementSemantic, microseconds},
+		325: {325, "observationTimeNanoseconds", reflect.Uint64, defaultElementSemantic, nanoseconds},
+		326: {326, "digestHashValue", reflect.Uint64, quantity, noneElementUnit},
+		327: {327, "hashIPPayloadOffset", reflect.Uint64, quantity, noneElementUnit},
+		328: {328, "hashIPPayloadSize", reflect.Uint64, quantity, noneElementUnit},
+		329: {329, "hashOutputRangeMin", reflect.Uint64, quantity, noneElementUnit},
+		330: {330, "hashOutputRangeMax", reflect.Uint64, quantity, noneElementUnit},
+		331: {331, "hashSelectedRangeMin", reflect.Uint64, quantity, noneElementUnit},
+		332: {332, "hashSelectedRangeMax", reflect.Uint64, quantity, noneElementUnit},
+		333: {333, "hashDigestOutput", reflect.Bool, defaultElementSemantic, noneElementUnit},
+		334: {334, "hashInitialiserValue", reflect.Uint64, quantity, noneElementUnit},
+		335: {335, "selectorName", reflect.String, defaultElementSemantic, noneElementUnit},
+		336: {336, "upperCILimit", reflect.Float64, quantity, noneElementUnit},
+		337: {337, "lowerCILimit", reflect.Float64, quantity, noneElementUnit},
+		338: {338, "confidenceLevel", reflect.Float64, quantity, noneElementUnit},
+		339: {339, "informationElementDataType", reflect.Uint8, defaultElementSemantic, noneElementUnit},
+		340: {340, "informationElementDescription", reflect.String, defaultElementSemantic, noneElementUnit},
+		341: {341, "informationElementName", reflect.String, defaultElementSemantic, noneElementUnit},
+		342: {342, "informationElementRangeBegin", reflect.Uint64, quantity, noneElementUnit},
+		343: {343, "informationElementRangeEnd", reflect.Uint64, quantity, noneElementUnit},
+		344: {344, "informationElementSemantics", reflect.Uint8, defaultElementSemantic, noneElementUnit},
+		345: {345, "informationElementUnits", reflect.Uint16, defaultElementSemantic, noneElementUnit},
+		346: {346, "privateEnterpriseNumber", reflect.Uint32, identifier, noneElementUnit},
+		347: {347, "virtualStationInterfaceId", reflect.Slice, defaultElementSemantic, noneElementUnit},
+		348: {348, "virtualStationInterfaceName", reflect.String, defaultElementSemantic, noneElementUnit},
+		349: {349, "virtualStationUUID", reflect.Slice, defaultElementSemantic, noneElementUnit},
+		350: {350, "virtualStationName", reflect.String, defaultElementSemantic, noneElementUnit},
+		351: {351, "layer2SegmentId", reflect.Uint64, identifier, noneElementUnit},
+		352: {352, "layer2OctetDeltaCount", reflect.Uint64, deltaCounter, octets},
+		353: {353, "layer2OctetTotalCount", reflect.Uint64, totalCounter, octets},
+		354: {354, "ingressUnicastPacketTotalCount", reflect.Uint64, totalCounter, packets},
+		355: {355, "ingressMulticastPacketTotalCount", reflect.Uint64, totalCounter, packets},
+		356: {356, "ingressBroadcastPacketTotalCount", reflect.Uint64, totalCounter, packets},
+		357: {357, "egressUnicastPacketTotalCount", reflect.Uint64, totalCounter, packets},
+		358: {358, "egressBroadcastPacketTotalCount", reflect.Uint64, totalCounter, packets},
+		359: {359, "monitoringIntervalStartMilliSeconds", reflect.Uint64, defaultElementSemantic, milliseconds},
+		360: {360, "monitoringIntervalEndMilliSeconds", reflect.Uint64, defaultElementSemantic, milliseconds},
+		361: {361, "portRangeStart", reflect.Uint16, identifier, noneElementUnit},
+		362: {362, "portRangeEnd", reflect.Uint16, identifier, noneElementUnit},
+		363: {363, "portRangeStepSize", reflect.Uint16, identifier, noneElementUnit},
+		364: {364, "portRangeNumPorts", reflect.Uint16, identifier, noneElementUnit},
+		365: {365, "staMacAddress", reflect.Array, defaultElementSemantic, noneElementUnit},
+		366: {366, "staIPv4Address", reflect.Uint32, defaultElementSemantic, noneElementUnit},
+		367: {367, "wtpMacAddress", reflect.Array, defaultElementSemantic, noneElementUnit},
+		368: {368, "ingressInterfaceType", reflect.Uint32, identifier, noneElementUnit},
+		369: {369, "egressInterfaceType", reflect.Uint32, identifier, noneElementUnit},
+		370: {370, "rtpSequenceNumber", reflect.Uint16, defaultElementSemantic, noneElementUnit},
+		371: {371, "userName", reflect.String, defaultElementSemantic, noneElementUnit},
+		372: {372, "applicationCategoryName", reflect.String, defaultElementSemantic, noneElementUnit},
+		373: {373, "applicationSubCategoryName", reflect.String, defaultElementSemantic, noneElementUnit},
+		374: {374, "applicationGroupName", reflect.String, defaultElementSemantic, noneElementUnit},
+		375: {375, "originalFlowsPresent", reflect.Uint64, deltaCounter, flows},
+		376: {376, "originalFlowsInitiated", reflect.Uint64, deltaCounter, flows},
+		377: {377, "originalFlowsCompleted", reflect.Uint64, deltaCounter, flows},
+		378: {378, "distinctCountOfSourceIPAddress", reflect.Uint64, totalCounter, noneElementUnit},
+		379: {379, "distinctCountOfDestinationIPAddress", reflect.Uint64, totalCounter, noneElementUnit},
+		380: {380, "distinctCountOfSourceIPv4Address", reflect.Uint32, totalCounter, noneElementUnit},
+		381: {381, "distinctCountOfDestinationIPv4Address", reflect.Uint32, totalCounter, noneElementUnit},
+		382: {382, "distinctCountOfSourceIPv6Address", reflect.Uint64, totalCounter, noneElementUnit},
+		383: {383, "distinctCountOfDestinationIPv6Address", reflect.Uint64, totalCounter, noneElementUnit},
+		384: {384, "valueDistributionMethod", reflect.Uint8, defaultElementSemantic, noneElementUnit},
+		385: {385, "rfc3550JitterMilliseconds", reflect.Uint32, quantity, milliseconds},
+		386: {386, "rfc3550JitterMicroseconds", reflect.Uint32, quantity, microseconds},
+		387: {387, "rfc3550JitterNanoseconds", reflect.Uint32, quantity, nanoseconds},
+		388: {388, "dot1qDEI", reflect.Bool, defaultElementSemantic, noneElementUnit},
+		389: {389, "dot1qCustomerDEI", reflect.Bool, defaultElementSemantic, noneElementUnit},
+		390: {390, "flowSelectorAlgorithm", reflect.Uint16, identifier, noneElementUnit},
+		391: {391, "flowSelectedOctetDeltaCount", reflect.Uint64, deltaCounter, octets},
+		392: {392, "flowSelectedPacketDeltaCount", reflect.Uint64, deltaCounter, packets},
+		393: {393, "flowSelectedFlowDeltaCount", reflect.Uint64, deltaCounter, flows},
+		394: {394, "selectorIDTotalFlowsObserved", reflect.Uint64, defaultElementSemantic, flows},
+		395: {395, "selectorIDTotalFlowsSelected", reflect.Uint64, defaultElementSemantic, flows},
+		396: {396, "samplingFlowInterval", reflect.Uint64, defaultElementSemantic, flows},
+		397: {397, "samplingFlowSpacing", reflect.Uint64, defaultElementSemantic, flows},
+		398: {398, "flowSamplingTimeInterval", reflect.Uint64, defaultElementSemantic, microseconds},
+		399: {399, "flowSamplingTimeSpacing", reflect.Uint64, defaultElementSemantic, microseconds},
+		400: {400, "hashFlowDomain", reflect.Uint16, identifier, noneElementUnit},
+		401: {401, "transportOctetDeltaCount", reflect.Uint64, deltaCounter, octets},
+		402: {402, "transportPacketDeltaCount", reflect.Uint64, deltaCounter, packets},
+		403: {403, "originalExporterIPv4Address", reflect.Uint32, defaultElementSemantic, noneElementUnit},
+		404: {404, "originalExporterIPv6Address", reflect.Uint64, defaultElementSemantic, noneElementUnit},
+		405: {405, "originalObservationDomainId", reflect.Uint32, identifier, noneElementUnit},
+		406: {406, "intermediateProcessId", reflect.Uint32, identifier, noneElementUnit},
+		407: {407, "ignoredDataRecordTotalCount", reflect.Uint64, totalCounter, noneElementUnit},
+		408: {408, "dataLinkFrameType", reflect.Uint16, flags, noneElementUnit},
+		409: {409, "sectionOffset", reflect.Uint16, quantity, noneElementUnit},
+		410: {410, "sectionExportedOctets", reflect.Uint16, quantity, noneElementUnit},
+		411: {411, "dot1qServiceInstanceTag", reflect.Slice, defaultElementSemantic, noneElementUnit},
+		412: {412, "dot1qServiceInstanceId", reflect.Uint32, identifier, noneElementUnit},
+		413: {413, "dot1qServiceInstancePriority", reflect.Uint8, identifier, noneElementUnit},
+		414: {414, "dot1qCustomerSourceMacAddress", reflect.Array, defaultElementSemantic, noneElementUnit},
+		415: {415, "dot1qCustomerDestinationMacAddress", reflect.Array, defaultElementSemantic, noneElementUnit},
+		416: {416, "DEPRECATED", reflect.Invalid, unassignedElementSemantic, unassignedElementUnit},
+		417: {417, "postLayer2OctetDeltaCount", reflect.Uint64, deltaCounter, octets},
+		418: {418, "postMCastLayer2OctetDeltaCount", reflect.Uint64, deltaCounter, octets},
+		419: {419, "DEPRECATED", reflect.Invalid, unassignedElementSemantic, unassignedElementUnit},
+		420: {420, "postLayer2OctetTotalCount", reflect.Uint64, totalCounter, octets},
+		421: {421, "postMCastLayer2OctetTotalCount", reflect.Uint64, totalCounter, octets},
+		422: {422, "minimumLayer2TotalLength", reflect.Uint64, defaultElementSemantic, octets},
+		423: {423, "maximumLayer2TotalLength", reflect.Uint64, defaultElementSemantic, octets},
+		424: {424, "droppedLayer2OctetDeltaCount", reflect.Uint64, deltaCounter, octets},
+		425: {425, "droppedLayer2OctetTotalCount", reflect.Uint64, totalCounter, octets},
+		426: {426, "ignoredLayer2OctetTotalCount", reflect.Uint64, totalCounter, octets},
+		427: {427, "notSentLayer2OctetTotalCount", reflect.Uint64, totalCounter, octets},
+		428: {428, "layer2OctetDeltaSumOfSquares", reflect.Uint64, deltaCounter, octets},
+		429: {429, "layer2OctetTotalSumOfSquares", reflect.Uint64, totalCounter, octets},
+		430: {430, "layer2FrameDeltaCount", reflect.Uint64, deltaCounter, frames},
+		431: {431, "layer2FrameTotalCount", reflect.Uint64, totalCounter, frames},
+		432: {432, "pseudoWireDestinationIPv4Address", reflect.Uint32, defaultElementSemantic, noneElementUnit},
+		433: {433, "ignoredLayer2FrameTotalCount", reflect.Uint64, totalCounter, frames},
+		434: {434, "mibObjectValueInteger", reflect.Int32, quantity, noneElementUnit},
+		435: {435, "mibObjectValueOctetString", reflect.Slice, defaultElementSemantic, noneElementUnit},
+		436: {436, "mibObjectValueOID", reflect.Slice, defaultElementSemantic, noneElementUnit},
+		437: {437, "mibObjectValueBits", reflect.Slice, flags, noneElementUnit},
+		438: {438, "mibObjectValueIPAddress", reflect.Uint32, defaultElementSemantic, noneElementUnit},
+		439: {439, "mibObjectValueCounter", reflect.Uint64, snmpCounter, noneElementUnit},
+		440: {440, "mibObjectValueGauge", reflect.Uint32, snmpGauge, noneElementUnit},
+		441: {441, "mibObjectValueTimeTicks", reflect.Uint32, quantity, noneElementUnit},
+		442: {442, "mibObjectValueUnsigned", reflect.Uint32, quantity, noneElementUnit},
+		443: {443, "mibObjectValueTable", reflect.Slice, list, noneElementUnit},
+		444: {444, "mibObjectValueRow", reflect.Slice, list, noneElementUnit},
+		445: {445, "mibObjectIdentifier", reflect.Slice, defaultElementSemantic, noneElementUnit},
+		446: {446, "mibSubIdentifier", reflect.Uint32, identifier, noneElementUnit},
+		447: {447, "mibIndexIndicator", reflect.Uint64, flags, noneElementUnit},
+		448: {448, "mibCaptureTimeSemantics", reflect.Uint8, identifier, noneElementUnit},
+		449: {449, "mibContextEngineID", reflect.Slice, defaultElementSemantic, noneElementUnit},
+		450: {450, "mibContextName", reflect.String, defaultElementSemantic, noneElementUnit},
+		451: {451, "mibObjectName", reflect.String, defaultElementSemantic, noneElementUnit},
+		452: {452, "mibObjectDescription", reflect.String, defaultElementSemantic, noneElementUnit},
+		453: {453, "mibObjectSyntax", reflect.String, defaultElementSemantic, noneElementUnit},
+		454: {454, "mibModuleName", reflect.String, defaultElementSemantic, noneElementUnit},
+		455: {455, "mobileIMSI", reflect.String, defaultElementSemantic, noneElementUnit},
+		456: {456, "mobileMSISDN", reflect.String, defaultElementSemantic, noneElementUnit},
+		457: {457, "httpStatusCode", reflect.Uint16, identifier, noneElementUnit},
+		458: {458, "sourceTransportPortsLimit", reflect.Uint16, quantity, ports},
+		459: {459, "httpRequestMethod", reflect.String, defaultElementSemantic, noneElementUnit},
+		460: {460, "httpRequestHost", reflect.String, defaultElementSemantic, noneElementUnit},
+		461: {461, "httpRequestTarget", reflect.String, defaultElementSemantic, noneElementUnit},
+		462: {462, "httpMessageVersion", reflect.String, defaultElementSemantic, noneElementUnit},
+		463: {463, "natInstanceID", reflect.Uint32, identifier, noneElementUnit},
+		464: {464, "internalAddressRealm", reflect.Slice, identifier, noneElementUnit},
+		465: {465, "externalAddressRealm", reflect.Slice, identifier, noneElementUnit},
+		466: {466, "natQuotaExceededEvent", reflect.Uint32, identifier, noneElementUnit},
+		467: {467, "natThresholdEvent", reflect.Uint32, identifier, noneElementUnit},
+		468: {468, "httpUserAgent", reflect.String, defaultElementSemantic, noneElementUnit},
+		469: {469, "httpContentType", reflect.String, defaultElementSemantic, noneElementUnit},
+		470: {470, "httpReasonPhrase", reflect.String, defaultElementSemantic, noneElementUnit},
+		471: {471, "maxSessionEntries", reflect.Uint32, identifier, noneElementUnit},
+		472: {472, "maxBIBEntries", reflect.Uint32, identifier, noneElementUnit},
+		473: {473, "maxEntriesPerUser", reflect.Uint32, identifier, noneElementUnit},
+		474: {474, "maxSubscribers", reflect.Uint32, identifier, noneElementUnit},
+		475: {475, "maxFragmentsPendingReassembly", reflect.Uint32, identifier, noneElementUnit},
+		476: {476, "addressPoolHighThreshold", reflect.Uint32, identifier, noneElementUnit},
+		477: {477, "addressPoolLowThreshold", reflect.Uint32, identifier, noneElementUnit},
+		478: {478, "addressPortMappingHighThreshold", reflect.Uint32, identifier, noneElementUnit},
+		479: {479, "addressPortMappingLowThreshold", reflect.Uint32, identifier, noneElementUnit},
+		480: {480, "addressPortMappingPerUserHighThreshold", reflect.Uint32, identifier, noneElementUnit},
+		481: {481, "globalAddressMappingHighThreshold", reflect.Uint32, identifier, noneElementUnit},
+		482: {482, "vpnIdentifier", reflect.Slice, defaultElementSemantic, noneElementUnit},
+		483: {483, "bgpCommunity", reflect.Uint32, identifier, noneElementUnit},
+		484: {484, "bgpSourceCommunityList", reflect.Slice, list, noneElementUnit},
+		485: {485, "bgpDestinationCommunityList", reflect.Slice, list, noneElementUnit},
+		486: {486, "bgpExtendedCommunity", reflect.Slice, defaultElementSemantic, noneElementUnit},
+		487: {487, "bgpSourceExtendedCommunityList", reflect.Slice, list, noneElementUnit},
+		488: {488, "bgpDestinationExtendedCommunityList", reflect.Slice, list, noneElementUnit},
+		489: {489, "bgpLargeCommunity", reflect.Slice, defaultElementSemantic, noneElementUnit},
+		490: {490, "bgpSourceLargeCommunityList", reflect.Slice, list, noneElementUnit},
+		491: {491, "bgpDestinationLargeCommunityList", reflect.Slice, list, noneElementUnit},
+	}
 }
 
-// // elementSpecifier returns an elementSpecifier created from fieldSpecifier elementID and enterpriseNumber.
-// func (fieldSpec *fieldSpecifier) ElementSpecifier() elementSpecifier {
-// 	return elementSpecifier{fieldSpec.elementID, fieldSpec.enterpriseNumber}
-// }
-
-// Size returns a size of a fieldSpecifier.  This depends on Enterprise bit being set (or not).
-func (fieldSpec fieldSpecifier) Size() uint16 {
-	if fieldSpec.E() {
-		return fieldSpecifierWEnterpriseSize
+func getInformationElement(id uint16) informationElement {
+	if val, ok := informationElements()[id]; ok {
+		return val
 	}
 
-	return fieldSpecifierSize
-}
-
-func (fieldSpec fieldSpecifier) String() string {
-	if fieldSpec.E() {
-		return fmt.Sprintf("Element %d, Enterprise number %d", fieldSpec.elementID, fieldSpec.enterpriseNumber)
-	}
-
-	return fmt.Sprintf("Element %d", fieldSpec.elementID)
-}
-
-// fieldDefinition describes a IPFIX field (single data).
-type fieldDefinition struct {
-	Type fieldType
-	Name string
-}
-
-func (fieldDef fieldDefinition) String() string {
-	if fieldDef.Type == UnknownFieldType {
-		return "Unknown Field"
-	}
-
-	return fmt.Sprintf("Field '%s'", fieldDef.Name)
-}
-
-func informationElement(elementID uint16, enterpriseNumber uint32) fieldDefinition {
-	if enterpriseNumber == 0 {
-		if val, ok := ipfixInformationElement()[elementID]; ok {
-			return val
-		}
-	}
-	return fieldDefinition{UnknownFieldType, ""}
-}
-
-// Kind of immutable map (as there is no such thing as constant map in Go).
-func ipfixInformationElement() map[uint16]fieldDefinition {
-	return map[uint16]fieldDefinition{
-		1:  {Uint64, "octetDeltaCount"},
-		2:  {Uint64, "packetDeltaCount"},
-		3:  {Uint64, "deltaFlowCount"},
-		4:  {Uint8, "protocolIdentifier"},
-		5:  {Uint8, "ipClassOfService"},
-		6:  {Uint16, "tcpControlBits"},
-		7:  {Uint16, "sourceTransportPort"},
-		8:  {IPv4Address, "sourceIPv4Address"},
-		9:  {Uint8, "sourceIPv4PrefixLength"},
-		10: {Uint32, "ingressInterface"},
-		11: {Uint16, "destinationTransportPort"},
-		12: {IPv4Address, "destinationIPv4Address"},
-		13: {Uint8, "destinationIPv4PrefixLength"},
-		14: {Uint32, "egressInterface"},
-		15: {IPv4Address, "ipNextHopIPv4Address"},
-		// many, many more, but let's focus on those actually used by my MikroTik
-		21: {Uint32, "flowEndSysUpTime"},
-		22: {Uint32, "flowStartSysUpTime"},
-		// many, many more, but let's focus on those actually used by my MikroTik
-		27: {IPv6Address, "sourceIPv6Address"},
-		28: {IPv6Address, "destinationIPv6Address"},
-		29: {Uint8, "sourceIPv6PrefixLength"},
-		30: {Uint8, "destinationIPv6PrefixLength"},
-		31: {Uint32, "flowLabelIPv6"},
-		32: {Uint16, "icmpTypeCodeIPv4"},
-		33: {Uint8, "igmpType"},
-		// many, many more, but let's focus on those actually used by my MikroTik
-		56: {MacAddress, "sourceMacAddress"},
-		// many, many more, but let's focus on those actually used by my MikroTik
-		60: {Uint8, "ipVersion"},
-		// many, many more, but let's focus on those actually used by my MikroTik
-		62: {IPv6Address, "ipNextHopIPv6Address"},
-		// many, many more, but let's focus on those actually used by my MikroTik
-		80: {MacAddress, "destinationMacAddress"},
-		81: {MacAddress, "postSourceMacAddress"},
-		// many, many more, but let's focus on those actually used by my MikroTik
-		176: {Uint8, "icmpTypeIPv4"},
-		177: {Uint8, "icmpCodeIPv4"},
-		178: {Uint8, "icmpTypeIPv6"},
-		179: {Uint8, "icmpCodeIPv6"},
-		// many, many more, but let's focus on those actually used by my MikroTik
-		184: {Uint32, "tcpSequenceNumber"},
-		185: {Uint32, "tcpAcknowledgementNumber"},
-		186: {Uint16, "tcpWindowSize"},
-		// many, many more, but let's focus on those actually used by my MikroTik
-		189: {Uint8, "ipHeaderLength"},
-		// many, many more, but let's focus on those actually used by my MikroTik
-		192: {Uint8, "ipTTL"},
-		// many, many more, but let's focus on those actually used by my MikroTik
-		205: {Uint16, "udpMessageLength"},
-		206: {Uint8, "isMulticast"},
-		// many, many more, but let's focus on those actually used by my MikroTik
-		224: {Uint64, "ipTotalLength"},
-		225: {IPv4Address, "postNATSourceIPv4Address"},
-		226: {IPv4Address, "postNATDestinationIPv4Address"},
-		227: {Uint16, "postNAPTSourceTransportPort"},
-		228: {Uint16, "postNAPTDestinationTransportPort"},
+	return informationElement{
+		id:                id,
+		name:              "UNKNOWN",
+		dataType:          reflect.Invalid,
+		dataTypeSemantics: unassignedElementSemantic,
+		units:             unassignedElementUnit,
 	}
 }
-
-// // informationElement retrieves a fieldDefinition from IPFIX fieldModel map.
-// func informationElement(elementSpec elementSpecifier) (fieldDefinition, error) {
-// 	if fieldDefinition, ok := ipfixInformationElements()[elementSpec]; ok {
-// 		return fieldDefinition, nil
-// 	}
-//
-// 	return fieldDefinition{UnknownFieldType, ""},
-// 		&elementError{fmt.Sprintf("ipfix: field definition not found for %v", elementSpec)}
-// }
-//
-// // informationElement returns a fieldDefinition basing on provided fieldSpecifier.
-// func (fieldSpec fieldSpecifier) InformationElement() (fieldDefinition, error) {
-// 	return informationElement(elementSpecifier{fieldSpec.elementID, fieldSpec.enterpriseNumber})
-// }
