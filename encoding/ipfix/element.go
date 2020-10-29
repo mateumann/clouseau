@@ -19,14 +19,14 @@ func (e *elementError) Error() string {
 	return e.msg
 }
 
-// FieldType is an abstract data types of the IPFIX information model
+// fieldType is an abstract data types of the IPFIX information model
 // https://tools.ietf.org/html/rfc7012#section-3.1
 // https://www.iana.org/assignments/ipfix/ipfix.xhtml#ipfix-information-element-data-types
-type FieldType uint8
+type fieldType uint8
 
 const (
 	// OctetArray represents a finite-length string of octets.
-	OctetArray FieldType = iota
+	OctetArray fieldType = iota
 	// Uint8 represents non-negative integer value in the range of 0 to 255.
 	Uint8
 	// Uint16 represents non-negative integer value in the range of 0 to 65535.
@@ -75,35 +75,35 @@ const (
 	UnknownFieldType
 )
 
-// An elementSpecifier identifies an IPFIX element.
-type elementSpecifier struct {
-	ElementID        uint16
-	EnterpriseNumber uint32
-}
+// // An elementSpecifier identifies an IPFIX element.
+// type elementSpecifier struct {
+// 	elementID        uint16
+// 	enterpriseNumber uint32
+// }
 
-// E returns an Enterprise bit of an elementSpecifier.  This is the first bit of the elementSpecifier.  If this bit
-// is zero, the Information Element identifier identifies an Information Element in [IANA-IPFIX], and the four-octet
-// Enterprise Number field MUST NOT be present.  If this bit is one, the Information Element identifier identifies
-// an enterprise-specific Information Element, and the Enterprise Number field MUST be present.
-func (elementSpec elementSpecifier) E() bool {
-	return elementSpec.ElementID>>15 == 1
-}
-
-func (elementSpec elementSpecifier) String() string {
-	if elementSpec.E() {
-		return fmt.Sprintf("Element %d, Enterprise number %d", elementSpec.ElementID, elementSpec.EnterpriseNumber)
-	}
-
-	return fmt.Sprintf("Element %d", elementSpec.ElementID)
-}
+// // E returns an Enterprise bit of an elementSpecifier.  This is the first bit of the elementSpecifier.  If this bit
+// // is zero, the Information Element identifier identifies an Information Element in [IANA-IPFIX], and the four-octet
+// // Enterprise Number field MUST NOT be present.  If this bit is one, the Information Element identifier identifies
+// // an enterprise-specific Information Element, and the Enterprise Number field MUST be present.
+// func (elementSpec elementSpecifier) E() bool {
+// 	return elementSpec.elementID>>15 == 1
+// }
+//
+// func (elementSpec elementSpecifier) String() string {
+// 	if elementSpec.E() {
+// 		return fmt.Sprintf("Element %d, Enterprise number %d", elementSpec.elementID, elementSpec.enterpriseNumber)
+// 	}
+//
+// 	return fmt.Sprintf("Element %d", elementSpec.elementID)
+// }
 
 // fieldSpecifier represents an IPFIX field specification.
 // https://www.ietf.org/rfc/rfc7011.html#section-3.2
 // https://www.iana.org/assignments/ipfix/ipfix.xhtml
 type fieldSpecifier struct {
-	ElementID        uint16
-	FieldLength      uint16
-	EnterpriseNumber uint32
+	elementID        uint16
+	length           uint16
+	enterpriseNumber uint32
 }
 
 // E returns an Enterprise bit of a fieldSpecifier.  This is the first bit of the fieldSpecifier.  If this bit is zero,
@@ -111,13 +111,13 @@ type fieldSpecifier struct {
 // Number field MUST NOT be present.  If this bit is one, the Information Element identifier identifies an enterprise-
 // specific Information Element, and the Enterprise Number field MUST be present.
 func (fieldSpec fieldSpecifier) E() bool {
-	return fieldSpec.ElementID>>15 == 1
+	return fieldSpec.elementID>>15 == 1
 }
 
-// elementSpecifier returns an elementSpecifier created from fieldSpecifier ElementID and EnterpriseNumber.
-func (fieldSpec *fieldSpecifier) ElementSpecifier() elementSpecifier {
-	return elementSpecifier{fieldSpec.ElementID, fieldSpec.EnterpriseNumber}
-}
+// // elementSpecifier returns an elementSpecifier created from fieldSpecifier elementID and enterpriseNumber.
+// func (fieldSpec *fieldSpecifier) ElementSpecifier() elementSpecifier {
+// 	return elementSpecifier{fieldSpec.elementID, fieldSpec.enterpriseNumber}
+// }
 
 // Size returns a size of a fieldSpecifier.  This depends on Enterprise bit being set (or not).
 func (fieldSpec fieldSpecifier) Size() uint16 {
@@ -129,12 +129,16 @@ func (fieldSpec fieldSpecifier) Size() uint16 {
 }
 
 func (fieldSpec fieldSpecifier) String() string {
-	return fieldSpec.ElementSpecifier().String()
+	if fieldSpec.E() {
+		return fmt.Sprintf("Element %d, Enterprise number %d", fieldSpec.elementID, fieldSpec.enterpriseNumber)
+	}
+
+	return fmt.Sprintf("Element %d", fieldSpec.elementID)
 }
 
 // fieldDefinition describes a IPFIX field (single data).
 type fieldDefinition struct {
-	Type FieldType
+	Type fieldType
 	Name string
 }
 
@@ -146,83 +150,89 @@ func (fieldDef fieldDefinition) String() string {
 	return fmt.Sprintf("Field '%s'", fieldDef.Name)
 }
 
-// fieldModel is a mapping of elementSpecifier to fieldDefinition.
-type fieldModel map[elementSpecifier]fieldDefinition
+func informationElement(elementID uint16, enterpriseNumber uint32) fieldDefinition {
+	if enterpriseNumber == 0 {
+		if val, ok := ipfixInformationElement()[elementID]; ok {
+			return val
+		}
+	}
+	return fieldDefinition{UnknownFieldType, ""}
+}
 
 // Kind of immutable map (as there is no such thing as constant map in Go).
-func ipfixInformationElements() fieldModel {
-	return fieldModel{
-		elementSpecifier{1, 0}:  fieldDefinition{Uint64, "octetDeltaCount"},
-		elementSpecifier{2, 0}:  fieldDefinition{Uint64, "packetDeltaCount"},
-		elementSpecifier{3, 0}:  fieldDefinition{Uint64, "deltaFlowCount"},
-		elementSpecifier{4, 0}:  fieldDefinition{Uint8, "protocolIdentifier"},
-		elementSpecifier{5, 0}:  fieldDefinition{Uint8, "ipClassOfService"},
-		elementSpecifier{6, 0}:  fieldDefinition{Uint16, "tcpControlBits"},
-		elementSpecifier{7, 0}:  fieldDefinition{Uint16, "sourceTransportPort"},
-		elementSpecifier{8, 0}:  fieldDefinition{IPv4Address, "sourceIPv4Address"},
-		elementSpecifier{9, 0}:  fieldDefinition{Uint8, "sourceIPv4PrefixLength"},
-		elementSpecifier{10, 0}: fieldDefinition{Uint32, "ingressInterface"},
-		elementSpecifier{11, 0}: fieldDefinition{Uint16, "destinationTransportPort"},
-		elementSpecifier{12, 0}: fieldDefinition{IPv4Address, "destinationIPv4Address"},
-		elementSpecifier{13, 0}: fieldDefinition{Uint8, "destinationIPv4PrefixLength"},
-		elementSpecifier{14, 0}: fieldDefinition{Uint32, "egressInterface"},
-		elementSpecifier{15, 0}: fieldDefinition{IPv4Address, "ipNextHopIPv4Address"},
+func ipfixInformationElement() map[uint16]fieldDefinition {
+	return map[uint16]fieldDefinition{
+		1:  {Uint64, "octetDeltaCount"},
+		2:  {Uint64, "packetDeltaCount"},
+		3:  {Uint64, "deltaFlowCount"},
+		4:  {Uint8, "protocolIdentifier"},
+		5:  {Uint8, "ipClassOfService"},
+		6:  {Uint16, "tcpControlBits"},
+		7:  {Uint16, "sourceTransportPort"},
+		8:  {IPv4Address, "sourceIPv4Address"},
+		9:  {Uint8, "sourceIPv4PrefixLength"},
+		10: {Uint32, "ingressInterface"},
+		11: {Uint16, "destinationTransportPort"},
+		12: {IPv4Address, "destinationIPv4Address"},
+		13: {Uint8, "destinationIPv4PrefixLength"},
+		14: {Uint32, "egressInterface"},
+		15: {IPv4Address, "ipNextHopIPv4Address"},
 		// many, many more, but let's focus on those actually used by my MikroTik
-		elementSpecifier{21, 0}: fieldDefinition{Uint32, "flowEndSysUpTime"},
-		elementSpecifier{22, 0}: fieldDefinition{Uint32, "flowStartSysUpTime"},
+		21: {Uint32, "flowEndSysUpTime"},
+		22: {Uint32, "flowStartSysUpTime"},
 		// many, many more, but let's focus on those actually used by my MikroTik
-		elementSpecifier{27, 0}: fieldDefinition{IPv6Address, "sourceIPv6Address"},
-		elementSpecifier{28, 0}: fieldDefinition{IPv6Address, "destinationIPv6Address"},
-		elementSpecifier{29, 0}: fieldDefinition{Uint8, "sourceIPv6PrefixLength"},
-		elementSpecifier{30, 0}: fieldDefinition{Uint8, "destinationIPv6PrefixLength"},
-		elementSpecifier{31, 0}: fieldDefinition{Uint32, "flowLabelIPv6"},
-		elementSpecifier{32, 0}: fieldDefinition{Uint16, "icmpTypeCodeIPv4"},
-		elementSpecifier{33, 0}: fieldDefinition{Uint8, "igmpType"},
+		27: {IPv6Address, "sourceIPv6Address"},
+		28: {IPv6Address, "destinationIPv6Address"},
+		29: {Uint8, "sourceIPv6PrefixLength"},
+		30: {Uint8, "destinationIPv6PrefixLength"},
+		31: {Uint32, "flowLabelIPv6"},
+		32: {Uint16, "icmpTypeCodeIPv4"},
+		33: {Uint8, "igmpType"},
 		// many, many more, but let's focus on those actually used by my MikroTik
-		elementSpecifier{56, 0}: fieldDefinition{MacAddress, "sourceMacAddress"},
+		56: {MacAddress, "sourceMacAddress"},
 		// many, many more, but let's focus on those actually used by my MikroTik
-		elementSpecifier{60, 0}: fieldDefinition{Uint8, "ipVersion"},
+		60: {Uint8, "ipVersion"},
 		// many, many more, but let's focus on those actually used by my MikroTik
-		elementSpecifier{62, 0}: fieldDefinition{IPv6Address, "ipNextHopIPv6Address"},
+		62: {IPv6Address, "ipNextHopIPv6Address"},
 		// many, many more, but let's focus on those actually used by my MikroTik
-		elementSpecifier{80, 0}: fieldDefinition{MacAddress, "destinationMacAddress"},
-		elementSpecifier{81, 0}: fieldDefinition{MacAddress, "postSourceMacAddress"},
+		80: {MacAddress, "destinationMacAddress"},
+		81: {MacAddress, "postSourceMacAddress"},
 		// many, many more, but let's focus on those actually used by my MikroTik
-		elementSpecifier{176, 0}: fieldDefinition{Uint8, "icmpTypeIPv4"},
-		elementSpecifier{177, 0}: fieldDefinition{Uint8, "icmpCodeIPv4"},
-		elementSpecifier{178, 0}: fieldDefinition{Uint8, "icmpTypeIPv6"},
-		elementSpecifier{179, 0}: fieldDefinition{Uint8, "icmpCodeIPv6"},
+		176: {Uint8, "icmpTypeIPv4"},
+		177: {Uint8, "icmpCodeIPv4"},
+		178: {Uint8, "icmpTypeIPv6"},
+		179: {Uint8, "icmpCodeIPv6"},
 		// many, many more, but let's focus on those actually used by my MikroTik
-		elementSpecifier{184, 0}: fieldDefinition{Uint32, "tcpSequenceNumber"},
-		elementSpecifier{185, 0}: fieldDefinition{Uint32, "tcpAcknowledgementNumber"},
-		elementSpecifier{186, 0}: fieldDefinition{Uint16, "tcpWindowSize"},
+		184: {Uint32, "tcpSequenceNumber"},
+		185: {Uint32, "tcpAcknowledgementNumber"},
+		186: {Uint16, "tcpWindowSize"},
 		// many, many more, but let's focus on those actually used by my MikroTik
-		elementSpecifier{189, 0}: fieldDefinition{Uint8, "ipHeaderLength"},
+		189: {Uint8, "ipHeaderLength"},
 		// many, many more, but let's focus on those actually used by my MikroTik
-		elementSpecifier{192, 0}: fieldDefinition{Uint8, "ipTTL"},
+		192: {Uint8, "ipTTL"},
 		// many, many more, but let's focus on those actually used by my MikroTik
-		elementSpecifier{205, 0}: fieldDefinition{Uint16, "udpMessageLength"},
-		elementSpecifier{206, 0}: fieldDefinition{Uint8, "isMulticast"},
+		205: {Uint16, "udpMessageLength"},
+		206: {Uint8, "isMulticast"},
 		// many, many more, but let's focus on those actually used by my MikroTik
-		elementSpecifier{224, 0}: fieldDefinition{Uint64, "ipTotalLength"},
-		elementSpecifier{225, 0}: fieldDefinition{IPv4Address, "postNATSourceIPv4Address"},
-		elementSpecifier{226, 0}: fieldDefinition{IPv4Address, "postNATDestinationIPv4Address"},
-		elementSpecifier{227, 0}: fieldDefinition{Uint16, "postNAPTSourceTransportPort"},
-		elementSpecifier{228, 0}: fieldDefinition{Uint16, "postNAPTDestinationTransportPort"},
+		224: {Uint64, "ipTotalLength"},
+		225: {IPv4Address, "postNATSourceIPv4Address"},
+		226: {IPv4Address, "postNATDestinationIPv4Address"},
+		227: {Uint16, "postNAPTSourceTransportPort"},
+		228: {Uint16, "postNAPTDestinationTransportPort"},
 	}
 }
 
-// informationElement retrieves a fieldDefinition from IPFIX fieldModel map.
-func informationElement(elementSpec elementSpecifier) (fieldDefinition, error) {
-	if fieldDefinition, ok := ipfixInformationElements()[elementSpec]; ok {
-		return fieldDefinition, nil
-	}
-
-	return fieldDefinition{UnknownFieldType, ""},
-		&elementError{fmt.Sprintf("ipfix: field definition not found for %v", elementSpec)}
-}
-
-// informationElement returns a fieldDefinition basing on provided fieldSpecifier.
-func (fieldSpec fieldSpecifier) InformationElement() (fieldDefinition, error) {
-	return informationElement(elementSpecifier{fieldSpec.ElementID, fieldSpec.EnterpriseNumber})
-}
+// // informationElement retrieves a fieldDefinition from IPFIX fieldModel map.
+// func informationElement(elementSpec elementSpecifier) (fieldDefinition, error) {
+// 	if fieldDefinition, ok := ipfixInformationElements()[elementSpec]; ok {
+// 		return fieldDefinition, nil
+// 	}
+//
+// 	return fieldDefinition{UnknownFieldType, ""},
+// 		&elementError{fmt.Sprintf("ipfix: field definition not found for %v", elementSpec)}
+// }
+//
+// // informationElement returns a fieldDefinition basing on provided fieldSpecifier.
+// func (fieldSpec fieldSpecifier) InformationElement() (fieldDefinition, error) {
+// 	return informationElement(elementSpecifier{fieldSpec.elementID, fieldSpec.enterpriseNumber})
+// }

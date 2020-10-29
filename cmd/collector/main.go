@@ -31,7 +31,6 @@ func main() {
 	for {
 		buf := make([]byte, eightKB)
 		bufferLen, remote, err := conn.ReadFromUDP(buf)
-
 		if err != nil {
 			log.Fatal(err) //nolint:gocritic
 		}
