@@ -20,32 +20,30 @@ jobs:
   test:
     docker:
       - image: circleci/golang:1.14
-    environment:
-      TEST_RESULTS: /tmp/test-results
     working_directory: /go/src/github.com/mateumann/clouseau
     steps:
       - checkout
       - restore_cache:
           keys:
             - go-mod-v1-{{ checksum "go.sum" }}
-      - run: mkdir -p $TEST_RESULTS
+      - run: mkdir -p /tmp/test-results
       - run:
           name: Run standard unit tests
           command: |
-            make test | tee ${TEST_RESULTS}/go-test.out
-            mv coverage.txt ${TEST_RESULTS}/coverage.txt
+            make test | tee /tmp/test-results/go-test.out
+            mv coverage.txt /tmp/test-results/coverage.txt
       - run:
           name: Run unit tests
           command: |
             PACKAGE_NAMES=$(go list ./... | circleci tests split --split-by=timings --timings-type=classname)
-            gotestsum --junitfile ${TEST_RESULTS}/gotestsum-report.xml -- $PACKAGE_NAMES
+            gotestsum --junitfile /tmp/test-results/gotestsum-report.xml -- $PACKAGE_NAMES
       - store_artifacts: # upload test summary for display in Artifacts
           path: /tmp/test-results
           destination: raw-test-output
       - store_test_results: # upload test results for display in Test Summary
           path: /tmp/test-results
       - codecov/upload:
-          file: ${TEST_RESULTS}/coverage.txt
+          file: /tmp/test-results/coverage.txt
           token: ''
 
   lint:
