@@ -36,10 +36,10 @@ jobs:
           name: Run unit tests
           command: |
             PACKAGE_NAMES=$(go list ./... | circleci tests split --split-by=timings --timings-type=classname)
-            gotestsum --junitfile /tmp/test-results/test/gotestsum-report.xml -- $PACKAGE_NAMES
-#      - store_artifacts: # upload test summary for display in Artifacts
-#          path: /tmp/test-results
-#          destination: raw-test-output
+            gotestsum --junitfile /tmp/test-results/gotestsum/gotestsum-report.xml -- $PACKAGE_NAMES
+      - store_artifacts: # upload test summary for display in Artifacts
+          path: /tmp/test-results
+          destination: raw-test-output
       - store_test_results: # upload test results for display in Test Summary
           path: /tmp/test-results
       - codecov/upload:
