@@ -26,7 +26,7 @@ jobs:
       - restore_cache:
           keys:
             - go-mod-v1-{{ checksum "go.sum" }}
-      - run: mkdir -p /tmp/test-results
+      - run: mkdir -p /tmp/test-results/test
       - run:
           name: Run standard unit tests
           command: |
@@ -36,7 +36,7 @@ jobs:
           name: Run unit tests
           command: |
             PACKAGE_NAMES=$(go list ./... | circleci tests split --split-by=timings --timings-type=classname)
-            gotestsum --junitfile /tmp/test-results/gotestsum-report.xml -- $PACKAGE_NAMES
+            gotestsum --junitfile /tmp/test-results/test/gotestsum-report.xml -- $PACKAGE_NAMES
 #      - store_artifacts: # upload test summary for display in Artifacts
 #          path: /tmp/test-results
 #          destination: raw-test-output
