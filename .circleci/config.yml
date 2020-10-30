@@ -56,7 +56,7 @@ jobs:
           name: Run linter
           command: make lint
 
-  build:
+  build_cmd:
     docker:
       - image: circleci/golang:1.14
     working_directory: /go/src/github.com/mateumann/clouseau
@@ -74,10 +74,10 @@ jobs:
 workflows:
   version: 2
   build:
-    jobs: &build_jobs
+    jobs:
       - lint
       - test
-      - build:
+      - build_cmd:
         requires:
           - lint
 
