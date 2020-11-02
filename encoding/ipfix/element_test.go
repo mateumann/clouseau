@@ -80,7 +80,7 @@ func TestInformationElementByIDRandom(t *testing.T) {
 
 	ieMap := constInformationElements()
 
-	for attempts := 1000; attempts > 0; attempts-- {
+	for attempts := 100; attempts > 0; attempts-- {
 		randomized, err := rand.Int(rand.Reader, big.NewInt(32768))
 		if err != nil || randomized == nil {
 			t.Errorf("Error occurred during getting a random number.")
@@ -110,7 +110,7 @@ func TestInformationElement_String(t *testing.T) {
 
 	ieMap := constInformationElements()
 
-	for attempts := 1000; attempts > 0; attempts-- {
+	for attempts := 100; attempts > 0; attempts-- {
 		randomized, err := rand.Int(rand.Reader, big.NewInt(32768))
 		if err != nil || randomized == nil {
 			t.Errorf("Error occurred during getting a random number.")

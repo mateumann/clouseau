@@ -21,7 +21,7 @@ const (
 	unassignedElementSemantic
 )
 
-func (s informationElementSemantics) String() string {
+func (s *informationElementSemantics) String() string {
 	informationElementSemanticsStrings := map[informationElementSemantics]string{
 		defaultElementSemantic: "default",
 		quantity:               "quantity",
@@ -34,7 +34,7 @@ func (s informationElementSemantics) String() string {
 		snmpGauge:              "snmp gauge",
 	}
 
-	if val, ok := informationElementSemanticsStrings[s]; ok {
+	if val, ok := informationElementSemanticsStrings[*s]; ok {
 		return val
 	}
 
@@ -64,7 +64,7 @@ const (
 	unassignedElementUnit
 )
 
-func (u informationElementUnits) String() string {
+func (u *informationElementUnits) String() string {
 	informationElementUnitsStrings := map[informationElementUnits]string{
 		noneElementUnit: "none",
 		bits:            "bits",
@@ -84,7 +84,7 @@ func (u informationElementUnits) String() string {
 		inferred:        "inferred",
 	}
 
-	if val, ok := informationElementUnitsStrings[u]; ok {
+	if val, ok := informationElementUnitsStrings[*u]; ok {
 		return val
 	}
 
@@ -585,6 +585,6 @@ func InformationElementByID(id uint16) InformationElement {
 	}
 }
 
-func (e InformationElement) String() string {
+func (e *InformationElement) String() string {
 	return fmt.Sprintf("%v (%v, %v, %v)", e.name, e.dataType, e.dataTypeSemantics, e.units)
 }
