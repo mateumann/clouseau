@@ -22,27 +22,20 @@ const (
 )
 
 func (s informationElementSemantics) String() string {
-	switch s {
-	case defaultElementSemantic:
-		return "default"
-	case quantity:
-		return "quantity"
-	case totalCounter:
-		return "total counter"
-	case deltaCounter:
-		return "delta counter"
-	case identifier:
-		return "identifier"
-	case flags:
-		return "flags"
-	case list:
-		return "list"
-	case snmpCounter:
-		return "snmp counter"
-	case snmpGauge:
-		return "snmp gauge"
-	case unassignedElementSemantic:
-		return "unassigned"
+	informationElementSemanticsStrings := map[informationElementSemantics]string{
+		defaultElementSemantic: "default",
+		quantity:               "quantity",
+		totalCounter:           "total counter",
+		deltaCounter:           "delta counter",
+		identifier:             "identifiers",
+		flags:                  "flags",
+		list:                   "list",
+		snmpCounter:            "snmp counter",
+		snmpGauge:              "snmp gauge",
+	}
+
+	if val, ok := informationElementSemanticsStrings[s]; ok {
+		return val
 	}
 
 	return "INVALID"
@@ -72,41 +65,27 @@ const (
 )
 
 func (u informationElementUnits) String() string {
-	switch u {
-	case noneElementUnit:
-		return "none"
-	case bits:
-		return "bits"
-	case octets:
-		return "octets"
-	case packets:
-		return "packets"
-	case flows:
-		return "flows"
-	case seconds:
-		return "seconds"
-	case milliseconds:
-		return "milliseconds"
-	case microseconds:
-		return "microseconds"
-	case nanoseconds:
-		return "nanoseconds"
-	case fourOctetWords:
-		return "four octet words"
-	case messages:
-		return "messages"
-	case hops:
-		return "hops"
-	case entries:
-		return "entries"
-	case frames:
-		return "frames"
-	case ports:
-		return "ports"
-	case inferred:
-		return "inferred"
-	case unassignedElementUnit:
-		return "unassigned"
+	informationElementUnitsStrings := map[informationElementUnits]string{
+		noneElementUnit: "none",
+		bits: "bits",
+		octets: "octets",
+		packets: "packets",
+		flows: "flows",
+		seconds: "seconds",
+		milliseconds: "milliseconds",
+		microseconds: "microseconds",
+		nanoseconds: "nanoseconds",
+		fourOctetWords: "four octet words",
+		messages: "messages",
+		hops: "hops",
+		entries: "entries",
+		frames: "frames",
+		ports: "ports",
+		inferred: "inferred",
+	}
+
+	if val, ok := informationElementUnitsStrings[u]; ok {
+		return val
 	}
 
 	return "INVALID"
