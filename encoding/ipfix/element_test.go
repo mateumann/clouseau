@@ -87,7 +87,6 @@ func TestInformationElementByIDRandom(t *testing.T) {
 		}
 
 		id := uint16(randomized.Int64())
-		// id := uint16(rand.Int31n())
 		if want, ok = ieMap[id]; !ok {
 			want = InformationElement{
 				name:              "UNKNOWN",
@@ -99,6 +98,36 @@ func TestInformationElementByIDRandom(t *testing.T) {
 
 		got := InformationElementByID(id)
 		if want != got {
+			t.Errorf("InformationElementByID(%v) = %v, want %v", id, got, want)
+		}
+	}
+}
+
+func TestInformationElement_String(t *testing.T) {
+	var want InformationElement
+
+	var ok bool
+
+	ieMap := constInformationElements()
+
+	for attempts := 1000; attempts > 0; attempts-- {
+		randomized, err := rand.Int(rand.Reader, big.NewInt(32768))
+		if err != nil || randomized == nil {
+			t.Errorf("Error occurred during getting a random number.")
+		}
+
+		id := uint16(randomized.Int64())
+		if want, ok = ieMap[id]; !ok {
+			want = InformationElement{
+				name:              "UNKNOWN",
+				dataType:          reflect.Invalid,
+				dataTypeSemantics: unassignedElementSemantic,
+				units:             unassignedElementUnit,
+			}
+		}
+
+		got := InformationElementByID(id)
+		if want.String() != got.String() {
 			t.Errorf("InformationElementByID(%v) = %v, want %v", id, got, want)
 		}
 	}
