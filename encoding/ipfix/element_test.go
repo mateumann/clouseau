@@ -1,11 +1,13 @@
 package ipfix
 
 import (
+	"crypto/rand"
+	"math/big"
 	"reflect"
 	"testing"
 )
 
-func TestFuncInformationElement(t *testing.T) {
+func TestInformationElementByID(t *testing.T) {
 	tests := []struct {
 		name string
 		arg  uint16
@@ -59,5 +61,45 @@ func TestFuncInformationElement(t *testing.T) {
 				t.Errorf("InformationElementByID(%v) = %v, want %v", tt.arg, got, tt.want)
 			}
 		})
+	}
+}
+
+func TestInformationElementByIDAll(t *testing.T) {
+	for id, want := range constInformationElements() {
+		got := InformationElementByID(id)
+		if want != got {
+			t.Errorf("InformationElementByID(%v) = %v, want %v", id, got, want)
+		}
+	}
+}
+
+func TestInformationElementByIDRandom(t *testing.T) {
+	var want InformationElement
+
+	var ok bool
+
+	ieMap := constInformationElements()
+
+	for attempts := 1000; attempts > 0; attempts-- {
+		randomized, err := rand.Int(rand.Reader, big.NewInt(32768))
+		if err != nil || randomized == nil {
+			t.Errorf("Error occurred during getting a random number.")
+		}
+
+		id := uint16(randomized.Int64())
+		// id := uint16(rand.Int31n())
+		if want, ok = ieMap[id]; !ok {
+			want = InformationElement{
+				name:              "UNKNOWN",
+				dataType:          reflect.Invalid,
+				dataTypeSemantics: unassignedElementSemantic,
+				units:             unassignedElementUnit,
+			}
+		}
+
+		got := InformationElementByID(id)
+		if want != got {
+			t.Errorf("InformationElementByID(%v) = %v, want %v", id, got, want)
+		}
 	}
 }

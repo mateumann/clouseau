@@ -112,6 +112,7 @@ func (u informationElementUnits) String() string {
 	return "INVALID"
 }
 
+// InformationElement is a description of a single IPFIX data field.
 type InformationElement struct {
 	name              string
 	dataType          reflect.Kind
@@ -591,6 +592,7 @@ func constInformationElements() map[uint16]InformationElement {
 	}
 }
 
+// InformationElementByID returns an InformationElement identified by an id.
 func InformationElementByID(id uint16) InformationElement {
 	if val, ok := constInformationElements()[id]; ok {
 		return val
