@@ -101,7 +101,7 @@ type InformationElement struct {
 //nolint:funlen
 func constInformationElements() map[uint16]InformationElement {
 	return map[uint16]InformationElement{
-		0:  {"Reserved", reflect.Invalid, defaultElementSemantic, noneElementUnit},
+		0:  {"reserved", reflect.Invalid, defaultElementSemantic, noneElementUnit},
 		1:  {"octetDeltaCount", reflect.Uint64, deltaCounter, octets},
 		2:  {"packetDeltaCount", reflect.Uint64, deltaCounter, packets},
 		3:  {"deltaFlowCount", reflect.Uint64, deltaCounter, flows},
@@ -491,10 +491,10 @@ func constInformationElements() map[uint16]InformationElement {
 		413: {"dot1qServiceInstancePriority", reflect.Uint8, identifier, noneElementUnit},
 		414: {"dot1qCustomerSourceMacAddress", reflect.Array, defaultElementSemantic, noneElementUnit},
 		415: {"dot1qCustomerDestinationMacAddress", reflect.Array, defaultElementSemantic, noneElementUnit},
-		416: {"DEPRECATED", reflect.Invalid, unassignedElementSemantic, unassignedElementUnit},
+		416: {"deprecated", reflect.Invalid, unassignedElementSemantic, unassignedElementUnit},
 		417: {"postLayer2OctetDeltaCount", reflect.Uint64, deltaCounter, octets},
 		418: {"postMCastLayer2OctetDeltaCount", reflect.Uint64, deltaCounter, octets},
-		419: {"DEPRECATED", reflect.Invalid, unassignedElementSemantic, unassignedElementUnit},
+		419: {"deprecated", reflect.Invalid, unassignedElementSemantic, unassignedElementUnit},
 		420: {"postLayer2OctetTotalCount", reflect.Uint64, totalCounter, octets},
 		421: {"postMCastLayer2OctetTotalCount", reflect.Uint64, totalCounter, octets},
 		422: {"minimumLayer2TotalLength", reflect.Uint64, defaultElementSemantic, octets},

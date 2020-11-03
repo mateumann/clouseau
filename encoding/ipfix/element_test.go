@@ -2,7 +2,6 @@ package ipfix
 
 import (
 	"crypto/rand"
-	"fmt"
 	"math/big"
 	"reflect"
 	"testing"
@@ -85,6 +84,8 @@ func TestInformationElementByIDRandom(t *testing.T) {
 		randomized, err := rand.Int(rand.Reader, big.NewInt(32768))
 		if err != nil || randomized == nil {
 			t.Errorf("Error occurred during getting a random number.")
+
+			return
 		}
 
 		id := uint16(randomized.Int64())
@@ -105,31 +106,39 @@ func TestInformationElementByIDRandom(t *testing.T) {
 }
 
 func TestInformationElement_String(t *testing.T) {
-	var want InformationElement
-
-	var ok bool
-
-	ieMap := constInformationElements()
-
-	for attempts := 100; attempts > 0; attempts-- {
-		randomized, err := rand.Int(rand.Reader, big.NewInt(32768))
-		if err != nil || randomized == nil {
-			t.Errorf("Error occurred during getting a random number.")
-		}
-
-		id := uint16(randomized.Int64())
-		if want, ok = ieMap[id]; !ok {
-			want = InformationElement{
-				name:              "unknown",
-				dataType:          reflect.Invalid,
-				dataTypeSemantics: unassignedElementSemantic,
-				units:             unassignedElementUnit,
+	tests := []struct {
+		name string
+		arg  InformationElement
+		want string
+	}{
+		{
+			name: "Information Element 0",
+			arg:  InformationElementByID(0),
+			want: "reserved",
+		},
+		{
+			name: "Information Element 22",
+			arg:  InformationElementByID(22),
+			want: "flowStartSysUpTime",
+		},
+		{
+			name: "Information Element 35",
+			arg:  InformationElementByID(35),
+			want: "samplingAlgorithm",
+		},
+		{
+			name: "Information Element 283",
+			arg:  InformationElementByID(283),
+			want: "natPoolId",
+		},
+	}
+	for _, tt := range tests {
+		tt := tt // pin
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.arg.String()
+			if got != tt.want {
+				t.Errorf("%v = %v, want %v", tt.name, got, tt.want)
 			}
-		}
-
-		got := fmt.Sprintf("%v", InformationElementByID(id))
-		if want.String() != got {
-			t.Errorf("InformationElementByID(%v) = %v, want %v", id, got, want)
-		}
+		})
 	}
 }
