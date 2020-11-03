@@ -184,6 +184,39 @@ func TestSet_String(t *testing.T) {
 			},
 			want: "template set (16 octets) 1 record",
 		},
+		{
+			name: "Options Template Set with 2 record",
+			arg: set{
+				header: setHeader{
+					setID:  3,
+					length: 24,
+				},
+				records: make([]interface{}, 2),
+			},
+			want: "options template set (24 octets) 2 records",
+		},
+		{
+			name: "Data Set with 1 record",
+			arg: set{
+				header: setHeader{
+					setID:  258,
+					length: 16,
+				},
+				records: make([]interface{}, 1),
+			},
+			want: "data set (16 octets) 1 record",
+		},
+		{
+			name: "Invalid Set",
+			arg: set{
+				header: setHeader{
+					setID:  24,
+					length: 16,
+				},
+				records: make([]interface{}, 1),
+			},
+			want: "invalid set #24 1 record",
+		},
 	}
 	for _, tt := range tests {
 		tt := tt // pin
