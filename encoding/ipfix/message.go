@@ -187,10 +187,11 @@ type setHeader struct {
 	length uint16 // total length of the set, including setHeader, all records, and the optional padding; in octets
 }
 
+// Set ID constants defining valid IPFIX set identifiers (or a minimum valid set id in case of MinimumDataSetID).
 const (
-	TemplateSetID        = 2
-	OptionsTemplateSetID = 3
-	MinimumDataSetID     = 256
+	TemplateSetID        = 2   // TemplateSetID identifies a IPFIX Template Set
+	OptionsTemplateSetID = 3   // OptionsTemplateSetID identifies a IPFIX Options Template Set
+	MinimumDataSetID     = 256 // set ids >= MinimumDataSetID identify IPFIX Data Sets
 )
 
 func (h *setHeader) String() string {
