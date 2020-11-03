@@ -7,6 +7,92 @@ import (
 	"testing"
 )
 
+func TestInformationElementSemantics_String(t *testing.T) {
+	tests := []struct {
+		name string
+		arg  informationElementSemantics
+		want string
+	}{
+		{
+			name: "defaultElementSemantic",
+			arg:  defaultElementSemantic,
+			want: "default",
+		},
+		{
+			name: "quantity",
+			arg:  quantity,
+			want: "quantity",
+		},
+		{
+			name: "totalCounter",
+			arg:  totalCounter,
+			want: "total counter",
+		},
+		{
+			name: "flags",
+			arg:  flags,
+			want: "flags",
+		},
+		{
+			name: "invalid",
+			arg:  100,
+			want: "invalid",
+		},
+	}
+	for _, tt := range tests {
+		tt := tt // pin
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.arg.String()
+			if got != tt.want {
+				t.Errorf("%v = %v, want %v", tt.name, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestInformationElementUnits_String(t *testing.T) {
+	tests := []struct {
+		name string
+		arg  informationElementUnits
+		want string
+	}{
+		{
+			name: "noneElementUnit",
+			arg:  noneElementUnit,
+			want: "none",
+		},
+		{
+			name: "octets",
+			arg:  octets,
+			want: "octets",
+		},
+		{
+			name: "millisecods",
+			arg:  milliseconds,
+			want: "milliseconds",
+		},
+		{
+			name: "frames",
+			arg:  frames,
+			want: "frames",
+		},
+		{
+			name: "invalid",
+			arg:  200,
+			want: "invalid",
+		},
+	}
+	for _, tt := range tests {
+		tt := tt // pin
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.arg.String()
+			if got != tt.want {
+				t.Errorf("%v = %v, want %v", tt.name, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestInformationElementByID(t *testing.T) {
 	tests := []struct {
 		name string
@@ -130,49 +216,6 @@ func TestInformationElement_String(t *testing.T) {
 			name: "Information Element 283",
 			arg:  InformationElementByID(283),
 			want: "natPoolId",
-		},
-	}
-	for _, tt := range tests {
-		tt := tt // pin
-		t.Run(tt.name, func(t *testing.T) {
-			got := tt.arg.String()
-			if got != tt.want {
-				t.Errorf("%v = %v, want %v", tt.name, got, tt.want)
-			}
-		})
-	}
-}
-
-func TestInformationElementSemantics_String(t *testing.T) {
-	tests := []struct {
-		name string
-		arg  informationElementSemantics
-		want string
-	}{
-		{
-			name: "defaultElementSemantic",
-			arg:  defaultElementSemantic,
-			want: "default",
-		},
-		{
-			name: "quantity",
-			arg:  quantity,
-			want: "quantity",
-		},
-		{
-			name: "totalCounter",
-			arg:  totalCounter,
-			want: "total counter",
-		},
-		{
-			name: "flags",
-			arg:  flags,
-			want: "flags",
-		},
-		{
-			name: "invalid",
-			arg:  100,
-			want: "invalid",
 		},
 	}
 	for _, tt := range tests {
