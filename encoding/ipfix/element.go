@@ -37,7 +37,7 @@ func (s *informationElementSemantics) String() string {
 		return val
 	}
 
-	return "INVALID"
+	return "invalid"
 }
 
 // https://www.iana.org/assignments/ipfix/ipfix.xhtml#ipfix-information-element-units
@@ -87,7 +87,7 @@ func (u *informationElementUnits) String() string {
 		return val
 	}
 
-	return "INVALID"
+	return "invalid"
 }
 
 // InformationElement is a description of a single IPFIX data field.
@@ -577,7 +577,7 @@ func InformationElementByID(id uint16) InformationElement {
 	}
 
 	return InformationElement{
-		name:              "UNKNOWN",
+		name:              "unknown",
 		dataType:          reflect.Invalid,
 		dataTypeSemantics: unassignedElementSemantic,
 		units:             unassignedElementUnit,

@@ -2,6 +2,7 @@ package ipfix
 
 import (
 	"crypto/rand"
+	"fmt"
 	"math/big"
 	"reflect"
 	"testing"
@@ -89,7 +90,7 @@ func TestInformationElementByIDRandom(t *testing.T) {
 		id := uint16(randomized.Int64())
 		if want, ok = ieMap[id]; !ok {
 			want = InformationElement{
-				name:              "UNKNOWN",
+				name:              "unknown",
 				dataType:          reflect.Invalid,
 				dataTypeSemantics: unassignedElementSemantic,
 				units:             unassignedElementUnit,
@@ -119,15 +120,15 @@ func TestInformationElement_String(t *testing.T) {
 		id := uint16(randomized.Int64())
 		if want, ok = ieMap[id]; !ok {
 			want = InformationElement{
-				name:              "UNKNOWN",
+				name:              "unknown",
 				dataType:          reflect.Invalid,
 				dataTypeSemantics: unassignedElementSemantic,
 				units:             unassignedElementUnit,
 			}
 		}
 
-		got := InformationElementByID(id)
-		if want.String() != got.String() {
+		got := fmt.Sprintf("%v", InformationElementByID(id))
+		if want.String() != got {
 			t.Errorf("InformationElementByID(%v) = %v, want %v", id, got, want)
 		}
 	}
