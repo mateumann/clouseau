@@ -1,7 +1,6 @@
 package ipfix
 
 import (
-	"fmt"
 	"reflect"
 )
 
@@ -586,5 +585,5 @@ func InformationElementByID(id uint16) InformationElement {
 }
 
 func (e *InformationElement) String() string {
-	return fmt.Sprintf("%v (%v, %v, %v)", e.name, e.dataType, e.dataTypeSemantics, e.units)
+	return e.name
 }
