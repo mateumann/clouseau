@@ -1,6 +1,9 @@
 package ipfix
 
-import "fmt"
+import (
+	"fmt"
+	"time"
+)
 
 // A Template is an ordered sequence of <type, length> pairs used to
 //      completely specify the structure and semantics of a particular set
@@ -146,19 +149,21 @@ func (s *fieldSpecifier) valid() bool {
 	return s.informationElementID < 32768 && s.enterpriseNumber == 0
 }
 
-// messageHeader describes a IPFIX message header
+// message describes a IPFIX message constaing of a header and zero or more sets
 // https://tools.ietf.org/html/rfc7011#section-3.1
-type messageHeader struct {
+type message struct {
 	version             uint16 // version of the IPFIX, currently 0x000a
 	length              uint16 // total length of IPFIX Message, measured in octets, including the header and Set(s)
 	exportTime          uint32 // time at witch the message left the exporter, in seconds since the UNIX epoch, UTC
 	sequenceNumber      uint32 // incremental sequence counter modulo 2^32
 	observationDomainID uint32 // a 32-bit identifier of the observation domain, locally unique to the exporting proc.
+	sets                []set
 }
 
-func (h *messageHeader) String() string {
-	return fmt.Sprintf("header %v (%v octets, %v, %v, %v)",
-		h.version, h.length, h.exportTime, h.sequenceNumber, h.observationDomainID)
+func (h *message) String() string {
+	return fmt.Sprintf("message %v (%v octets, %v, %v, %v) %v",
+		h.version, h.length, time.Unix(int64(h.exportTime), 0).UTC().Format(time.RFC3339),
+		h.sequenceNumber, h.observationDomainID, intDescribed(len(h.sets), "set", "sets"))
 }
 
 // set describes a generic term for a collection of records that have a similar structure.  There are three different
@@ -220,15 +225,7 @@ func (r *templateRecord) String() string {
 		return fmt.Sprintf("invalid template record #%v", r.templateID)
 	}
 
-	return fmt.Sprintf("template record #%v (%v)", r.templateID, fieldsDescription(r.fieldCount))
-}
-
-func fieldsDescription(n uint16) string {
-	if n == 1 {
-		return "1 field"
-	}
-
-	return fmt.Sprintf("%v fields", n)
+	return fmt.Sprintf("template record #%v (%v)", r.templateID, uint16Described(r.fieldCount, "field", "fields"))
 }
 
 func (r *templateRecord) valid() bool {
@@ -250,9 +247,16 @@ func (r *optionsTemplateRecord) String() string {
 	}
 
 	return fmt.Sprintf("options template record #%v (scope %v of %v)", r.templateID,
-		fieldsDescription(r.scopeFieldCount), fieldsDescription(r.fieldCount))
+		uint16Described(r.scopeFieldCount, "field", "fields"), uint16Described(r.fieldCount, "field", "fields"))
 }
 
 func (r *optionsTemplateRecord) valid() bool {
 	return r.templateID >= 256 && r.scopeFieldCount > 0 && r.scopeFieldCount <= r.fieldCount
+}
+
+// dataRecord consists only of one or more field values, which belong to the template identified by the field setID of
+// the set header, i.e., "Set ID" = "Template ID"
+// https://tools.ietf.org/html/rfc7011#section-3.4.3
+type dataRecord struct {
+	field []interface{}
 }

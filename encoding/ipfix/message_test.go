@@ -5,9 +5,10 @@ import (
 	"fmt"
 	"math/big"
 	"testing"
+	"time"
 )
 
-func TestFieldSpecifier_String(t *testing.T) {
+func TestFieldSpecifier_StringRand(t *testing.T) {
 	var fs fieldSpecifier
 
 	for attempts := 100; attempts > 0; attempts-- {
@@ -137,8 +138,61 @@ func TestFieldSpecifier_invalid(t *testing.T) {
 	}
 }
 
-func TestMessageHeader_String(t *testing.T) {
-	var h messageHeader
+func TestMessage_String(t *testing.T) {
+	tests := []struct {
+		name string
+		arg  message
+		want string
+	}{
+		{
+			name: "A message with one template set",
+			arg: message{
+				version:             0x000a,
+				length:              296,
+				exportTime:          0x5ee715b1,
+				sequenceNumber:      0,
+				observationDomainID: 0,
+				sets: []set{
+					{
+						setID:   2,
+						length:  280,
+						records: make([]interface{}, 2),
+					},
+				},
+			},
+			want: "message 10 (296 octets, 2020-06-15T06:31:13Z, 0, 0) 1 set",
+		},
+		{
+			name: "A message with one data set",
+			arg: message{
+				version:             0x000a,
+				length:              412,
+				exportTime:          0x5ee7163d,
+				sequenceNumber:      195,
+				observationDomainID: 0,
+				sets: []set{
+					{
+						setID:   259,
+						length:  396,
+						records: make([]interface{}, 1),
+					},
+				},
+			},
+			want: "message 10 (412 octets, 2020-06-15T06:33:33Z, 195, 0) 1 set",
+		},
+	}
+	for _, tt := range tests {
+		tt := tt // pin
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.arg.String(); got != tt.want {
+				t.Errorf("%v got %v, want %v", tt.name, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestMessage_StringRand(t *testing.T) {
+	var h message
 
 	for attempts := 100; attempts > 0; attempts-- {
 		randomized, err := rand.Int(rand.Reader, big.NewInt(4294967296))
@@ -149,7 +203,7 @@ func TestMessageHeader_String(t *testing.T) {
 		}
 
 		id := uint32(randomized.Int64())
-		h = messageHeader{
+		h = message{
 			version:             0x000a,
 			length:              uint16(id % 16),
 			exportTime:          id,
@@ -157,12 +211,13 @@ func TestMessageHeader_String(t *testing.T) {
 			observationDomainID: 1,
 		}
 
-		want := fmt.Sprintf("header %v (%v octets, %v, %v, %v)",
-			h.version, h.length, h.exportTime, h.sequenceNumber, h.observationDomainID)
+		want := fmt.Sprintf("message %v (%v octets, %v, %v, %v) 0 sets",
+			h.version, h.length, time.Unix(int64(h.exportTime), 0).UTC().Format(time.RFC3339),
+			h.sequenceNumber, h.observationDomainID)
 		got := h.String()
 
 		if want != got {
-			t.Errorf("MessageHeader.String(%v) = %v, want %v", id, got, want)
+			t.Errorf("Message.String(%v) = %v, want %v", id, got, want)
 		}
 	}
 }
