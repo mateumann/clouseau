@@ -219,3 +219,57 @@ func TestSet_String(t *testing.T) {
 		})
 	}
 }
+
+func TestTemplateRecord_String(t *testing.T) {
+	tests := []struct {
+		name string
+		arg  templateRecord
+		want string
+	}{
+		{
+			name: "Template Record #258 with 1 field specifier",
+			arg: templateRecord{
+				templateID:      258,
+				fieldCount:      1,
+				fieldSpecifiers: make([]fieldSpecifier, 1),
+			},
+			want: "template record #258 (1 field)",
+		},
+		{
+			name: "Template Record #259 with 19 field specifier",
+			arg: templateRecord{
+				templateID:      259,
+				fieldCount:      19,
+				fieldSpecifiers: make([]fieldSpecifier, 19),
+			},
+			want: "template record #259 (19 fields)",
+		},
+		{
+			name: "Template Record #260 with 0 field specifier",
+			arg: templateRecord{
+				templateID:      260,
+				fieldCount:      0,
+				fieldSpecifiers: make([]fieldSpecifier, 0),
+			},
+			want: "template record #260 (0 fields)",
+		},
+		{
+			name: "Template Record #24 with 1 field specifier",
+			arg: templateRecord{
+
+				templateID:      24,
+				fieldCount:      1,
+				fieldSpecifiers: make([]fieldSpecifier, 1),
+			},
+			want: "invalid template record #24",
+		},
+	}
+	for _, tt := range tests {
+		tt := tt // pin
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.arg.String(); got != tt.want {
+				t.Errorf("%v got %v, want %v", tt.name, got, tt.want)
+			}
+		})
+	}
+}

@@ -207,4 +207,26 @@ func (s *set) valid() bool {
 	return (s.setID == 2 || s.setID == 3 || s.setID >= 256) && s.length > 3
 }
 
+// templateRecord contains any combination of InformationElement-s.
+type templateRecord struct {
+	templateID      uint16
+	fieldCount      uint16
+	fieldSpecifiers []fieldSpecifier
+}
+
+func (r *templateRecord) String() string {
+	if !r.valid() {
+		return fmt.Sprintf("invalid template record #%v", r.templateID)
+	}
+
+	fieldsDescription := "fields"
+	if r.fieldCount == 1 {
+		fieldsDescription = "field"
+	}
+
+	return fmt.Sprintf("template record #%v (%v %v)", r.templateID, r.fieldCount, fieldsDescription)
+}
+
+func (r *templateRecord) valid() bool {
+	return r.templateID >= 256
 }
