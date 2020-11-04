@@ -165,26 +165,11 @@ func (h *messageHeader) String() string {
 // types of set: template sets, options template sets, and data sets.  Each of these sets consists of a set header and
 // one or more records.  The exporting process may insert some padding octets, so that the subsequent set starts at an
 // aligned boundary.
-// https://tools.ietf.org/html/rfc7011#section-3.3.1
+// https://tools.ietf.org/html/rfc7011#section-3.3.1, https://tools.ietf.org/html/rfc7011#section-3.3.2
 type set struct {
-	header  setHeader
+	setID   uint16
+	length  uint16 // total length of the set, including set header, all records, and the optional padding; in octets
 	records []interface{}
-}
-
-func (s *set) String() string {
-	recordsDescription := "records"
-	if len(s.records) == 1 {
-		recordsDescription = "record"
-	}
-
-	return fmt.Sprintf("%v %v %v", s.header.String(), len(s.records), recordsDescription)
-}
-
-// setHeader describes a set by identifying it by a setID and declaring its length.
-// https://tools.ietf.org/html/rfc7011#section-3.3.2
-type setHeader struct {
-	setID  uint16
-	length uint16 // total length of the set, including setHeader, all records, and the optional padding; in octets
 }
 
 // Set ID constants defining valid IPFIX set identifiers (or a minimum valid set id in case of MinimumDataSetID).
@@ -194,25 +179,32 @@ const (
 	MinimumDataSetID     = 256 // set ids >= MinimumDataSetID identify IPFIX Data Sets
 )
 
-func (h *setHeader) String() string {
-	if h.valid() {
-		var setGenre string
-
-		switch {
-		case h.setID == TemplateSetID:
-			setGenre = "template set"
-		case h.setID == OptionsTemplateSetID:
-			setGenre = "options template set"
-		case h.setID >= MinimumDataSetID:
-			setGenre = "data set"
-		}
-
-		return fmt.Sprintf("%v (%v octets)", setGenre, h.length)
+func (s *set) String() string {
+	if !s.valid() {
+		return fmt.Sprintf("invalid set #%v", s.setID)
 	}
 
-	return fmt.Sprintf("invalid set #%v", h.setID)
+	var setGenre string
+
+	switch {
+	case s.setID == TemplateSetID:
+		setGenre = "template set"
+	case s.setID == OptionsTemplateSetID:
+		setGenre = "options template set"
+	case s.setID >= MinimumDataSetID:
+		setGenre = "data set"
+	}
+
+	recordsDescription := "records"
+	if len(s.records) == 1 {
+		recordsDescription = "record"
+	}
+
+	return fmt.Sprintf("%v (%v octets) %v %v", setGenre, s.length, len(s.records), recordsDescription)
 }
 
-func (h *setHeader) valid() bool {
-	return (h.setID == 2 || h.setID == 3 || h.setID >= 256) && h.length > 3
+func (s *set) valid() bool {
+	return (s.setID == 2 || s.setID == 3 || s.setID >= 256) && s.length > 3
+}
+
 }

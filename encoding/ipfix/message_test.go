@@ -176,10 +176,8 @@ func TestSet_String(t *testing.T) {
 		{
 			name: "Template Set with 1 record",
 			arg: set{
-				header: setHeader{
-					setID:  2,
-					length: 16,
-				},
+				setID:   2,
+				length:  16,
 				records: make([]interface{}, 1),
 			},
 			want: "template set (16 octets) 1 record",
@@ -187,10 +185,8 @@ func TestSet_String(t *testing.T) {
 		{
 			name: "Options Template Set with 2 record",
 			arg: set{
-				header: setHeader{
-					setID:  3,
-					length: 24,
-				},
+				setID:   3,
+				length:  24,
 				records: make([]interface{}, 2),
 			},
 			want: "options template set (24 octets) 2 records",
@@ -198,10 +194,8 @@ func TestSet_String(t *testing.T) {
 		{
 			name: "Data Set with 1 record",
 			arg: set{
-				header: setHeader{
-					setID:  258,
-					length: 16,
-				},
+				setID:   258,
+				length:  16,
 				records: make([]interface{}, 1),
 			},
 			want: "data set (16 octets) 1 record",
@@ -209,13 +203,11 @@ func TestSet_String(t *testing.T) {
 		{
 			name: "Invalid Set",
 			arg: set{
-				header: setHeader{
-					setID:  24,
-					length: 16,
-				},
+				setID:   24,
+				length:  16,
 				records: make([]interface{}, 1),
 			},
-			want: "invalid set #24 1 record",
+			want: "invalid set #24",
 		},
 	}
 	for _, tt := range tests {
