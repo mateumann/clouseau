@@ -273,3 +273,62 @@ func TestTemplateRecord_String(t *testing.T) {
 		})
 	}
 }
+
+func TestOptionsTemplateRecord_String(t *testing.T) {
+	tests := []struct {
+		name string
+		arg  optionsTemplateRecord
+		want string
+	}{
+		{
+			name: "Options Template Record #258 with 3 field specifier",
+			arg: optionsTemplateRecord{
+				templateID:      258,
+				fieldCount:      3,
+				scopeFieldCount: 2,
+				fieldSpecifiers: make([]fieldSpecifier, 3),
+			},
+			want: "options template record #258 (scope 2 fields of 3 fields)",
+		},
+		{
+			name: "Options Template Record #24 with 1 field specifier",
+			arg: optionsTemplateRecord{
+
+				templateID:      24,
+				fieldCount:      1,
+				scopeFieldCount: 1,
+				fieldSpecifiers: make([]fieldSpecifier, 1),
+			},
+			want: "invalid options template record #24",
+		},
+		{
+			name: "Options Template Record #384 with 0 scope fields",
+			arg: optionsTemplateRecord{
+
+				templateID:      384,
+				fieldCount:      1,
+				scopeFieldCount: 0,
+				fieldSpecifiers: make([]fieldSpecifier, 1),
+			},
+			want: "invalid options template record #384",
+		},
+		{
+			name: "Options Template Record #385 with 2 field specifier",
+			arg: optionsTemplateRecord{
+				templateID:      385,
+				fieldCount:      2,
+				scopeFieldCount: 3,
+				fieldSpecifiers: make([]fieldSpecifier, 2),
+			},
+			want: "invalid options template record #385",
+		},
+	}
+	for _, tt := range tests {
+		tt := tt // pin
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.arg.String(); got != tt.want {
+				t.Errorf("%v got %v, want %v", tt.name, got, tt.want)
+			}
+		})
+	}
+}

@@ -208,6 +208,7 @@ func (s *set) valid() bool {
 }
 
 // templateRecord contains any combination of InformationElement-s.
+// https://tools.ietf.org/html/rfc7011#section-3.4.1
 type templateRecord struct {
 	templateID      uint16
 	fieldCount      uint16
@@ -219,14 +220,39 @@ func (r *templateRecord) String() string {
 		return fmt.Sprintf("invalid template record #%v", r.templateID)
 	}
 
-	fieldsDescription := "fields"
-	if r.fieldCount == 1 {
-		fieldsDescription = "field"
+	return fmt.Sprintf("template record #%v (%v)", r.templateID, fieldsDescription(r.fieldCount))
+}
+
+func fieldsDescription(n uint16) string {
+	if n == 1 {
+		return "1 field"
 	}
 
-	return fmt.Sprintf("template record #%v (%v %v)", r.templateID, r.fieldCount, fieldsDescription)
+	return fmt.Sprintf("%v fields", n)
 }
 
 func (r *templateRecord) valid() bool {
 	return r.templateID >= 256
+}
+
+// optionsTemplateRecord provides additional information about the context of the reported InformationElement-s.
+// https://tools.ietf.org/html/rfc7011#section-3.4.2
+type optionsTemplateRecord struct {
+	templateID      uint16
+	fieldCount      uint16 // number of all fields in this record, including the scope fields
+	scopeFieldCount uint16 // number of scope fields (those are the first N fields of the record)
+	fieldSpecifiers []fieldSpecifier
+}
+
+func (r *optionsTemplateRecord) String() string {
+	if !r.valid() {
+		return fmt.Sprintf("invalid options template record #%v", r.templateID)
+	}
+
+	return fmt.Sprintf("options template record #%v (scope %v of %v)", r.templateID,
+		fieldsDescription(r.scopeFieldCount), fieldsDescription(r.fieldCount))
+}
+
+func (r *optionsTemplateRecord) valid() bool {
+	return r.templateID >= 256 && r.scopeFieldCount > 0 && r.scopeFieldCount <= r.fieldCount
 }
