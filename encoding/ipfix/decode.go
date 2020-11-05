@@ -6,7 +6,14 @@ import (
 
 // decoder represents IPFIX flow already received by the collecting process.
 type decoder struct {
+	// err              error
+	// r                io.Reader
+	// buf              []byte // leftover input
 	out []byte // leftover decoded output
+	// messages         []message
+	// data             []*dataRecord
+	// templates        []*templateRecord
+	// optionsTemplates []*optionsTemplateRecord
 }
 
 type CorruptInputError int64
