@@ -51,18 +51,30 @@ func (d *decoder) Write(p []byte) (n int, err error) {
 	r := bytes.NewReader(d.buf)
 
 	if nn, err = d.fetchElement(r, &m.version); err != nil {
+		if errors.Is(errors.Unwrap(err), io.EOF) {
+			return n, nil
+		}
+
 		return n, CorruptInputError{n, errors.Unwrap(err)}
 	}
 
 	n += nn
 
 	if nn, err = d.fetchElement(r, &m.length); err != nil {
+		if errors.Is(errors.Unwrap(err), io.EOF) {
+			return n, nil
+		}
+
 		return n, CorruptInputError{n, errors.Unwrap(err)}
 	}
 
 	n += nn
 
 	if nn, err = d.fetchElement(r, &m.exportTime); err != nil {
+		if errors.Is(errors.Unwrap(err), io.EOF) {
+			return n, nil
+		}
+
 		return n, CorruptInputError{n, errors.Unwrap(err)}
 	}
 
@@ -73,7 +85,7 @@ func (d *decoder) Write(p []byte) (n int, err error) {
 
 func (d *decoder) fetchElement(r io.Reader, data interface{}) (n int, err error) {
 	if err := binary.Read(r, binary.BigEndian, data); err != nil {
-		return 0, CorruptInputError{0, err}
+		return 0, CorruptInputError{1, err}
 	}
 
 	n = binary.Size(data)
