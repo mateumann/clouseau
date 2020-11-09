@@ -257,6 +257,6 @@ func (r *optionsTemplateRecord) valid() bool {
 // dataRecord consists only of one or more field values, which belong to the template identified by the field setID of
 // the set header, i.e., "Set ID" = "Template ID"
 // https://tools.ietf.org/html/rfc7011#section-3.4.3
-type dataRecord struct {
-	field []interface{}
-}
+// type dataRecord struct {
+// 	field []interface{}
+// }

@@ -1,7 +1,6 @@
 package ipfix
 
 import (
-	"bytes"
 	"errors"
 	"io"
 	"testing"
@@ -66,21 +65,27 @@ func TestCorruptInputError_Unwrap(t *testing.T) {
 func TestDecoder_Read_FewBytes(t *testing.T) {
 	tests := []struct {
 		name string
-		arg  io.Reader
-		want int64
+		arg  []byte
+		want int
 		err  error
 	}{
 		{
-			name: "Decoder Read an empty buffer",
-			arg:  bytes.NewReader([]byte{}),
+			name: "Decoder Write an empty buffer",
+			arg:  []byte{},
 			want: 0,
 			err:  CorruptInputError{0, io.EOF},
 		},
 		{
-			name: "Decoder Read 3-byte buffer",
-			arg:  bytes.NewReader([]byte{1, 2, 3}),
+			name: "Decoder Write 3-byte buffer",
+			arg:  []byte{0x00, 0x0a, 0x01},
 			want: 2,
 			err:  CorruptInputError{2, io.ErrUnexpectedEOF},
+		},
+		{
+			name: "Decoder Write 8-byte buffer",
+			arg:  []byte{0x00, 0x0a, 0x01, 0x28, 0x5e, 0xe7, 0x16, 0x26},
+			want: 8,
+			err:  nil,
 		},
 	}
 	for _, tt := range tests {
@@ -88,7 +93,7 @@ func TestDecoder_Read_FewBytes(t *testing.T) {
 		decoder := decoder{}
 
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := decoder.Read(tt.arg)
+			got, err := decoder.Write(tt.arg)
 			if got != tt.want {
 				t.Errorf("%v = %v, want %v", tt.name, got, tt.want)
 			}
@@ -99,35 +104,42 @@ func TestDecoder_Read_FewBytes(t *testing.T) {
 	}
 }
 
-func TestDecoder_Read_OutBuffer(t *testing.T) {
+func TestDecoder_Read_Buffer(t *testing.T) {
 	tests := []struct {
 		name       string
-		arg        io.Reader
-		decoderOut []byte
-		want       int64
+		arg        []byte
+		decoderBuf []byte
+		want       int
 		err        error
 	}{
 		{
-			name:       "Decoder Read an empty buffer, 2-byte decoder.out",
-			arg:        bytes.NewReader([]byte{}),
-			decoderOut: []byte{99, 100},
+			name:       "Decoder Write an empty buffer, 2-byte decoder.buf",
+			arg:        []byte{},
+			decoderBuf: []byte{0x00, 0x0a},
 			want:       2,
 			err:        CorruptInputError{2, io.EOF},
 		},
 		{
-			name:       "Decoder Read 3-byte buffer, 1-byte decoder.out",
-			arg:        bytes.NewReader([]byte{1, 2, 3}),
-			decoderOut: []byte{99},
+			name:       "Decoder Write 3-byte buffer, 1-byte decoder.buf",
+			arg:        []byte{0x0a, 0x01, 0x28},
+			decoderBuf: []byte{0x00},
 			want:       4,
-			err:        nil,
+			err:        CorruptInputError{4, io.EOF},
+		},
+		{
+			name:       "Decoder Write 1-byte buffer, 3-byte decoder.buf",
+			arg:        []byte{0x28},
+			decoderBuf: []byte{0x00, 0x0a, 0x01},
+			want:       4,
+			err:        CorruptInputError{4, io.EOF},
 		},
 	}
 	for _, tt := range tests {
 		tt := tt // pin
-		decoder := decoder{out: tt.decoderOut}
+		decoder := decoder{buf: tt.decoderBuf}
 
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := decoder.Read(tt.arg)
+			got, err := decoder.Write(tt.arg)
 			if got != tt.want {
 				t.Errorf("%v = %v, want %v", tt.name, got, tt.want)
 			}
