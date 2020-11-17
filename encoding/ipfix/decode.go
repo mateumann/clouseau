@@ -20,6 +20,7 @@ type decoder struct {
 	// optionsTemplates []*optionsTemplateRecord
 }
 
+// CorruptInputError describes an error in input data.
 type CorruptInputError struct {
 	position int
 	err      error
@@ -29,6 +30,7 @@ func (e CorruptInputError) Error() string {
 	return fmt.Sprintf("ipfix: error in the input data at byte %v (%v)", e.position, e.err)
 }
 
+// Unwrap returns the underlying error.
 func (e CorruptInputError) Unwrap() error {
 	return e.err
 }
@@ -50,32 +52,13 @@ func (d *decoder) Write(p []byte) (n int, err error) {
 
 	r := bytes.NewReader(d.buf)
 
-	if nn, err = d.fetchElement(r, &m.version); err != nil {
+	if nn, err = d.fetchElements(r,
+		&m.version, &m.length, &m.exportTime, &m.sequenceNumber, &m.observationDomainID); err != nil {
 		if errors.Is(errors.Unwrap(err), io.EOF) {
-			return n, nil
+			return n + nn, nil
 		}
 
-		return n, CorruptInputError{n, errors.Unwrap(err)}
-	}
-
-	n += nn
-
-	if nn, err = d.fetchElement(r, &m.length); err != nil {
-		if errors.Is(errors.Unwrap(err), io.EOF) {
-			return n, nil
-		}
-
-		return n, CorruptInputError{n, errors.Unwrap(err)}
-	}
-
-	n += nn
-
-	if nn, err = d.fetchElement(r, &m.exportTime); err != nil {
-		if errors.Is(errors.Unwrap(err), io.EOF) {
-			return n, nil
-		}
-
-		return n, CorruptInputError{n, errors.Unwrap(err)}
+		return n + nn, CorruptInputError{n + nn, errors.Unwrap(err)}
 	}
 
 	n += nn
@@ -83,13 +66,18 @@ func (d *decoder) Write(p []byte) (n int, err error) {
 	return n, nil
 }
 
-func (d *decoder) fetchElement(r io.Reader, data interface{}) (n int, err error) {
-	if err := binary.Read(r, binary.BigEndian, data); err != nil {
-		return 0, CorruptInputError{1, err}
-	}
+func (d *decoder) fetchElements(r io.Reader, data ...interface{}) (n int, err error) {
+	n = 0
 
-	n = binary.Size(data)
-	d.buf = d.buf[n:]
+	for _, elem := range data {
+		if err := binary.Read(r, binary.BigEndian, elem); err != nil {
+			return n, CorruptInputError{n + 1, err}
+		}
+
+		nn := binary.Size(elem)
+		d.buf = d.buf[nn:]
+		n += nn
+	}
 
 	return n, nil
 }
