@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"testing"
+	"time"
 )
 
 func TestCorruptInputError_Error(t *testing.T) {
@@ -159,6 +160,89 @@ func TestDecoder_Write_Buffer(t *testing.T) {
 			}
 			if !errors.Is(err, tt.err) {
 				t.Errorf("%v error %v, want %v", tt.name, err, tt.err)
+			}
+		})
+	}
+}
+
+func TestDecoder_Write_WithError(t *testing.T) {
+	tests := []struct {
+		name       string
+		arg        []byte
+		decoderErr error
+		want       int
+		err        error
+	}{
+		{
+			name:       "Decoder Write with nil decoder.err",
+			arg:        []byte{0x00, 0x0a},
+			decoderErr: nil,
+			want:       2,
+			err:        nil,
+		},
+		{
+			name:       "Decoder Write with non-nil decoder.err",
+			arg:        []byte{0x00, 0x0a, 0x01, 0x28},
+			decoderErr: CorruptInputError{0, nil},
+			want:       0,
+			err:        CorruptInputError{0, nil},
+		},
+	}
+	for _, tt := range tests {
+		tt := tt // pin
+		decoder := decoder{err: tt.decoderErr}
+
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := decoder.Write(tt.arg)
+			if got != tt.want {
+				t.Errorf("%v = %v, want %v", tt.name, got, tt.want)
+			}
+			if !errors.Is(err, tt.err) {
+				t.Errorf("%v error %v, want %v", tt.name, err, tt.err)
+			}
+		})
+	}
+}
+
+func TestDecoder_Write_WholeMessageHeaders(t *testing.T) {
+	tests := []struct {
+		name string
+		arg  []byte
+		want message
+		err  error
+	}{
+		{
+			name: "Decoder Write read a message header",
+			arg: []byte{
+				0x00, 0x0a, 0x01, 0x28, 0x5e, 0xe7, 0x15, 0xb1,
+				0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+			},
+			want: message{
+				version: 10,
+				length:  296,
+				exportTime: uint32(time.Date(2020, 6, 15,
+					6, 31, 13, 0, time.UTC).Unix()),
+				sequenceNumber:      0,
+				observationDomainID: 0,
+				sets:                nil,
+			},
+			err: nil,
+		},
+	}
+	for _, tt := range tests {
+		tt := tt // pin
+		decoder := decoder{}
+
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := decoder.Write(tt.arg)
+			if got != 16 {
+				t.Errorf("%v read not exactly message header length bytes", tt.name)
+			}
+			if !errors.Is(err, tt.err) {
+				t.Errorf("%v error %v, want %v", tt.name, err, tt.err)
+			}
+			if decoder.err != nil {
+				t.Errorf("%v decoder error: %v", tt.name, decoder.err)
 			}
 		})
 	}

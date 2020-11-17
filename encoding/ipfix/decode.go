@@ -10,7 +10,7 @@ import (
 
 // decoder represents IPFIX flow already received by the collecting process.
 type decoder struct {
-	// err error
+	err error
 	// r                io.Reader
 	// buf              []byte // leftover input
 	buf []byte // leftover decoded output
@@ -37,6 +37,10 @@ func (e CorruptInputError) Unwrap() error {
 
 // Write decodes a IPFIX message(s) from p buffer (implements a io.Writer interface).
 func (d *decoder) Write(p []byte) (n int, err error) {
+	if d.err != nil {
+		return 0, d.err
+	}
+
 	var m message
 
 	var nn int
@@ -57,6 +61,8 @@ func (d *decoder) Write(p []byte) (n int, err error) {
 		if errors.Is(errors.Unwrap(err), io.EOF) {
 			return n + nn, nil
 		}
+
+		d.err = err
 
 		return n + nn, CorruptInputError{n + nn, errors.Unwrap(err)}
 	}
