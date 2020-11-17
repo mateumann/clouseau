@@ -7,76 +7,78 @@ orbs:
   codecov: codecov/codecov@1.1.0
 
 workflows:
+  version: 2
   build:
     jobs:
-#      - build:
-#          context: default-context
-      - build
+      - lint
+      - test
+      - build:
+          requires:
+            - lint
 
 jobs:
-  build:
+  test:
     docker:
-      # specify the version
       - image: circleci/golang:1.14
-
-      # Specify service dependencies here if necessary
-      # CircleCI maintains a library of pre-built images
-      # documented at https://circleci.com/docs/2.0/circleci-images/
-      # - image: circleci/postgres:9.4
-
-    environment:
-      TEST_RESULTS: /tmp/test-results
-
     working_directory: /go/src/github.com/mateumann/clouseau
-
     steps:
       - checkout
       - restore_cache:
           keys:
             - go-mod-v1-{{ checksum "go.sum" }}
+      - run: mkdir -p /tmp/test-results/gotestsum
+      - run:
+          name: Run standard unit tests
+          command: |
+            make test | tee /tmp/test-results/go-test.out
+            mv coverage.txt /tmp/test-results/coverage.txt
+      - run:
+          name: Run unit tests
+          command: |
+            PACKAGE_NAMES=$(go list ./... | circleci tests split --split-by=timings --timings-type=classname)
+            gotestsum --junitfile /tmp/test-results/gotestsum/gotestsum-report.xml -- $PACKAGE_NAMES
+#      - store_artifacts: # upload test summary for display in Artifacts
+#          path: /tmp/test-results
+#          destination: raw-test-output
+      - store_test_results: # upload test results for display in Test Summary
+          path: /tmp/test-results
+      - codecov/upload:
+          file: /tmp/test-results/coverage.txt
+          token: ''
 
+  lint:
+    docker:
+      - image: circleci/golang:1.14
+    working_directory: /go/src/github.com/mateumann/clouseau
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - go-mod-v1-{{ checksum "go.sum" }}
       - run:
           name: Install golangci-lint
           command: |
             curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.31.0
             golangci-lint --version
-
-      - run: mkdir -p $TEST_RESULTS
-
-      - run:
-          name: Run standard unit tests
-          command: |
-            make test | tee ${TEST_RESULTS}/go-test.out
-            mv coverage.txt ${TEST_RESULTS}/coverage.txt
-
-      - run:
-          name: Run unit tests
-          command: |
-            PACKAGE_NAMES=$(go list ./... | circleci tests split --split-by=timings --timings-type=classname)
-            gotestsum --junitfile ${TEST_RESULTS}/gotestsum-report.xml -- $PACKAGE_NAMES
-
-#      - run:
-#          name: Store code coverage report
-#          command: cp coverage.html ${TEST_RESULTS}/coverage.html
-
       - run:
           name: Run linter
           command: make lint
+#      - persist_to_workspace:
+#          root: /go/src/github.com/mateumann/clouseau
+#          paths:
+#            - rpms
 
+  build:
+    docker:
+      - image: circleci/golang:1.14
+    working_directory: /go/src/github.com/mateumann/clouseau
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - go-mod-v1-{{ checksum "go.sum" }}
       - run: make build
-
       - save_cache: # Store cache in the /go/pkg/mod directory
           key: go-mod-v4-{{ checksum "go.sum" }}
           paths:
             - "/go/pkg/mod"
-
-      - store_artifacts: # upload test summary for display in Artifacts
-          path: /tmp/test-results
-          destination: raw-test-output
-
-      - store_test_results: # upload test results for display in Test Summary
-          path: /tmp/test-results
-
-      - codecov/upload:
-          file: ${TEST_RESULTS}/coverage.txt
-          token: ''

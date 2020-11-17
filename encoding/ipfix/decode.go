@@ -3,134 +3,87 @@ package ipfix
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"fmt"
+	"io"
 )
 
-// TODO: what about padding (less bytes in data structures than declared message size)?
-
-// An InvalidUnmarshalError describes an invalid argument passed to Unmarshal.
-// (The argument to Unmarshal must be a non-nil pointer to the Message struct.)
-type InvalidUnmarshalError struct{}
-
-func (*InvalidUnmarshalError) Error() string {
-	return "ipfix: Unmarshal(nil)"
+// decoder represents IPFIX flow already received by the collecting process.
+type decoder struct {
+	err error
+	// r                io.Reader
+	// buf              []byte // leftover input
+	buf []byte // leftover decoded output
+	// messages         []message
+	// data             []*dataRecord
+	// templates        []*templateRecord
+	// optionsTemplates []*optionsTemplateRecord
 }
 
-// Decode represents the data used to decode IPFIX messages.
-type Decode struct {
-	templates []templateRecord
+// CorruptInputError describes an error in input data.
+type CorruptInputError struct {
+	position int
+	err      error
 }
 
-// Unmarshal stream of bytes into a IPFIX Message.
-// A single Message consists of a messageHeader and an array of set-s.
-// https://www.ietf.org/rfc/rfc7011.html#section-3
-func (d *Decode) Unmarshal(in []byte, message *Message) error {
-	if message == nil {
-		return &InvalidUnmarshalError{}
-	}
-
-	reader := bytes.NewReader(in)
-
-	if err := binary.Read(reader, binary.BigEndian, &message.Header); err != nil {
-		return err
-	}
-
-	for bytesRead := messageHeaderLength; bytesRead < int64(message.Header.Length); {
-		setBytesRead, err := d.readSet(reader, message)
-		if err != nil {
-			return err
-		}
-
-		bytesRead += setBytesRead
-	}
-
-	return nil
+func (e CorruptInputError) Error() string {
+	return fmt.Sprintf("ipfix: error in the input data at byte %v (%v)", e.position, e.err)
 }
 
-// readSet reads a single set from the reader and stores it in the Message or
-// Decode structures depending on its type.
-func (d *Decode) readSet(reader *bytes.Reader, message *Message) (int64, error) {
-	var setHeader setHeader
-	if err := binary.Read(reader, binary.BigEndian, &setHeader); err != nil {
-		return 0, err
-	}
-
-	switch setHeader.Type() {
-	case TemplateSetType:
-		templateSet := templateSet{
-			header:  setHeader,
-			records: nil,
-		}
-
-		_, err := readTemplateSet(reader, &templateSet)
-		if err != nil {
-			return reader.Size() - int64(reader.Len()), err
-		}
-
-		message.Sets = append(message.Sets, templateSet)
-
-		d.templates = append(d.templates, templateSet.records...)
-
-	case OptionsTemplateSetType:
-	case DataSetType:
-		var dataSet dataSet
-		dataSet.header = setHeader
-		// if templates are empty, there is nothing but reading dataSet.header.Length octets to be done
-		if len(d.templates) == 0 {
-			stream := make([]uint8, dataSet.header.Length-setHeaderLength)
-			if err := binary.Read(reader, binary.BigEndian, &stream); err != nil {
-				return reader.Size() - int64(reader.Len()), err
-			}
-
-			message.Sets = append(message.Sets, dataSet)
-		}
-
-	case UnknownSetType:
-	default:
-		// FIXME this is a temporary solution while not everything is yet implemented
-		fmt.Printf("ipfix Decode.readSet at %v", reader.Len())
-	}
-
-	return reader.Size() - int64(reader.Len()), nil
+// Unwrap returns the underlying error.
+func (e CorruptInputError) Unwrap() error {
+	return e.err
 }
 
-// TODO: implement as some kind of super-method that would “automagically” allow for
-//       things like binary.Read(reader, binary.BinEndian, &aTemplateSet)
-func readTemplateSet(reader *bytes.Reader, out *templateSet) (int64, error) {
-	var bytesRead uint16
-
-	for bytesRead = 0; bytesRead < out.header.Length-setHeaderLength; {
-		var templateRecord templateRecord
-
-		if err := binary.Read(reader, binary.BigEndian, &templateRecord.TemplateHeader); err != nil {
-			return 0, err
-		}
-
-		bytesRead += templateRecordHeaderLength
-
-		for i := uint16(0); i < templateRecord.TemplateHeader.FieldCount; i++ {
-			fieldSpecifier := fieldSpecifier{0, 0, 0}
-
-			if err := binary.Read(reader, binary.BigEndian, &fieldSpecifier.elementID); err != nil {
-				return reader.Size() - int64(reader.Len()), err
-			}
-
-			if err := binary.Read(reader, binary.BigEndian, &fieldSpecifier.length); err != nil {
-				return reader.Size() - int64(reader.Len()), err
-			}
-
-			if fieldSpecifier.E() {
-				if err := binary.Read(reader, binary.BigEndian, &fieldSpecifier.enterpriseNumber); err != nil {
-					return reader.Size() - int64(reader.Len()), err
-				}
-			}
-
-			templateRecord.FieldSpecifiers = append(templateRecord.FieldSpecifiers, fieldSpecifier)
-			bytesRead += fieldSpecifier.Size()
-		}
-
-		out.records = append(out.records, templateRecord)
+// Write decodes a IPFIX message(s) from p buffer (implements a io.Writer interface).
+func (d *decoder) Write(p []byte) (n int, err error) {
+	if d.err != nil {
+		return 0, d.err
 	}
 
-	return reader.Size() - int64(reader.Len()), nil
+	var m message
+
+	var nn int
+
+	n = 0
+
+	if d.buf == nil {
+		d.buf = make([]byte, len(p))
+		copy(d.buf, p)
+	} else {
+		d.buf = append(d.buf, p...)
+	}
+
+	r := bytes.NewReader(d.buf)
+
+	if nn, err = d.fetchElements(r,
+		&m.version, &m.length, &m.exportTime, &m.sequenceNumber, &m.observationDomainID); err != nil {
+		if errors.Is(errors.Unwrap(err), io.EOF) {
+			return n + nn, nil
+		}
+
+		d.err = err
+
+		return n + nn, CorruptInputError{n + nn, errors.Unwrap(err)}
+	}
+
+	n += nn
+
+	return n, nil
+}
+
+func (d *decoder) fetchElements(r io.Reader, data ...interface{}) (n int, err error) {
+	n = 0
+
+	for _, elem := range data {
+		if err := binary.Read(r, binary.BigEndian, elem); err != nil {
+			return n, CorruptInputError{n + 1, err}
+		}
+
+		nn := binary.Size(elem)
+		d.buf = d.buf[nn:]
+		n += nn
+	}
+
+	return n, nil
 }

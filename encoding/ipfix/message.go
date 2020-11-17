@@ -5,168 +5,258 @@ import (
 	"time"
 )
 
-// A SetType represents IPFIX set type.  There are three different types: Data set, Template set and
-// Options Template set which are determined by SetID field of setHeader:
-//   * A value of 2 is reserved for Template Sets.
-//   * A value of 3 is reserved for Options Template Sets.
-//   * Values from 4 to 255 are reserved for future use.
-//   * Values 256 and above are used for Data Sets
-//   * The set ID values of 0 and 1 are not used, for historical reasons.
-// https://www.ietf.org/rfc/rfc7011.html#section-3.3.2
-type SetType int8
+// A Template is an ordered sequence of <type, length> pairs used to
+//      completely specify the structure and semantics of a particular set
+//      of information that needs to be communicated from an IPFIX Device
+//      to a Collector.  Each Template is uniquely identifiable by means
+//      of a Template ID.
 
+// An IPFIX Message is a message that originates at the Exporting
+//      Process and carries the IPFIX records of this Exporting Process,
+//      and whose destination is a Collecting Process.  An IPFIX Message
+//      is encapsulated at the transport layer.
+
+// The Message Header is the first part of an IPFIX Message; the
+//      Message Header provides basic information about the message, such
+//      as the IPFIX version, length of the message, message sequence
+//      number, etc.
+
+// A Template Record defines the structure and interpretation of
+//      fields in a Data Record.
+
+// A Data Record is a record that contains values of the parameters
+//      corresponding to a Template Record.
+
+// An Options Template Record is a Template Record that defines the
+//      structure and interpretation of fields in a Data Record, including
+//      defining how to scope the applicability of the Data Record.
+
+// A Set is a collection of records that have a similar structure,
+//      prefixed by a header.  In an IPFIX Message, zero or more Sets
+//      follow the Message Header.  There are three different types of
+//      Sets: Template Sets, Options Template Sets, and Data Sets.
+
+// A Template Set is a collection of one or more Template Records
+//      that have been grouped together in an IPFIX Message.
+
+// A Data Set is one or more Data Records, of the same type, that are
+//      grouped together in an IPFIX Message.  Each Data Record is
+//      previously defined by a Template Record or an Options Template
+//      Record.
+
+// An Information Element is a protocol- and encoding-independent
+//      description of an attribute that may appear in an IPFIX Record.
+//      Information Elements are defined in the IANA "IPFIX Information
+//      Elements" registry [IANA-IPFIX].  The type associated with an
+//      Information Element indicates constraints on what it may contain
+//      and also determines the valid encoding mechanisms for use in
+//      IPFIX.
+
+// Figure A shows a summary of IPFIX terminology.
+//
+//    +------------------+---------------------------------------------+
+//    |                  |                 Contents                    |
+//    |                  +--------------------+------------------------+
+//    |       Set        |      Template      |         Record         |
+//    +------------------+--------------------+------------------------+
+//    |     Data Set     |          /         |     Data Record(s)     |
+//    +------------------+--------------------+------------------------+
+//    |   Template Set   | Template Record(s) |           /            |
+//    +------------------+--------------------+------------------------+
+//    | Options Template |  Options Template  |           /            |
+//    |       Set        |      Record(s)     |                        |
+//    +------------------+--------------------+------------------------+
+
+// The format of the IPFIX Message is shown in Figure B.
+//
+//         +----------------------------------------------------+
+//         | Message Header                                     |
+//         +----------------------------------------------------+
+//         | Set                                                |
+//         +----------------------------------------------------+
+//         | Set                                                |
+//         +----------------------------------------------------+
+//           ...
+//         +----------------------------------------------------+
+//         | Set                                                |
+//         +----------------------------------------------------+
+
+// An IPFIX Message consisting of interleaved Template, Data, and
+//      Options Template Sets, as shown in Figure C.
+//
+//     +--------+--------------------------------------------------------+
+//     |        | +----------+ +---------+     +-----------+ +---------+ |
+//     |Message | | Template | | Data    |     | Options   | | Data    | |
+//     | Header | | Set      | | Set     | ... | Template  | | Set     | |
+//     |        | |          | |         |     | Set       | |         | |
+//     |        | +----------+ +---------+     +-----------+ +---------+ |
+//     +--------+--------------------------------------------------------+
+
+// An IPFIX Message consisting entirely of Data Sets, sent after the
+//      appropriate Template Records have been defined and transmitted to
+//      the Collecting Process, as shown in Figure D.
+//
+//       +--------+----------------------------------------------+
+//       |        | +---------+     +---------+      +---------+ |
+//       |Message | | Data    |     | Data    |      | Data    | |
+//       | Header | | Set     | ... | Set     | ...  | Set     | |
+//       |        | +---------+     +---------+      +---------+ |
+//       +--------+----------------------------------------------+
+
+// An IPFIX Message consisting entirely of Template and Options
+//      Template Sets, as shown in Figure E.  Such a message can be used
+//      to define or redefine Templates and Options Templates in bulk.
+//
+//      +--------+-------------------------------------------------+
+//      |        | +----------+     +----------+      +----------+ |
+//      |Message | | Template |     | Template |      | Options  | |
+//      | Header | | Set      | ... | Set      | ...  | Template | |
+//      |        | |          |     |          |      | Set      | |
+//      |        | +----------+     +----------+      +----------+ |
+//      +--------+-------------------------------------------------+
+
+// fieldSpecifier describes a single data element in a IPFIX record
+// https://tools.ietf.org/html/rfc7011#section-3.2
+type fieldSpecifier struct {
+	informationElementID uint16
+	fieldLength          uint16
+	enterpriseNumber     uint32
+}
+
+func (s *fieldSpecifier) String() string {
+	if s.valid() {
+		if s.e() {
+			return fmt.Sprintf("enterprise-specific field #%v (%v)",
+				s.informationElementID, s.enterpriseNumber)
+		}
+
+		return fmt.Sprintf("IANA-registered field #%v",
+			InformationElementByID(s.informationElementID))
+	}
+
+	return fmt.Sprintf("invalid field #%v", s.informationElementID)
+}
+
+func (s *fieldSpecifier) e() bool {
+	return s.informationElementID>>15 == 1
+}
+
+func (s *fieldSpecifier) valid() bool {
+	if s.e() {
+		return s.informationElementID >= 32768 && s.enterpriseNumber != 0
+	}
+
+	return s.informationElementID < 32768 && s.enterpriseNumber == 0
+}
+
+// message describes a IPFIX message constaing of a header and zero or more sets
+// https://tools.ietf.org/html/rfc7011#section-3.1
+type message struct {
+	version             uint16 // version of the IPFIX, currently 0x000a
+	length              uint16 // total length of IPFIX Message, measured in octets, including the header and Set(s)
+	exportTime          uint32 // time at witch the message left the exporter, in seconds since the UNIX epoch, UTC
+	sequenceNumber      uint32 // incremental sequence counter modulo 2^32
+	observationDomainID uint32 // a 32-bit identifier of the observation domain, locally unique to the exporting proc.
+	sets                []set
+}
+
+func (h *message) String() string {
+	return fmt.Sprintf("message %v (%v octets, %v, %v, %v) %v",
+		h.version, h.length, time.Unix(int64(h.exportTime), 0).UTC().Format(time.RFC3339),
+		h.sequenceNumber, h.observationDomainID, intDescribed(len(h.sets), "set", "sets"))
+}
+
+// set describes a generic term for a collection of records that have a similar structure.  There are three different
+// types of set: template sets, options template sets, and data sets.  Each of these sets consists of a set header and
+// one or more records.  The exporting process may insert some padding octets, so that the subsequent set starts at an
+// aligned boundary.
+// https://tools.ietf.org/html/rfc7011#section-3.3.1, https://tools.ietf.org/html/rfc7011#section-3.3.2
+type set struct {
+	setID   uint16
+	length  uint16 // total length of the set, including set header, all records, and the optional padding; in octets
+	records []interface{}
+}
+
+// Set ID constants defining valid IPFIX set identifiers (or a minimum valid set id in case of MinimumDataSetID).
 const (
-	// DataSetType represents Data set type.
-	DataSetType SetType = iota
-	// TemplateSetType represents Template set type.
-	TemplateSetType
-	// OptionsTemplateSetType represents Options Template set type.
-	OptionsTemplateSetType
-	// UnknownSetType represents an unknown (or invalid) set type.
-	UnknownSetType SetType = -128
+	TemplateSetID        = 2   // TemplateSetID identifies a IPFIX Template Set
+	OptionsTemplateSetID = 3   // OptionsTemplateSetID identifies a IPFIX Options Template Set
+	MinimumDataSetID     = 256 // set ids >= MinimumDataSetID identify IPFIX Data Sets
 )
 
-func (t SetType) String() string {
-	switch t {
-	case DataSetType:
-		return "Data set"
-	case TemplateSetType:
-		return "Template set"
-	case OptionsTemplateSetType:
-		return "Options Template set"
-	case UnknownSetType:
-		return "Unknown set"
+func (s *set) String() string {
+	if !s.valid() {
+		return fmt.Sprintf("invalid set #%v", s.setID)
 	}
 
-	return "Unknown set"
-}
+	var setGenre string
 
-// A Message represents a IPFIX Message.  It consists of a single Message messageHeader and multiple Sets.
-// https://www.ietf.org/rfc/rfc7011.html#section-3
-type Message struct {
-	Header messageHeader
-	Sets   []set
-}
-
-// A messageHeader represents a IPFIX header.
-// see https://tools.ietf.org/html/rfc7011#section-3.1
-type messageHeader struct {
-	VersionNumber       uint16
-	Length              uint16
-	ExportTime          uint32
-	SequenceNumber      uint32
-	ObservationDomainID uint32
-}
-
-// A messageHeaderLength defines the length of a IPFIX Message messageHeader.
-const messageHeaderLength int64 = 16
-
-// Stringer implementation for IPFIX messageHeader.
-func (h messageHeader) String() string {
-	timestamp := time.Unix(int64(h.ExportTime), 0).UTC()
-
-	return fmt.Sprintf("IPFIX Message Header (%v) [domain %v; seq %v; exported at %v]",
-		h.VersionNumber, h.ObservationDomainID, h.SequenceNumber, timestamp.Format("15:04:05"))
-}
-
-// A setHeader represents a IPFIX set messageHeader.
-// https://www.ietf.org/rfc/rfc7011.html#section-3.3.2
-type setHeader struct {
-	SetID  uint16
-	Length uint16
-}
-
-// A setHeaderLength defines the length of a IPFIX set messageHeader.
-const setHeaderLength uint16 = 4
-
-// Type returns SetType based on SetId provided in IPFIX set messageHeader.
-//nolint:gomnd
-func (h setHeader) Type() SetType {
 	switch {
-	case h.SetID == 2:
-		return TemplateSetType
-	case h.SetID == 3:
-		return OptionsTemplateSetType
-	case h.SetID >= 256:
-		return DataSetType
-	default:
-		return UnknownSetType
+	case s.setID == TemplateSetID:
+		setGenre = "template set"
+	case s.setID == OptionsTemplateSetID:
+		setGenre = "options template set"
+	case s.setID >= MinimumDataSetID:
+		setGenre = "data set"
 	}
+
+	recordsDescription := "records"
+	if len(s.records) == 1 {
+		recordsDescription = "record"
+	}
+
+	return fmt.Sprintf("%v (%v octets) %v %v", setGenre, s.length, len(s.records), recordsDescription)
 }
 
-// Stringer implementation for IPFIX setHeader.
-func (h setHeader) String() string {
-	return fmt.Sprintf("IPFIX %s Header (id=%v, length=%v)", h.Type(), h.SetID, h.Length)
+func (s *set) valid() bool {
+	return (s.setID == 2 || s.setID == 3 || s.setID >= 256) && s.length > 3
 }
 
-// A set represents any of three IPFIX sets: Data set, Template set or Options Template set.
-type set interface {
-	Type() SetType
-	Header() setHeader
-	TemplateRecords() []templateRecord
-}
-
-// A templateSet type represents a IPFIX Template set.  It consists of a setHeader and number of TemplateRecords.
-// https://www.ietf.org/rfc/rfc7011.html#section-3.4.1
-type templateSet struct {
-	header  setHeader
-	records []templateRecord
-}
-
-// Type function returns TemplateSetType for any templateSet.
-func (templateSet) Type() SetType {
-	return TemplateSetType
-}
-
-// Header function returns Template set's IPFIX Header.
-func (s templateSet) Header() setHeader {
-	return s.header
-}
-
-// TemplateRecords function returns Template set's records.
-func (s templateSet) TemplateRecords() []templateRecord {
-	return s.records
-}
-
-// templateRecordHeader represents a IPFIX Template Record messageHeader.
-type templateRecordHeader struct {
-	TemplateID uint16
-	FieldCount uint16
-}
-
-// A templateRecordHeaderLength defines the length of a IPFIX Template Record messageHeader.
-const templateRecordHeaderLength uint16 = 4
-
-// A templateRecord represents a IPFIX Template Record.
-// https://www.ietf.org/rfc/rfc7011.html#section-3.4.1
+// templateRecord contains any combination of InformationElement-s.
+// https://tools.ietf.org/html/rfc7011#section-3.4.1
 type templateRecord struct {
-	TemplateHeader  templateRecordHeader
-	FieldSpecifiers []fieldSpecifier
+	templateID      uint16
+	fieldCount      uint16
+	fieldSpecifiers []fieldSpecifier
 }
 
-// A dataSet type represents a IPFIX Data set.  It consists of a setHeader and number of DataRecords.
+func (r *templateRecord) String() string {
+	if !r.valid() {
+		return fmt.Sprintf("invalid template record #%v", r.templateID)
+	}
+
+	return fmt.Sprintf("template record #%v (%v)", r.templateID, uint16Described(r.fieldCount, "field", "fields"))
+}
+
+func (r *templateRecord) valid() bool {
+	return r.templateID >= 256
+}
+
+// optionsTemplateRecord provides additional information about the context of the reported InformationElement-s.
+// https://tools.ietf.org/html/rfc7011#section-3.4.2
+type optionsTemplateRecord struct {
+	templateID      uint16
+	fieldCount      uint16 // number of all fields in this record, including the scope fields
+	scopeFieldCount uint16 // number of scope fields (those are the first N fields of the record)
+	fieldSpecifiers []fieldSpecifier
+}
+
+func (r *optionsTemplateRecord) String() string {
+	if !r.valid() {
+		return fmt.Sprintf("invalid options template record #%v", r.templateID)
+	}
+
+	return fmt.Sprintf("options template record #%v (scope %v of %v)", r.templateID,
+		uint16Described(r.scopeFieldCount, "field", "fields"), uint16Described(r.fieldCount, "field", "fields"))
+}
+
+func (r *optionsTemplateRecord) valid() bool {
+	return r.templateID >= 256 && r.scopeFieldCount > 0 && r.scopeFieldCount <= r.fieldCount
+}
+
+// dataRecord consists only of one or more field values, which belong to the template identified by the field setID of
+// the set header, i.e., "Set ID" = "Template ID"
 // https://tools.ietf.org/html/rfc7011#section-3.4.3
-type dataSet struct {
-	header  setHeader
-	records []dataRecord
-}
-
-// Type function returns DataSetType for any dataSet.
-func (dataSet) Type() SetType {
-	return DataSetType
-}
-
-// Header function returns Data set's IPFIX setHeader.
-func (s dataSet) Header() setHeader {
-	return s.header
-}
-
-// TemplateRecords function returns nil.
-func (dataSet) TemplateRecords() []templateRecord {
-	return nil
-}
-
-// A dataRecord represents a single portion of data transmitted in IPFIX Data Sets.
-// https://www.ietf.org/rfc/rfc7011.html#section-3.4.3
-//   * TemplateID defines a templateRecord used to parse data
-type dataRecord interface{}
+// type dataRecord struct {
+// 	field []interface{}
+// }

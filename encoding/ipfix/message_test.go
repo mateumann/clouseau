@@ -1,254 +1,388 @@
 package ipfix
 
 import (
+	"crypto/rand"
+	"fmt"
+	"math/big"
 	"testing"
 	"time"
 )
 
-func TestSetType_String(t *testing.T) {
-	tests := []struct {
-		name string
-		arg  SetType
-		want string
-	}{
-		{
-			name: "DataSetType",
-			arg:  DataSetType,
-			want: "Data set",
-		},
-		{
-			name: "TemplateSetType",
-			arg:  TemplateSetType,
-			want: "Template set",
-		},
-		{
-			name: "OptionsTemplateSetType",
-			arg:  OptionsTemplateSetType,
-			want: "Options Template set",
-		},
-		{
-			name: "UnknownSetType",
-			arg:  UnknownSetType,
-			want: "Unknown set",
-		},
-		{
-			name: "Some other (unknown) SetType",
-			arg:  71,
-			want: "Unknown set",
-		},
-		{
-			name: "Some other (unknown, negative) SetType",
-			arg:  -123,
-			want: "Unknown set",
-		},
-	}
-	for _, tt := range tests {
-		tt := tt // pin!
-		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.arg.String(); got != tt.want {
-				t.Errorf("SetType.String() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
+func TestFieldSpecifier_StringRand(t *testing.T) {
+	var fs fieldSpecifier
 
-func TestHeader_String(t *testing.T) {
-	tests := []struct {
-		name string
-		arg  messageHeader
-		want string
-	}{
-		{
-			name: "Perfectly valid Message Header",
-			arg:  messageHeader{10, 11, uint32(time.Date(2020, 2, 2, 2, 2, 2, 2, time.UTC).Unix()), 1, 0},
-			want: "IPFIX Message Header (10) [domain 0; seq 1; exported at 02:02:02]",
-		},
-		{
-			name: "Somewhat strange Message Header",
-			arg:  messageHeader{999, 9999, uint32(time.Date(2020, 2, 2, 2, 2, 2, 2, time.UTC).Unix()), 99, 99999},
-			want: "IPFIX Message Header (999) [domain 99999; seq 99; exported at 02:02:02]",
-		},
-		{
-			name: "Zero (weird) Message Header",
-			arg:  messageHeader{0, 0, 0, 0, 0},
-			want: "IPFIX Message Header (0) [domain 0; seq 0; exported at 00:00:00]",
-		},
-	}
-	for _, tt := range tests {
-		tt := tt // pin!
-		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.arg.String(); got != tt.want {
-				t.Errorf("messageHeader.String() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
+	for attempts := 100; attempts > 0; attempts-- {
+		randomized, err := rand.Int(rand.Reader, big.NewInt(65536))
+		if err != nil || randomized == nil {
+			t.Errorf("Error occurred during getting a random number.")
 
-func TestSetHeader_Type(t *testing.T) {
-	tests := []struct {
-		name string
-		arg  setHeader
-		want SetType
-	}{
-		{
-			name: "Zero set messageHeader",
-			arg:  setHeader{0, 0},
-			want: UnknownSetType,
-		},
-		{
-			name: "Template set messageHeader",
-			arg:  setHeader{2, 0},
-			want: TemplateSetType,
-		},
-		{
-			name: "Options Template set messageHeader",
-			arg:  setHeader{3, 0},
-			want: OptionsTemplateSetType,
-		},
-		{
-			name: "Unknown set messageHeader",
-			arg:  setHeader{255, 0},
-			want: UnknownSetType,
-		},
-		{
-			name: "Data set messageHeader (id=256)",
-			arg:  setHeader{256, 0},
-			want: DataSetType,
-		},
-		{
-			name: "Another Data set messageHeader (id=258)",
-			arg:  setHeader{258, 0},
-			want: DataSetType,
-		},
-	}
-	for _, tt := range tests {
-		tt := tt // pin!
-		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.arg.Type(); got != tt.want {
-				t.Errorf("header.Type() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestSetHeader_String(t *testing.T) {
-	tests := []struct {
-		name string
-		arg  setHeader
-		want string
-	}{
-		{
-			name: "Zero set messageHeader",
-			arg:  setHeader{0, 0},
-			want: "IPFIX Unknown set Header (id=0, length=0)",
-		},
-		{
-			name: "Template set messageHeader",
-			arg:  setHeader{2, 0},
-			want: "IPFIX Template set Header (id=2, length=0)",
-		},
-		{
-			name: "Options Template set messageHeader",
-			arg:  setHeader{3, 0},
-			want: "IPFIX Options Template set Header (id=3, length=0)",
-		},
-		{
-			name: "Unknown set messageHeader",
-			arg:  setHeader{255, 0},
-			want: "IPFIX Unknown set Header (id=255, length=0)",
-		},
-		{
-			name: "Data set messageHeader (id=256)",
-			arg:  setHeader{256, 0},
-			want: "IPFIX Data set Header (id=256, length=0)",
-		},
-		{
-			name: "Another Data set messageHeader (id=258)",
-			arg:  setHeader{258, 0},
-			want: "IPFIX Data set Header (id=258, length=0)",
-		},
-	}
-	for _, tt := range tests {
-		tt := tt // pin!
-		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.arg.String(); got != tt.want {
-				t.Errorf("header.String() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestTemplateSet_Type(t *testing.T) {
-	arg := templateSet{setHeader{SetID: 2, Length: 22}, nil}
-	want := TemplateSetType
-
-	t.Run("Validate Template set SetType()", func(t *testing.T) {
-		if got := arg.Type(); got != want {
-			t.Errorf("templateSet.Type() = %v, want %v", got, want)
+			return
 		}
-	})
+
+		id := uint16(randomized.Int64())
+		want := ""
+		fs = fieldSpecifier{
+			informationElementID: id,
+			fieldLength:          id % 16,
+			enterpriseNumber:     uint32(randomized.Int64() % 2),
+		}
+
+		switch {
+		case id >= 32768 && fs.enterpriseNumber > 0:
+			want = fmt.Sprintf("enterprise-specific field #%v (%v)", id, fs.enterpriseNumber)
+		case id < 32768 && fs.enterpriseNumber == 0:
+			want = fmt.Sprintf("IANA-registered field #%v", InformationElementByID(id))
+		default:
+			want = fmt.Sprintf("invalid field #%v", id)
+		}
+
+		got := fs.String()
+
+		if want != got {
+			t.Errorf("FieldSpecifier.String(%v) = %v, want %v", id, got, want)
+		}
+	}
 }
 
-func TestTemplateSet_Header(t *testing.T) {
+func TestFieldSpecifier_e(t *testing.T) {
+	var fs fieldSpecifier
+
+	for attempts := 100; attempts > 0; attempts-- {
+		randomized, err := rand.Int(rand.Reader, big.NewInt(65536))
+		if err != nil || randomized == nil {
+			t.Errorf("Error occurred during getting a random number.")
+
+			return
+		}
+
+		id := uint16(randomized.Int64())
+		want := id >= 32768
+		fs = fieldSpecifier{
+			informationElementID: id,
+			fieldLength:          0,
+			enterpriseNumber:     0,
+		}
+		got := fs.e()
+
+		if want != got {
+			t.Errorf("FieldSpecifier.e(%v) = %v, want %v", fs, got, want)
+		}
+	}
+}
+
+func TestFieldSpecifier_valid(t *testing.T) {
+	var fs fieldSpecifier
+
+	for attempts := 100; attempts > 0; attempts-- {
+		randomized, err := rand.Int(rand.Reader, big.NewInt(65536))
+		if err != nil || randomized == nil {
+			t.Errorf("Error occurred during getting a random number.")
+
+			return
+		}
+
+		id := uint16(randomized.Int64())
+		if id >= 32768 {
+			fs = fieldSpecifier{
+				informationElementID: id,
+				fieldLength:          1,
+				enterpriseNumber:     uint32(1 + (randomized.Uint64() % 4294967295)),
+			}
+		} else {
+			fs = fieldSpecifier{
+				informationElementID: id,
+				fieldLength:          1,
+				enterpriseNumber:     0,
+			}
+		}
+
+		got := fs.valid()
+
+		if got != true {
+			t.Errorf("FieldSpecifier.valid(%v) = %v, want %v", fs, got, true)
+		}
+	}
+}
+
+func TestFieldSpecifier_invalid(t *testing.T) {
+	var fs fieldSpecifier
+
+	for attempts := 100; attempts > 0; attempts-- {
+		randomized, err := rand.Int(rand.Reader, big.NewInt(65536))
+		if err != nil || randomized == nil {
+			t.Errorf("Error occurred during getting a random number.")
+
+			return
+		}
+
+		id := uint16(randomized.Int64())
+		if id >= 32768 {
+			fs = fieldSpecifier{
+				informationElementID: id,
+				fieldLength:          1,
+				enterpriseNumber:     0,
+			}
+		} else {
+			fs = fieldSpecifier{
+				informationElementID: id,
+				fieldLength:          1,
+				enterpriseNumber:     uint32(1 + (randomized.Uint64() % 4294967295)),
+			}
+		}
+
+		got := fs.valid()
+
+		if got != false {
+			t.Errorf("FieldSpecifier.valid(%v) = %v, want %v", fs, got, false)
+		}
+	}
+}
+
+func TestMessage_String(t *testing.T) {
 	tests := []struct {
 		name string
-		arg  templateSet
-		want setHeader
+		arg  message
+		want string
 	}{
 		{
-			name: "Template set with a Zero set messageHeader",
-			arg:  templateSet{setHeader{0, 0}, nil},
-			want: setHeader{0, 0},
+			name: "A message with one template set",
+			arg: message{
+				version:             0x000a,
+				length:              296,
+				exportTime:          0x5ee715b1,
+				sequenceNumber:      0,
+				observationDomainID: 0,
+				sets: []set{
+					{
+						setID:   2,
+						length:  280,
+						records: make([]interface{}, 2),
+					},
+				},
+			},
+			want: "message 10 (296 octets, 2020-06-15T06:31:13Z, 0, 0) 1 set",
 		},
 		{
-			name: "A valid Template set (with proper header)",
-			arg:  templateSet{setHeader{2, 0}, nil},
-			want: setHeader{2, 0},
+			name: "A message with one data set",
+			arg: message{
+				version:             0x000a,
+				length:              412,
+				exportTime:          0x5ee7163d,
+				sequenceNumber:      195,
+				observationDomainID: 0,
+				sets: []set{
+					{
+						setID:   259,
+						length:  396,
+						records: make([]interface{}, 1),
+					},
+				},
+			},
+			want: "message 10 (412 octets, 2020-06-15T06:33:33Z, 195, 0) 1 set",
 		},
 	}
 	for _, tt := range tests {
-		tt := tt // pin!
+		tt := tt // pin
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.arg.Header(); got != tt.want {
-				t.Errorf("templateSet.header() = %v, want %v", got, tt.want)
+			if got := tt.arg.String(); got != tt.want {
+				t.Errorf("%v got %v, want %v", tt.name, got, tt.want)
 			}
 		})
 	}
 }
 
-func TestDataSet_Type(t *testing.T) {
-	arg := dataSet{setHeader{SetID: 2, Length: 22}, nil}
-	want := DataSetType
+func TestMessage_StringRand(t *testing.T) {
+	var h message
 
-	t.Run("Validate Data set SetType()", func(t *testing.T) {
-		if got := arg.Type(); got != want {
-			t.Errorf("dataSet.Type() = %v, want %v", got, want)
+	for attempts := 100; attempts > 0; attempts-- {
+		randomized, err := rand.Int(rand.Reader, big.NewInt(4294967296))
+		if err != nil || randomized == nil {
+			t.Errorf("Error occurred during getting a random number.")
+
+			return
 		}
-	})
+
+		id := uint32(randomized.Int64())
+		h = message{
+			version:             0x000a,
+			length:              uint16(id % 16),
+			exportTime:          id,
+			sequenceNumber:      1,
+			observationDomainID: 1,
+		}
+
+		want := fmt.Sprintf("message %v (%v octets, %v, %v, %v) 0 sets",
+			h.version, h.length, time.Unix(int64(h.exportTime), 0).UTC().Format(time.RFC3339),
+			h.sequenceNumber, h.observationDomainID)
+		got := h.String()
+
+		if want != got {
+			t.Errorf("Message.String(%v) = %v, want %v", id, got, want)
+		}
+	}
 }
 
-func TestDataSet_Header(t *testing.T) {
+func TestSet_String(t *testing.T) {
 	tests := []struct {
 		name string
-		arg  dataSet
-		want setHeader
+		arg  set
+		want string
 	}{
 		{
-			name: "Data set with a Zero set messageHeader",
-			arg:  dataSet{setHeader{0, 0}, nil},
-			want: setHeader{0, 0},
+			name: "Template Set with 1 record",
+			arg: set{
+				setID:   2,
+				length:  16,
+				records: make([]interface{}, 1),
+			},
+			want: "template set (16 octets) 1 record",
 		},
 		{
-			name: "A valid Data set (with proper header)",
-			arg:  dataSet{setHeader{259, 0}, nil},
-			want: setHeader{259, 0},
+			name: "Options Template Set with 2 record",
+			arg: set{
+				setID:   3,
+				length:  24,
+				records: make([]interface{}, 2),
+			},
+			want: "options template set (24 octets) 2 records",
+		},
+		{
+			name: "Data Set with 1 record",
+			arg: set{
+				setID:   258,
+				length:  16,
+				records: make([]interface{}, 1),
+			},
+			want: "data set (16 octets) 1 record",
+		},
+		{
+			name: "Invalid Set",
+			arg: set{
+				setID:   24,
+				length:  16,
+				records: make([]interface{}, 1),
+			},
+			want: "invalid set #24",
 		},
 	}
 	for _, tt := range tests {
-		tt := tt // pin!
+		tt := tt // pin
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.arg.Header(); got != tt.want {
-				t.Errorf("dataSet.header() = %v, want %v", got, tt.want)
+			if got := tt.arg.String(); got != tt.want {
+				t.Errorf("%v got %v, want %v", tt.name, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestTemplateRecord_String(t *testing.T) {
+	tests := []struct {
+		name string
+		arg  templateRecord
+		want string
+	}{
+		{
+			name: "Template Record #258 with 1 field specifier",
+			arg: templateRecord{
+				templateID:      258,
+				fieldCount:      1,
+				fieldSpecifiers: make([]fieldSpecifier, 1),
+			},
+			want: "template record #258 (1 field)",
+		},
+		{
+			name: "Template Record #259 with 19 field specifier",
+			arg: templateRecord{
+				templateID:      259,
+				fieldCount:      19,
+				fieldSpecifiers: make([]fieldSpecifier, 19),
+			},
+			want: "template record #259 (19 fields)",
+		},
+		{
+			name: "Template Record #260 with 0 field specifier",
+			arg: templateRecord{
+				templateID:      260,
+				fieldCount:      0,
+				fieldSpecifiers: make([]fieldSpecifier, 0),
+			},
+			want: "template record #260 (0 fields)",
+		},
+		{
+			name: "Template Record #24 with 1 field specifier",
+			arg: templateRecord{
+
+				templateID:      24,
+				fieldCount:      1,
+				fieldSpecifiers: make([]fieldSpecifier, 1),
+			},
+			want: "invalid template record #24",
+		},
+	}
+	for _, tt := range tests {
+		tt := tt // pin
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.arg.String(); got != tt.want {
+				t.Errorf("%v got %v, want %v", tt.name, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestOptionsTemplateRecord_String(t *testing.T) {
+	tests := []struct {
+		name string
+		arg  optionsTemplateRecord
+		want string
+	}{
+		{
+			name: "Options Template Record #258 with 3 field specifier",
+			arg: optionsTemplateRecord{
+				templateID:      258,
+				fieldCount:      3,
+				scopeFieldCount: 2,
+				fieldSpecifiers: make([]fieldSpecifier, 3),
+			},
+			want: "options template record #258 (scope 2 fields of 3 fields)",
+		},
+		{
+			name: "Options Template Record #24 with 1 field specifier",
+			arg: optionsTemplateRecord{
+
+				templateID:      24,
+				fieldCount:      1,
+				scopeFieldCount: 1,
+				fieldSpecifiers: make([]fieldSpecifier, 1),
+			},
+			want: "invalid options template record #24",
+		},
+		{
+			name: "Options Template Record #384 with 0 scope fields",
+			arg: optionsTemplateRecord{
+
+				templateID:      384,
+				fieldCount:      1,
+				scopeFieldCount: 0,
+				fieldSpecifiers: make([]fieldSpecifier, 1),
+			},
+			want: "invalid options template record #384",
+		},
+		{
+			name: "Options Template Record #385 with 2 field specifier",
+			arg: optionsTemplateRecord{
+				templateID:      385,
+				fieldCount:      2,
+				scopeFieldCount: 3,
+				fieldSpecifiers: make([]fieldSpecifier, 2),
+			},
+			want: "invalid options template record #385",
+		},
+	}
+	for _, tt := range tests {
+		tt := tt // pin
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.arg.String(); got != tt.want {
+				t.Errorf("%v got %v, want %v", tt.name, got, tt.want)
 			}
 		})
 	}

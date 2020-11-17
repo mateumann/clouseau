@@ -9,7 +9,8 @@ clean-bin:
 	rm -f collector
 
 .PHONY: fmt
-fmt: fmt-cmd fmt-ipfix
+#fmt: fmt-cmd fmt-ipfix
+fmt: fmt-ipfix
 
 .PHONY: fmt-cmd
 fmt-cmd:

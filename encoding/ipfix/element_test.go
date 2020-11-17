@@ -1,333 +1,229 @@
 package ipfix
 
 import (
+	"crypto/rand"
+	"math/big"
+	"reflect"
 	"testing"
 )
 
-func TestElementError_Error(t *testing.T) {
+func TestInformationElementSemantics_String(t *testing.T) {
 	tests := []struct {
 		name string
-		arg  elementError
+		arg  informationElementSemantics
 		want string
 	}{
 		{
-			name: "Error one",
-			arg: elementError{
-				msg: "an error message one",
+			name: "defaultElementSemantic",
+			arg:  defaultElementSemantic,
+			want: "default",
+		},
+		{
+			name: "quantity",
+			arg:  quantity,
+			want: "quantity",
+		},
+		{
+			name: "totalCounter",
+			arg:  totalCounter,
+			want: "total counter",
+		},
+		{
+			name: "flags",
+			arg:  flags,
+			want: "flags",
+		},
+		{
+			name: "invalid",
+			arg:  100,
+			want: "invalid",
+		},
+	}
+	for _, tt := range tests {
+		tt := tt // pin
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.arg.String()
+			if got != tt.want {
+				t.Errorf("%v = %v, want %v", tt.name, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestInformationElementUnits_String(t *testing.T) {
+	tests := []struct {
+		name string
+		arg  informationElementUnits
+		want string
+	}{
+		{
+			name: "noneElementUnit",
+			arg:  noneElementUnit,
+			want: "none",
+		},
+		{
+			name: "octets",
+			arg:  octets,
+			want: "octets",
+		},
+		{
+			name: "millisecods",
+			arg:  milliseconds,
+			want: "milliseconds",
+		},
+		{
+			name: "frames",
+			arg:  frames,
+			want: "frames",
+		},
+		{
+			name: "invalid",
+			arg:  200,
+			want: "invalid",
+		},
+	}
+	for _, tt := range tests {
+		tt := tt // pin
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.arg.String()
+			if got != tt.want {
+				t.Errorf("%v = %v, want %v", tt.name, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestInformationElementByID(t *testing.T) {
+	tests := []struct {
+		name string
+		arg  uint16
+		want InformationElement
+	}{
+		{
+			name: "Information Element 3 (deltaFlowCount)",
+			arg:  3,
+			want: InformationElement{
+				name:              "deltaFlowCount",
+				dataType:          reflect.Uint64,
+				dataTypeSemantics: deltaCounter,
+				units:             flows,
 			},
-			want: "an error message one",
 		},
 		{
-			name: "Error two",
-			arg: elementError{
-				msg: "an error message two",
+			name: "Information Element 8 (sourceIPv4Address)",
+			arg:  8,
+			want: InformationElement{
+				name:              "sourceIPv4Address",
+				dataType:          reflect.Uint32,
+				dataTypeSemantics: defaultElementSemantic,
+				units:             noneElementUnit,
 			},
-			want: "an error message two",
+		},
+		{
+			name: "Information Element 189 (ipHeaderLength)",
+			arg:  189,
+			want: InformationElement{
+				name:              "ipHeaderLength",
+				dataType:          reflect.Uint8,
+				dataTypeSemantics: defaultElementSemantic,
+				units:             octets,
+			},
+		},
+		{
+			name: "Information Element 206 (isMulticast)",
+			arg:  206,
+			want: InformationElement{
+				name:              "isMulticast",
+				dataType:          reflect.Uint8,
+				dataTypeSemantics: flags,
+				units:             noneElementUnit,
+			},
 		},
 	}
-
 	for _, tt := range tests {
-		tt := tt // pin!
+		tt := tt // pin
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.arg.Error(); got != tt.want {
-				t.Errorf("elementError.Error() = %v, want %v", got, tt.want)
+			if got := InformationElementByID(tt.arg); got != tt.want {
+				t.Errorf("InformationElementByID(%v) = %v, want %v", tt.arg, got, tt.want)
 			}
 		})
 	}
 }
 
-func TestFieldSpecifier_E(t *testing.T) {
-	tests := []struct {
-		name string
-		arg  fieldSpecifier
-		want bool
-	}{
-		{
-			name: "Enterprise bit not set for small elementID",
-			arg:  fieldSpecifier{3, 8, 0},
-			want: false,
-		},
-		{
-			name: "Enterprise bit not set for larger elementID",
-			arg:  fieldSpecifier{19349, 1, 0},
-			want: false,
-		},
-		{
-			name: "Enterprise bit not set for elementID = 2^15 - 1",
-			arg:  fieldSpecifier{1<<15 - 1, 1, 0},
-			want: false,
-		},
-		{
-			name: "Enterprise bit set for elementID = 2^15",
-			arg:  fieldSpecifier{1 << 15, 8, 10},
-			want: true,
-		},
-		{
-			name: "Enterprise bit set for quite large elementID",
-			arg:  fieldSpecifier{43882, 16, 11},
-			want: true,
-		},
-		{
-			name: "Enterprise bit set for maximum elementID",
-			arg:  fieldSpecifier{^uint16(0), 32, 12},
-			want: true,
-		},
-	}
-	for _, tt := range tests {
-		tt := tt
-		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.arg.E(); got != tt.want {
-				t.Errorf("fieldSpecifier.E() = %v, want %v", got, tt.want)
-			}
-		})
+func TestInformationElementByIDAll(t *testing.T) {
+	for id, want := range constInformationElements() {
+		got := InformationElementByID(id)
+		if want != got {
+			t.Errorf("InformationElementByID(%v) = %v, want %v", id, got, want)
+		}
 	}
 }
 
-func TestFieldSpecifier_Size(t *testing.T) {
-	tests := []struct {
-		name string
-		arg  fieldSpecifier
-		want uint16
-	}{
-		{
-			name: "Size of 4 octets for small elementID",
-			arg:  fieldSpecifier{3, 8, 0},
-			want: uint16(4),
-		},
-		{
-			name: "Size of 4 octets for larger elementID",
-			arg:  fieldSpecifier{19349, 1, 0},
-			want: uint16(4),
-		},
-		{
-			name: "Size of 4 octets for elementID = 2^15 - 1",
-			arg:  fieldSpecifier{1<<15 - 1, 1, 0},
-			want: uint16(4),
-		},
-		{
-			name: "Size of 8 octets for elementID = 2^15",
-			arg:  fieldSpecifier{1 << 15, 8, 10},
-			want: uint16(8),
-		},
-		{
-			name: "Size of 8 octets for quite large elementID",
-			arg:  fieldSpecifier{43882, 16, 11},
-			want: uint16(8),
-		},
-		{
-			name: "Size of 8 octets for maximum elementID",
-			arg:  fieldSpecifier{^uint16(0), 32, 12},
-			want: uint16(8),
-		},
-	}
-	for _, tt := range tests {
-		tt := tt
-		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.arg.Size(); got != tt.want {
-				t.Errorf("fieldSpecifier.Size() == %v, want %v", got, tt.want)
+func TestInformationElementByIDRandom(t *testing.T) {
+	var want InformationElement
+
+	var ok bool
+
+	ieMap := constInformationElements()
+
+	for attempts := 100; attempts > 0; attempts-- {
+		randomized, err := rand.Int(rand.Reader, big.NewInt(32768))
+		if err != nil || randomized == nil {
+			t.Errorf("Error occurred during getting a random number.")
+
+			return
+		}
+
+		id := uint16(randomized.Int64())
+		if want, ok = ieMap[id]; !ok {
+			want = InformationElement{
+				name:              "unknown",
+				dataType:          reflect.Invalid,
+				dataTypeSemantics: unassignedElementSemantic,
+				units:             unassignedElementUnit,
 			}
-		})
+		}
+
+		got := InformationElementByID(id)
+		if want != got {
+			t.Errorf("InformationElementByID(%v) = %v, want %v", id, got, want)
+		}
 	}
 }
 
-func TestFieldSpecifier_String(t *testing.T) {
+func TestInformationElement_String(t *testing.T) {
 	tests := []struct {
 		name string
-		arg  fieldSpecifier
+		arg  InformationElement
 		want string
 	}{
 		{
-			name: "fieldSpecifier with no Enterprise bit set (elementID = 0)",
-			arg:  fieldSpecifier{0, 0, 0},
-			want: "Element 0",
+			name: "Information Element 0",
+			arg:  InformationElementByID(0),
+			want: "reserved",
 		},
 		{
-			name: "fieldSpecifier with no Enterprise bit set (elementID = 19349)",
-			arg:  fieldSpecifier{19349, 11, 0},
-			want: "Element 19349",
+			name: "Information Element 22",
+			arg:  InformationElementByID(22),
+			want: "flowStartSysUpTime",
 		},
 		{
-			name: "fieldSpecifier with Enterprise bit set for (elementID = 43882)",
-			arg:  fieldSpecifier{43882, 12, 10},
-			want: "Element 43882, Enterprise number 10",
+			name: "Information Element 35",
+			arg:  InformationElementByID(35),
+			want: "samplingAlgorithm",
 		},
 		{
-			name: "fieldSpecifier with Enterprise bit set for maximum elementID",
-			arg:  fieldSpecifier{^uint16(0), ^uint16(0), 11},
-			want: "Element 65535, Enterprise number 11",
+			name: "Information Element 283",
+			arg:  InformationElementByID(283),
+			want: "natPoolId",
 		},
 	}
 	for _, tt := range tests {
-		tt := tt
+		tt := tt // pin
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.arg.String(); got != tt.want {
-				t.Errorf("fieldSpecifier.String() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestFieldDefinition_String(t *testing.T) {
-	tests := []struct {
-		name string
-		arg  fieldDefinition
-		want string
-	}{
-		{
-			name: "Unknown fieldDefinition",
-			arg:  fieldDefinition{UnknownFieldType, ""},
-			want: "Unknown Field",
-		},
-		{
-			name: "fieldDefinition for octetDeltaCount",
-			arg:  fieldDefinition{Uint64, "octetDeltaCount"},
-			want: "Field 'octetDeltaCount'",
-		},
-		{
-			name: "fieldDefinition for sourceIPv6Address",
-			arg:  fieldDefinition{IPv6Address, "sourceIPv6Address"},
-			want: "Field 'sourceIPv6Address'",
-		},
-	}
-	for _, tt := range tests {
-		tt := tt
-		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.arg.String(); got != tt.want {
-				t.Errorf("fieldDefinition.String() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-//nolint:funlen
-func TestFieldSpecifier_InformationElement(t *testing.T) {
-	tests := []struct {
-		name       string
-		arg        fieldSpecifier
-		want       fieldDefinition
-		errMessage string
-	}{
-		{
-			name: "Unknown Field",
-			arg:  fieldSpecifier{0, 0, 0},
-			want: fieldDefinition{UnknownFieldType, ""},
-		},
-		{
-			name: "octetDeltaCount Field",
-			arg:  fieldSpecifier{1, 8, 0},
-			want: fieldDefinition{Uint64, "octetDeltaCount"},
-		},
-		{
-			name: "packetDeltaCount Field",
-			arg:  fieldSpecifier{2, 8, 0},
-			want: fieldDefinition{Uint64, "packetDeltaCount"},
-		},
-		{
-			name: "deltaFlowCount Field",
-			arg:  fieldSpecifier{3, 8, 0},
-			want: fieldDefinition{Uint64, "deltaFlowCount"},
-		},
-		{
-			name: "protocolIdentifier Field",
-			arg:  fieldSpecifier{4, 1, 0},
-			want: fieldDefinition{Uint8, "protocolIdentifier"},
-		},
-		{
-			name: "ipClassOfService Field",
-			arg:  fieldSpecifier{5, 1, 0},
-			want: fieldDefinition{Uint8, "ipClassOfService"},
-		},
-		{
-			name: "tcpControlBits Field",
-			arg:  fieldSpecifier{6, 2, 0},
-			want: fieldDefinition{Uint16, "tcpControlBits"},
-		},
-		{
-			name: "sourceTransportPort Field",
-			arg:  fieldSpecifier{7, 2, 0},
-			want: fieldDefinition{Uint16, "sourceTransportPort"},
-		},
-		{
-			name: "sourceIPv4Address Filed",
-			arg:  fieldSpecifier{8, 4, 0},
-			want: fieldDefinition{IPv4Address, "sourceIPv4Address"},
-		},
-		{
-			name: "sourceIPv4PrefixLength Filed",
-			arg:  fieldSpecifier{9, 1, 0},
-			want: fieldDefinition{Uint8, "sourceIPv4PrefixLength"},
-		},
-		{
-			name: "ingressInterface Filed",
-			arg:  fieldSpecifier{10, 4, 0},
-			want: fieldDefinition{Uint32, "ingressInterface"},
-		},
-		{
-			name: "destinationTransportPort Filed",
-			arg:  fieldSpecifier{11, 2, 0},
-			want: fieldDefinition{Uint16, "destinationTransportPort"},
-		},
-		{
-			name: "destinationIPv4Address Filed",
-			arg:  fieldSpecifier{12, 4, 0},
-			want: fieldDefinition{IPv4Address, "destinationIPv4Address"},
-		},
-		{
-			name: "destinationIPv4PrefixLength Filed",
-			arg:  fieldSpecifier{13, 1, 0},
-			want: fieldDefinition{Uint8, "destinationIPv4PrefixLength"},
-		},
-		{
-			name: "egressInterface Filed",
-			arg:  fieldSpecifier{14, 4, 0},
-			want: fieldDefinition{Uint32, "egressInterface"},
-		},
-		{
-			name: "ipNextHopIPv4Address Filed",
-			arg:  fieldSpecifier{15, 4, 0},
-			want: fieldDefinition{IPv4Address, "ipNextHopIPv4Address"},
-		},
-		{
-			name: "flowEndSysUpTime Filed",
-			arg:  fieldSpecifier{21, 4, 0},
-			want: fieldDefinition{Uint32, "flowEndSysUpTime"},
-		},
-		{
-			name: "flowStartSysUpTime Filed",
-			arg:  fieldSpecifier{22, 4, 0},
-			want: fieldDefinition{Uint32, "flowStartSysUpTime"},
-		},
-		{
-			name: "sourceMacAddress Filed",
-			arg:  fieldSpecifier{56, 6, 0},
-			want: fieldDefinition{MacAddress, "sourceMacAddress"},
-		},
-		{
-			name: "ipVersion Filed",
-			arg:  fieldSpecifier{60, 1, 0},
-			want: fieldDefinition{Uint8, "ipVersion"},
-		},
-		{
-			name: "ipNextHopIPv6Address Filed",
-			arg:  fieldSpecifier{62, 8, 0},
-			want: fieldDefinition{IPv6Address, "ipNextHopIPv6Address"},
-		},
-		{
-			name: "destinationMacAddress Filed",
-			arg:  fieldSpecifier{80, 6, 0},
-			want: fieldDefinition{MacAddress, "destinationMacAddress"},
-		},
-		{
-			name: "postSourceMacAddress Filed",
-			arg:  fieldSpecifier{81, 6, 0},
-			want: fieldDefinition{MacAddress, "postSourceMacAddress"},
-		},
-	}
-	for _, tt := range tests {
-		tt := tt // pin!
-		t.Run(tt.name, func(t *testing.T) {
-			if got := informationElement(tt.arg.elementID, tt.arg.enterpriseNumber); got != tt.want {
-				t.Errorf("informationElement(%v) == %v, want %v", tt.arg, got, tt.want)
+			got := tt.arg.String()
+			if got != tt.want {
+				t.Errorf("%v = %v, want %v", tt.name, got, tt.want)
 			}
 		})
 	}

@@ -2,546 +2,248 @@ package ipfix
 
 import (
 	"bytes"
-	"io/ioutil"
-	"os"
+	"errors"
+	"io"
 	"testing"
 	"time"
 )
 
-func TestReadSet_EmptySet(t *testing.T) {
-	var decode Decode
-
-	message := Message{
-		Header: messageHeader{
-			Length: 4,
-		},
-	}
-
-	buffer := []byte{0x00, 0x00, 0x00, 0x00}
-	reader := bytes.NewReader(buffer)
-	bytesRead, err := decode.readSet(reader, &message)
-	if err != nil {
-		t.Errorf("Error should not have occurred: %v", err)
-	}
-
-	if bytesRead != int64(message.Header.Length) {
-		t.Errorf("Read empty set got %v, want %v", bytesRead, message.Header.Length)
-	}
-}
-
-func TestReadSet_UnexpectedEOF(t *testing.T) {
-	var decode Decode
-
-	message := Message{
-		Header: messageHeader{
-			Length: 1,
-		},
-	}
-
-	buffer := []byte{0x00, 0x00, 0x00}
-	reader := bytes.NewReader(buffer)
-	bytesRead, err := decode.readSet(reader, &message)
-
-	if err == nil {
-		t.Errorf("Error should have occurred (but didn't)")
-	} else if err.Error() != "unexpected EOF" {
-		t.Errorf("Was expecting 'unexpected EOF' error but got: %v", err)
-	}
-
-	if bytesRead != 0 {
-		t.Errorf("Should read 0 bytes, but read instead: %v", bytesRead)
-	}
-}
-
-func TestUnmarshal_ValueIsNil(t *testing.T) {
-	var decode Decode
-
-	buffer := make([]byte, 60)
-
-	err := decode.Unmarshal(buffer, nil)
-
-	if err == nil {
-		t.Errorf("Error should have not been nil: %v", err)
-	} else if err.Error() != "ipfix: Unmarshal(nil)" {
-		t.Errorf("Was expecting 'ipfix: Unmarshal(nil)' error but got: %v", err)
-	}
-}
-
-func TestUnmarshal_ReadError(t *testing.T) {
-	var decode Decode
-
-	var message Message
-
-	buffer := make([]byte, 60)
-
-	err := decode.Unmarshal(buffer, &message)
-	if err != nil {
-		t.Errorf("Error during Unmarshallings: %v", err)
-	}
-}
-
-//nolint:funlen,gocognit
-func TestUnmarshal(t *testing.T) {
+func TestCorruptInputError_Error(t *testing.T) {
 	tests := []struct {
 		name string
-		arg  []byte
-		want Message
+		arg  CorruptInputError
+		want string
 	}{
 		{
-			name: "Unmarshal a Template set",
-			arg:  readFromFile("../../testdata/stream/templates_258_259.bin"),
-			want: Message{
-				Header: messageHeader{
-					VersionNumber:       10,
-					Length:              296,
-					ExportTime:          uint32(time.Date(2020, 6, 15, 6, 31, 13, 0, time.UTC).Unix()),
-					SequenceNumber:      0,
-					ObservationDomainID: 0,
-				},
-				// missing Flow set header: Id (uint16) = 2, Length (uint16) = 280
-				Sets: []set{
-					templateSet{
-						header: setHeader{
-							SetID:  2,
-							Length: 280,
-						},
-						records: []templateRecord{
-							{
-								TemplateHeader: templateRecordHeader{
-									TemplateID: 258,
-									FieldCount: 35,
-								},
-								FieldSpecifiers: []fieldSpecifier{
-									{
-										elementID:        60,
-										length:           1,
-										enterpriseNumber: 0,
-									},
-									{
-										elementID:        22,
-										length:           4,
-										enterpriseNumber: 0,
-									},
-									{
-										elementID:        21,
-										length:           4,
-										enterpriseNumber: 0,
-									},
-									{
-										elementID:        2,
-										length:           4,
-										enterpriseNumber: 0,
-									},
-									{
-										elementID:        1,
-										length:           4,
-										enterpriseNumber: 0,
-									},
-									{
-										elementID:        7,
-										length:           2,
-										enterpriseNumber: 0,
-									},
-									{
-										elementID:        11,
-										length:           2,
-										enterpriseNumber: 0,
-									},
-									{
-										elementID:        10,
-										length:           4,
-										enterpriseNumber: 0,
-									},
-									{
-										elementID:        14,
-										length:           4,
-										enterpriseNumber: 0,
-									},
-									{
-										elementID:        4,
-										length:           1,
-										enterpriseNumber: 0,
-									},
-									{
-										elementID:        5,
-										length:           1,
-										enterpriseNumber: 0,
-									},
-									{
-										elementID:        6,
-										length:           1,
-										enterpriseNumber: 0,
-									},
-									{
-										elementID:        80,
-										length:           6,
-										enterpriseNumber: 0,
-									},
-									{
-										elementID:        81,
-										length:           6,
-										enterpriseNumber: 0,
-									},
-									{
-										elementID:        56,
-										length:           6,
-										enterpriseNumber: 0,
-									},
-									{
-										elementID:        8,
-										length:           4,
-										enterpriseNumber: 0,
-									},
-									{
-										elementID:        12,
-										length:           4,
-										enterpriseNumber: 0,
-									},
-									{
-										elementID:        15,
-										length:           4,
-										enterpriseNumber: 0,
-									},
-									{
-										elementID:        9,
-										length:           1,
-										enterpriseNumber: 0,
-									},
-									{
-										elementID:        13,
-										length:           1,
-										enterpriseNumber: 0,
-									},
-									{
-										elementID:        192,
-										length:           1,
-										enterpriseNumber: 0,
-									},
-									{
-										elementID:        206,
-										length:           1,
-										enterpriseNumber: 0,
-									},
-									{
-										elementID:        189,
-										length:           1,
-										enterpriseNumber: 0,
-									},
-									{
-										elementID:        224,
-										length:           8,
-										enterpriseNumber: 0,
-									},
-									{
-										elementID:        205,
-										length:           2,
-										enterpriseNumber: 0,
-									},
-									{
-										elementID:        184,
-										length:           4,
-										enterpriseNumber: 0,
-									},
-									{
-										elementID:        185,
-										length:           4,
-										enterpriseNumber: 0,
-									},
-									{
-										elementID:        186,
-										length:           2,
-										enterpriseNumber: 0,
-									},
-									{
-										elementID:        33,
-										length:           1,
-										enterpriseNumber: 0,
-									},
-									{
-										elementID:        176,
-										length:           1,
-										enterpriseNumber: 0,
-									},
-									{
-										elementID:        177,
-										length:           1,
-										enterpriseNumber: 0,
-									},
-									{
-										elementID:        225,
-										length:           4,
-										enterpriseNumber: 0,
-									},
-									{
-										elementID:        226,
-										length:           4,
-										enterpriseNumber: 0,
-									},
-									{
-										elementID:        227,
-										length:           2,
-										enterpriseNumber: 0,
-									},
-									{
-										elementID:        228,
-										length:           2,
-										enterpriseNumber: 0,
-									},
-								},
-							},
-							{
-								TemplateHeader: templateRecordHeader{
-									TemplateID: 259,
-									FieldCount: 32,
-								},
-								FieldSpecifiers: []fieldSpecifier{
-									{
-										elementID:        60,
-										length:           1,
-										enterpriseNumber: 0,
-									},
-									{
-										elementID:        22,
-										length:           4,
-										enterpriseNumber: 0,
-									},
-									{
-										elementID:        21,
-										length:           4,
-										enterpriseNumber: 0,
-									},
-									{
-										elementID:        2,
-										length:           4,
-										enterpriseNumber: 0,
-									},
-									{
-										elementID:        1,
-										length:           4,
-										enterpriseNumber: 0,
-									},
-									{
-										elementID:        7,
-										length:           2,
-										enterpriseNumber: 0,
-									},
-									{
-										elementID:        11,
-										length:           2,
-										enterpriseNumber: 0,
-									},
-									{
-										elementID:        10,
-										length:           4,
-										enterpriseNumber: 0,
-									},
-									{
-										elementID:        14,
-										length:           4,
-										enterpriseNumber: 0,
-									},
-									{
-										elementID:        4,
-										length:           1,
-										enterpriseNumber: 0,
-									},
-									{
-										elementID:        5,
-										length:           1,
-										enterpriseNumber: 0,
-									},
-									{
-										elementID:        6,
-										length:           1,
-										enterpriseNumber: 0,
-									},
-									{
-										elementID:        80,
-										length:           6,
-										enterpriseNumber: 0,
-									},
-									{
-										elementID:        81,
-										length:           6,
-										enterpriseNumber: 0,
-									},
-									{
-										elementID:        56,
-										length:           6,
-										enterpriseNumber: 0,
-									},
-									{
-										elementID:        27,
-										length:           16,
-										enterpriseNumber: 0,
-									},
-									{
-										elementID:        28,
-										length:           16,
-										enterpriseNumber: 0,
-									},
-									{
-										elementID:        62,
-										length:           16,
-										enterpriseNumber: 0,
-									},
-									{
-										elementID:        29,
-										length:           1,
-										enterpriseNumber: 0,
-									},
-									{
-										elementID:        30,
-										length:           1,
-										enterpriseNumber: 0,
-									},
-									{
-										elementID:        192,
-										length:           1,
-										enterpriseNumber: 0,
-									},
-									{
-										elementID:        206,
-										length:           1,
-										enterpriseNumber: 0,
-									},
-									{
-										elementID:        189,
-										length:           1,
-										enterpriseNumber: 0,
-									},
-									{
-										elementID:        224,
-										length:           8,
-										enterpriseNumber: 0,
-									},
-									{
-										elementID:        205,
-										length:           2,
-										enterpriseNumber: 0,
-									},
-									{
-										elementID:        184,
-										length:           4,
-										enterpriseNumber: 0,
-									},
-									{
-										elementID:        185,
-										length:           4,
-										enterpriseNumber: 0,
-									},
-									{
-										elementID:        186,
-										length:           2,
-										enterpriseNumber: 0,
-									},
-									{
-										elementID:        33,
-										length:           1,
-										enterpriseNumber: 0,
-									},
-									{
-										elementID:        178,
-										length:           1,
-										enterpriseNumber: 0,
-									},
-									{
-										elementID:        179,
-										length:           1,
-										enterpriseNumber: 0,
-									},
-									{
-										elementID:        31,
-										length:           4,
-										enterpriseNumber: 0,
-									},
-								},
-							},
-						},
-					},
-				},
-			},
+			name: "CorruptInputError at 0 (EOF)",
+			arg:  CorruptInputError{0, io.EOF},
+			want: "ipfix: error in the input data at byte 0 (EOF)",
 		},
 		{
-			name: "Unmarshal a single Data set with padding",
-			arg:  readFromFile("../../testdata/stream/data_258_1set_padding.bin"),
-			want: Message{
-				Header: messageHeader{
-					VersionNumber:       10,
-					Length:              124,
-					ExportTime:          uint32(time.Date(2020, 6, 15, 6, 33, 23, 0, time.UTC).Unix()),
-					SequenceNumber:      188,
-					ObservationDomainID: 0,
-				},
-				Sets: []set{
-					dataSet{
-						header: setHeader{
-							SetID:  258,
-							Length: 108,
-						},
-						records: []dataRecord{},
-					},
-				},
-			},
+			name: "CorruptInputError at 100 (unexpected EOF)",
+			arg:  CorruptInputError{100, io.ErrUnexpectedEOF},
+			want: "ipfix: error in the input data at byte 100 (unexpected EOF)",
 		},
 	}
-
 	for _, tt := range tests {
-		var decode Decode
-
-		var got Message
-
-		tt := tt // pin!
-
+		tt := tt // pin
 		t.Run(tt.name, func(t *testing.T) {
-			if tt.arg == nil {
-				t.Errorf("%v: does not have valid input arguments", tt.name)
-
-				return
+			got := tt.arg.Error()
+			if got != tt.want {
+				t.Errorf("%v = %v, want %v", tt.name, got, tt.want)
 			}
-			_ = decode.Unmarshal(tt.arg, &got)
-			if got.Header != tt.want.Header {
-				t.Errorf("%v: got %v, want %v", tt.name, got.Header, tt.want.Header)
-			}
-			if len(got.Sets) != len(tt.want.Sets) {
-				t.Errorf("%v: got %v Sets, want %v Sets", tt.name, len(got.Sets), len(tt.want.Sets))
-			}
-			for setIndex, set := range got.Sets {
-				if set.Type() != tt.want.Sets[setIndex].Type() {
-					t.Errorf("%v: got %v, want %v", tt.name, set.Type(), tt.want.Sets[setIndex].Type())
-				}
-				if set.Header() != tt.want.Sets[setIndex].Header() {
-					t.Errorf("%v: got %v, want %v", tt.name, set.Header(), tt.want.Sets[setIndex].Header())
-				}
-				for recordIndex, record := range set.TemplateRecords() {
-					if record.TemplateHeader != tt.want.Sets[setIndex].TemplateRecords()[recordIndex].TemplateHeader {
-						t.Errorf("%v: got %v, want %v", tt.name, record.TemplateHeader,
-							tt.want.Sets[setIndex].TemplateRecords()[recordIndex].TemplateHeader)
-					}
-					for fsIndex, fieldSpecifier := range record.FieldSpecifiers {
-						if fieldSpecifier != tt.want.Sets[setIndex].TemplateRecords()[recordIndex].FieldSpecifiers[fsIndex] {
-							t.Errorf("%v: got %v, want %v", tt.name, fieldSpecifier,
-								tt.want.Sets[setIndex].TemplateRecords()[recordIndex].FieldSpecifiers[fsIndex])
-						}
-					}
-				}
-			}
-			// TODO compare number of Tempates (records?) in a TemplateSets to their declared length
 		})
 	}
 }
 
-func readFromFile(fileName string) []byte {
-	file, err := os.Open(fileName)
-	if err != nil {
-		return nil
+func TestCorruptInputError_Unwrap(t *testing.T) {
+	tests := []struct {
+		name string
+		arg  CorruptInputError
+		want error
+	}{
+		{
+			name: "CorruptInputError at 0 (EOF)",
+			arg:  CorruptInputError{0, io.EOF},
+			want: io.EOF,
+		},
+		{
+			name: "CorruptInputError at 100 (unexpected EOF)",
+			arg:  CorruptInputError{100, io.ErrUnexpectedEOF},
+			want: io.ErrUnexpectedEOF,
+		},
 	}
-	defer file.Close()
-
-	bytes, err := ioutil.ReadAll(file)
-	if err != nil {
-		return nil
+	for _, tt := range tests {
+		tt := tt // pin
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.arg.Unwrap()
+			if !errors.Is(tt.want, got) {
+				t.Errorf("%v = %v, want %v", tt.name, got, tt.want)
+			}
+		})
 	}
+}
 
-	return bytes
+func TestDecoder_Write_FewBytes(t *testing.T) {
+	tests := []struct {
+		name string
+		arg  []byte
+		want int
+		err  error
+	}{
+		{
+			name: "Decoder Write an empty buffer",
+			arg:  []byte{},
+			want: 0,
+			err:  nil,
+		},
+		{
+			name: "Decoder Write 1-byte buffer",
+			arg:  []byte{0x00},
+			want: 0,
+			err:  CorruptInputError{0, io.ErrUnexpectedEOF},
+		},
+		{
+			name: "Decoder Write 3-byte buffer",
+			arg:  []byte{0x00, 0x0a, 0x01},
+			want: 2,
+			err:  CorruptInputError{2, io.ErrUnexpectedEOF},
+		},
+		{
+			name: "Decoder Write 8-byte buffer",
+			arg:  []byte{0x00, 0x0a, 0x01, 0x28, 0x5e, 0xe7, 0x16, 0x26},
+			want: 8,
+			err:  nil,
+		},
+	}
+	for _, tt := range tests {
+		tt := tt // pin
+		decoder := decoder{}
+
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := decoder.Write(tt.arg)
+			if got != tt.want {
+				t.Errorf("%v = %v, want %v", tt.name, got, tt.want)
+			}
+			if !errors.Is(err, tt.err) {
+				t.Errorf("%v error %v, want %v", tt.name, err, tt.err)
+			}
+		})
+	}
+}
+
+func TestDecoder_Write_Buffer(t *testing.T) {
+	tests := []struct {
+		name             string
+		arg              []byte
+		decoderBufBefore []byte
+		decoderBufAfter  []byte
+		want             int
+		err              error
+	}{
+		{
+			name:             "Decoder Write an empty buffer, 2-byte decoder.buf",
+			arg:              []byte{},
+			decoderBufBefore: []byte{0x00, 0x0a},
+			decoderBufAfter:  []byte{},
+			want:             2,
+			err:              nil,
+		},
+		{
+			name:             "Decoder Write 3-byte buffer, 1-byte decoder.buf",
+			arg:              []byte{0x0a, 0x01, 0x28},
+			decoderBufBefore: []byte{0x00},
+			decoderBufAfter:  []byte{},
+			want:             4,
+			err:              nil,
+		},
+		{
+			name:             "Decoder Write 3-byte buffer, 3-byte decoder.buf",
+			arg:              []byte{0x28, 0x5e, 0xe7},
+			decoderBufBefore: []byte{0x00, 0x0a, 0x01},
+			decoderBufAfter:  []byte{0x5e, 0xe7},
+			want:             4,
+			err:              CorruptInputError{4, io.ErrUnexpectedEOF},
+		},
+	}
+	for _, tt := range tests {
+		tt := tt // pin
+		decoder := decoder{buf: tt.decoderBufBefore}
+
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := decoder.Write(tt.arg)
+			if got != tt.want {
+				t.Errorf("%v = %v, want %v", tt.name, got, tt.want)
+			}
+			if !bytes.Equal(decoder.buf, tt.decoderBufAfter) {
+				t.Errorf("%v decoder's buf afger %v, want %v", tt.name, decoder.buf, tt.decoderBufAfter)
+			}
+			if !errors.Is(err, tt.err) {
+				t.Errorf("%v error %v, want %v", tt.name, err, tt.err)
+			}
+		})
+	}
+}
+
+func TestDecoder_Write_WithError(t *testing.T) {
+	tests := []struct {
+		name       string
+		arg        []byte
+		decoderErr error
+		want       int
+		err        error
+	}{
+		{
+			name:       "Decoder Write with nil decoder.err",
+			arg:        []byte{0x00, 0x0a},
+			decoderErr: nil,
+			want:       2,
+			err:        nil,
+		},
+		{
+			name:       "Decoder Write with non-nil decoder.err",
+			arg:        []byte{0x00, 0x0a, 0x01, 0x28},
+			decoderErr: CorruptInputError{0, nil},
+			want:       0,
+			err:        CorruptInputError{0, nil},
+		},
+	}
+	for _, tt := range tests {
+		tt := tt // pin
+		decoder := decoder{err: tt.decoderErr}
+
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := decoder.Write(tt.arg)
+			if got != tt.want {
+				t.Errorf("%v = %v, want %v", tt.name, got, tt.want)
+			}
+			if !errors.Is(err, tt.err) {
+				t.Errorf("%v error %v, want %v", tt.name, err, tt.err)
+			}
+		})
+	}
+}
+
+func TestDecoder_Write_WholeMessageHeaders(t *testing.T) {
+	tests := []struct {
+		name string
+		arg  []byte
+		want message
+		err  error
+	}{
+		{
+			name: "Decoder Write read a message header",
+			arg: []byte{
+				0x00, 0x0a, 0x01, 0x28, 0x5e, 0xe7, 0x15, 0xb1,
+				0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+			},
+			want: message{
+				version: 10,
+				length:  296,
+				exportTime: uint32(time.Date(2020, 6, 15,
+					6, 31, 13, 0, time.UTC).Unix()),
+				sequenceNumber:      0,
+				observationDomainID: 0,
+				sets:                nil,
+			},
+			err: nil,
+		},
+	}
+	for _, tt := range tests {
+		tt := tt // pin
+		decoder := decoder{}
+
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := decoder.Write(tt.arg)
+			if got != 16 {
+				t.Errorf("%v read not exactly message header length bytes", tt.name)
+			}
+			if !errors.Is(err, tt.err) {
+				t.Errorf("%v error %v, want %v", tt.name, err, tt.err)
+			}
+			if decoder.err != nil {
+				t.Errorf("%v decoder error: %v", tt.name, decoder.err)
+			}
+		})
+	}
 }
