@@ -118,6 +118,7 @@ import (
 //      |        | +----------+     +----------+      +----------+ |
 //      +--------+-------------------------------------------------+
 
+// UnmarshalError describes an error while unmarshalling data.  It wraps an error returned by the binary.Read function.
 type UnmarshalError struct {
 	err error
 }
@@ -186,12 +187,8 @@ func (m *Message) String() string {
 func (m *Message) UnmarshalBinary(buf []byte) error {
 	r := bytes.NewReader(buf)
 
-	if err := unmarshalFields(r,
-		&m.version, &m.length, &m.exportTime, &m.sequenceNumber, &m.observationDomainID); err != nil {
-		return err
-	}
-
-	return nil
+	return unmarshalFields(r,
+		&m.version, &m.length, &m.exportTime, &m.sequenceNumber, &m.observationDomainID)
 }
 
 func unmarshalFields(r io.Reader, data ...interface{}) error {
