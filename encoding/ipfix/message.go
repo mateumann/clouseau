@@ -1,7 +1,10 @@
 package ipfix
 
 import (
+	"bytes"
+	"encoding/binary"
 	"fmt"
+	"io"
 	"time"
 )
 
@@ -11,14 +14,14 @@ import (
 //      to a Collector.  Each Template is uniquely identifiable by means
 //      of a Template ID.
 
-// An IPFIX Message is a message that originates at the Exporting
+// An IPFIX Message is a Message that originates at the Exporting
 //      Process and carries the IPFIX records of this Exporting Process,
 //      and whose destination is a Collecting Process.  An IPFIX Message
 //      is encapsulated at the transport layer.
 
 // The Message Header is the first part of an IPFIX Message; the
-//      Message Header provides basic information about the message, such
-//      as the IPFIX version, length of the message, message sequence
+//      Message Header provides basic information about the Message, such
+//      as the IPFIX version, length of the Message, Message sequence
 //      number, etc.
 
 // A Template Record defines the structure and interpretation of
@@ -104,7 +107,7 @@ import (
 //       +--------+----------------------------------------------+
 
 // An IPFIX Message consisting entirely of Template and Options
-//      Template Sets, as shown in Figure E.  Such a message can be used
+//      Template Sets, as shown in Figure E.  Such a Message can be used
 //      to define or redefine Templates and Options Templates in bulk.
 //
 //      +--------+-------------------------------------------------+
@@ -114,6 +117,19 @@ import (
 //      |        | |          |     |          |      | Set      | |
 //      |        | +----------+     +----------+      +----------+ |
 //      +--------+-------------------------------------------------+
+
+type UnmarshalError struct {
+	err error
+}
+
+func (e UnmarshalError) Error() string {
+	return fmt.Sprintf("ipfix: unmarshalling error: %v", e.err)
+}
+
+// Unwrap returns the underlying error.
+func (e UnmarshalError) Unwrap() error {
+	return e.err
+}
 
 // fieldSpecifier describes a single data element in a IPFIX record
 // https://tools.ietf.org/html/rfc7011#section-3.2
@@ -149,21 +165,45 @@ func (s *fieldSpecifier) valid() bool {
 	return s.informationElementID < 32768 && s.enterpriseNumber == 0
 }
 
-// message describes a IPFIX message constaing of a header and zero or more sets
+// Message describes a IPFIX Message constaing of a header and zero or more sets
 // https://tools.ietf.org/html/rfc7011#section-3.1
-type message struct {
+type Message struct {
 	version             uint16 // version of the IPFIX, currently 0x000a
 	length              uint16 // total length of IPFIX Message, measured in octets, including the header and Set(s)
-	exportTime          uint32 // time at witch the message left the exporter, in seconds since the UNIX epoch, UTC
+	exportTime          uint32 // time at witch the Message left the exporter, in seconds since the UNIX epoch, UTC
 	sequenceNumber      uint32 // incremental sequence counter modulo 2^32
 	observationDomainID uint32 // a 32-bit identifier of the observation domain, locally unique to the exporting proc.
 	sets                []set
 }
 
-func (h *message) String() string {
-	return fmt.Sprintf("message %v (%v octets, %v, %v, %v) %v",
-		h.version, h.length, time.Unix(int64(h.exportTime), 0).UTC().Format(time.RFC3339),
-		h.sequenceNumber, h.observationDomainID, intDescribed(len(h.sets), "set", "sets"))
+func (m *Message) String() string {
+	return fmt.Sprintf("Message %v (%v octets, %v, %v, %v) %v",
+		m.version, m.length, time.Unix(int64(m.exportTime), 0).UTC().Format(time.RFC3339),
+		m.sequenceNumber, m.observationDomainID, intDescribed(len(m.sets), "set", "sets"))
+}
+
+// UnmarshalBinary unmarshal a binary representation of IPFIX Message, implements encoding.BinaryUnmarshaler.
+func (m *Message) UnmarshalBinary(buf []byte) error {
+	r := bytes.NewReader(buf)
+
+	if err := fetchElements(r,
+		&m.version, &m.length, &m.exportTime, &m.sequenceNumber, &m.observationDomainID); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// var ErrInvalidInput = errors.New("invalid input data")
+
+func fetchElements(r io.Reader, data ...interface{}) error {
+	for _, elem := range data {
+		if err := binary.Read(r, binary.BigEndian, elem); err != nil {
+			return &UnmarshalError{err: err}
+		}
+	}
+
+	return nil
 }
 
 // set describes a generic term for a collection of records that have a similar structure.  There are three different

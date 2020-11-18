@@ -2,11 +2,41 @@ package ipfix
 
 import (
 	"crypto/rand"
+	"errors"
 	"fmt"
+	"io"
 	"math/big"
 	"testing"
 	"time"
 )
+
+func TestUnmarshalError_Error(t *testing.T) {
+	tests := []struct {
+		name string
+		arg  UnmarshalError
+		want string
+	}{
+		{
+			name: "UnmarshalError: EOF",
+			arg:  UnmarshalError{io.EOF},
+			want: "ipfix: unmarshalling error: EOF",
+		},
+		{
+			name: "UnmarshalError: unexpected EOF",
+			arg:  UnmarshalError{io.ErrUnexpectedEOF},
+			want: "ipfix: unmarshalling error: unexpected EOF",
+		},
+	}
+	for _, tt := range tests {
+		tt := tt // pin
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.arg.Error()
+			if got != tt.want {
+				t.Errorf("%v = %v, want %v", tt.name, got, tt.want)
+			}
+		})
+	}
+}
 
 func TestFieldSpecifier_StringRand(t *testing.T) {
 	var fs fieldSpecifier
@@ -141,12 +171,12 @@ func TestFieldSpecifier_invalid(t *testing.T) {
 func TestMessage_String(t *testing.T) {
 	tests := []struct {
 		name string
-		arg  message
+		arg  Message
 		want string
 	}{
 		{
-			name: "A message with one template set",
-			arg: message{
+			name: "A Message with one template set",
+			arg: Message{
 				version:             0x000a,
 				length:              296,
 				exportTime:          0x5ee715b1,
@@ -160,11 +190,11 @@ func TestMessage_String(t *testing.T) {
 					},
 				},
 			},
-			want: "message 10 (296 octets, 2020-06-15T06:31:13Z, 0, 0) 1 set",
+			want: "Message 10 (296 octets, 2020-06-15T06:31:13Z, 0, 0) 1 set",
 		},
 		{
-			name: "A message with one data set",
-			arg: message{
+			name: "A Message with one data set",
+			arg: Message{
 				version:             0x000a,
 				length:              412,
 				exportTime:          0x5ee7163d,
@@ -178,7 +208,7 @@ func TestMessage_String(t *testing.T) {
 					},
 				},
 			},
-			want: "message 10 (412 octets, 2020-06-15T06:33:33Z, 195, 0) 1 set",
+			want: "Message 10 (412 octets, 2020-06-15T06:33:33Z, 195, 0) 1 set",
 		},
 	}
 	for _, tt := range tests {
@@ -192,7 +222,7 @@ func TestMessage_String(t *testing.T) {
 }
 
 func TestMessage_StringRand(t *testing.T) {
-	var h message
+	var h Message
 
 	for attempts := 100; attempts > 0; attempts-- {
 		randomized, err := rand.Int(rand.Reader, big.NewInt(4294967296))
@@ -203,7 +233,7 @@ func TestMessage_StringRand(t *testing.T) {
 		}
 
 		id := uint32(randomized.Int64())
-		h = message{
+		h = Message{
 			version:             0x000a,
 			length:              uint16(id % 16),
 			exportTime:          id,
@@ -211,7 +241,7 @@ func TestMessage_StringRand(t *testing.T) {
 			observationDomainID: 1,
 		}
 
-		want := fmt.Sprintf("message %v (%v octets, %v, %v, %v) 0 sets",
+		want := fmt.Sprintf("Message %v (%v octets, %v, %v, %v) 0 sets",
 			h.version, h.length, time.Unix(int64(h.exportTime), 0).UTC().Format(time.RFC3339),
 			h.sequenceNumber, h.observationDomainID)
 		got := h.String()
@@ -219,6 +249,66 @@ func TestMessage_StringRand(t *testing.T) {
 		if want != got {
 			t.Errorf("Message.String(%v) = %v, want %v", id, got, want)
 		}
+	}
+}
+
+func TestMessage_UnmarshalBinary(t *testing.T) {
+	tests := []struct {
+		name string
+		arg  []byte
+		want Message
+		err  error
+	}{
+		{
+			name: "A valid Message header",
+			arg: []byte{
+				0x00, 0x0a, 0x01, 0x28, 0x5e, 0xe7, 0x15, 0xb1,
+				0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+			},
+			want: Message{
+				version:             0x000a,
+				length:              296,
+				exportTime:          0x5ee715b1,
+				sequenceNumber:      0,
+				observationDomainID: 0,
+				sets:                nil,
+			},
+			err: nil,
+		},
+		{
+			name: "An invalid Message header (unexpected EOF)",
+			arg: []byte{
+				0x00, 0x0a, 0x01, 0x28, 0x5e, 0xe7,
+			},
+			want: Message{
+				version:             0x000a,
+				length:              296,
+				exportTime:          0,
+				sequenceNumber:      0,
+				observationDomainID: 0,
+				sets:                nil,
+			},
+			err: io.ErrUnexpectedEOF,
+		},
+	}
+	for _, tt := range tests {
+		tt := tt // pin
+
+		var m Message
+
+		t.Run(tt.name, func(t *testing.T) {
+			if err := m.UnmarshalBinary(tt.arg); !errors.Is(err, tt.err) {
+				t.Errorf("%v got error %v, want %v", tt.name, err, tt.err)
+			}
+			if m.version != tt.want.version ||
+				m.length != tt.want.length ||
+				m.exportTime != tt.want.exportTime ||
+				m.sequenceNumber != tt.want.sequenceNumber ||
+				m.observationDomainID != tt.want.observationDomainID ||
+				len(m.sets) != len(tt.want.sets) {
+				t.Errorf("%v got %v, want %v", tt.name, m, tt.want)
+			}
+		})
 	}
 }
 
