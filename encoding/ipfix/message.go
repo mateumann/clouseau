@@ -186,7 +186,7 @@ func (m *Message) String() string {
 func (m *Message) UnmarshalBinary(buf []byte) error {
 	r := bytes.NewReader(buf)
 
-	if err := fetchElements(r,
+	if err := unmarshalFields(r,
 		&m.version, &m.length, &m.exportTime, &m.sequenceNumber, &m.observationDomainID); err != nil {
 		return err
 	}
@@ -194,9 +194,7 @@ func (m *Message) UnmarshalBinary(buf []byte) error {
 	return nil
 }
 
-// var ErrInvalidInput = errors.New("invalid input data")
-
-func fetchElements(r io.Reader, data ...interface{}) error {
+func unmarshalFields(r io.Reader, data ...interface{}) error {
 	for _, elem := range data {
 		if err := binary.Read(r, binary.BigEndian, elem); err != nil {
 			return &UnmarshalError{err: err}
