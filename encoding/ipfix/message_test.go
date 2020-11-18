@@ -381,7 +381,7 @@ func TestTemplateRecord_String(t *testing.T) {
 			want: "template record #258 (1 field)",
 		},
 		{
-			name: "Template Record #259 with 19 field specifier",
+			name: "Template Record #259 with 19 field specifiers",
 			arg: templateRecord{
 				templateID:      259,
 				fieldCount:      19,
@@ -390,7 +390,7 @@ func TestTemplateRecord_String(t *testing.T) {
 			want: "template record #259 (19 fields)",
 		},
 		{
-			name: "Template Record #260 with 0 field specifier",
+			name: "Template Record #260 with 0 field specifiers",
 			arg: templateRecord{
 				templateID:      260,
 				fieldCount:      0,
@@ -414,6 +414,62 @@ func TestTemplateRecord_String(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.arg.String(); got != tt.want {
 				t.Errorf("%v got %v, want %v", tt.name, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestTemplateRecord_UnmarshalBinary(t *testing.T) {
+	tests := []struct {
+		name string
+		arg  []byte
+		want templateRecord
+		err  error
+	}{
+		{
+			name: "Template Record #258 with 35 field specifiers",
+			arg:  []byte{0x01, 0x02, 0x00, 0x23},
+			want: templateRecord{
+				templateID:      258,
+				fieldCount:      35,
+				fieldSpecifiers: nil,
+			},
+			err: nil,
+		},
+		{
+			name: "Template Record #259 with 32 field specifiers",
+			arg:  []byte{0x01, 0x03, 0x00, 0x20},
+			want: templateRecord{
+				templateID:      259,
+				fieldCount:      32,
+				fieldSpecifiers: nil,
+			},
+			err: nil,
+		},
+		{
+			name: "An invalid Template Record (EOF)",
+			arg:  []byte{0x01, 0x04},
+			want: templateRecord{
+				templateID:      260,
+				fieldCount:      0,
+				fieldSpecifiers: nil,
+			},
+			err: io.EOF,
+		},
+	}
+	for _, tt := range tests {
+		tt := tt // pin
+
+		var r templateRecord
+
+		t.Run(tt.name, func(t *testing.T) {
+			if err := r.UnmarshalBinary(tt.arg); !errors.Is(err, tt.err) {
+				t.Errorf("%v got error %v, want %v", tt.name, err, tt.err)
+			}
+			if r.templateID != tt.want.templateID ||
+				r.fieldCount != tt.want.fieldCount ||
+				len(r.fieldSpecifiers) != len(tt.want.fieldSpecifiers) {
+				t.Errorf("%v got %v, want %v", tt.name, r, tt.want)
 			}
 		})
 	}
@@ -473,6 +529,65 @@ func TestOptionsTemplateRecord_String(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.arg.String(); got != tt.want {
 				t.Errorf("%v got %v, want %v", tt.name, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestOptionsTemplateRecord_UnmarshalBinary(t *testing.T) {
+	tests := []struct {
+		name string
+		arg  []byte
+		want optionsTemplateRecord
+		err  error
+	}{
+		{
+			name: "Options Template Record #261 with 5 field specifiers and 2 scope fields",
+			arg:  []byte{0x01, 0x05, 0x00, 0x05, 0x00, 0x02},
+			want: optionsTemplateRecord{
+				templateID:      261,
+				fieldCount:      5,
+				scopeFieldCount: 2,
+				fieldSpecifiers: nil,
+			},
+			err: nil,
+		},
+		{
+			name: "Template Record #262 with 2 field specifiers and 3 scope fields",
+			arg:  []byte{0x01, 0x06, 0x00, 0x02, 0x00, 0x03},
+			want: optionsTemplateRecord{
+				templateID:      262,
+				fieldCount:      2,
+				scopeFieldCount: 3,
+				fieldSpecifiers: nil,
+			},
+			err: nil,
+		},
+		{
+			name: "An invalid Template Record (unexpected EOF)",
+			arg:  []byte{0x01, 0x07, 0x00, 0x00, 0xff},
+			want: optionsTemplateRecord{
+				templateID:      263,
+				fieldCount:      0,
+				fieldSpecifiers: nil,
+			},
+			err: io.ErrUnexpectedEOF,
+		},
+	}
+	for _, tt := range tests {
+		tt := tt // pin
+
+		var r optionsTemplateRecord
+
+		t.Run(tt.name, func(t *testing.T) {
+			if err := r.UnmarshalBinary(tt.arg); !errors.Is(err, tt.err) {
+				t.Errorf("%v got error %v, want %v", tt.name, err, tt.err)
+			}
+			if r.templateID != tt.want.templateID ||
+				r.fieldCount != tt.want.fieldCount ||
+				r.scopeFieldCount != tt.want.scopeFieldCount ||
+				len(r.fieldSpecifiers) != len(tt.want.fieldSpecifiers) {
+				t.Errorf("%v got %v, want %v", tt.name, r, tt.want)
 			}
 		})
 	}

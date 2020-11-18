@@ -118,7 +118,8 @@ import (
 //      |        | +----------+     +----------+      +----------+ |
 //      +--------+-------------------------------------------------+
 
-// UnmarshalError describes an error while unmarshalling data.  It wraps an error returned by the binary.Read function.
+// UnmarshalError describes an error while unmarshalling data.
+// It wraps an error returned by the binary.Read function.
 type UnmarshalError struct {
 	err error
 }
@@ -130,6 +131,18 @@ func (e UnmarshalError) Error() string {
 // Unwrap returns the underlying error.
 func (e UnmarshalError) Unwrap() error {
 	return e.err
+}
+
+// unmarshalFields is a helper function that reads BigEndian binary stream into a bunch of fields.
+// In case of an error returns UnmarshalError-wrapped error returned by the binary.Read.
+func unmarshalFields(r io.Reader, data ...interface{}) error {
+	for _, elem := range data {
+		if err := binary.Read(r, binary.BigEndian, elem); err != nil {
+			return &UnmarshalError{err: err}
+		}
+	}
+
+	return nil
 }
 
 // fieldSpecifier describes a single data element in a IPFIX record
@@ -185,20 +198,12 @@ func (m *Message) String() string {
 
 // UnmarshalBinary unmarshal a binary representation of IPFIX Message, implements encoding.BinaryUnmarshaler.
 func (m *Message) UnmarshalBinary(buf []byte) error {
-	r := bytes.NewReader(buf)
+	reader := bytes.NewReader(buf)
 
-	return unmarshalFields(r,
+	// TODO implement sets unmarshalling
+
+	return unmarshalFields(reader,
 		&m.version, &m.length, &m.exportTime, &m.sequenceNumber, &m.observationDomainID)
-}
-
-func unmarshalFields(r io.Reader, data ...interface{}) error {
-	for _, elem := range data {
-		if err := binary.Read(r, binary.BigEndian, elem); err != nil {
-			return &UnmarshalError{err: err}
-		}
-	}
-
-	return nil
 }
 
 // set describes a generic term for a collection of records that have a similar structure.  There are three different
@@ -267,6 +272,15 @@ func (r *templateRecord) valid() bool {
 	return r.templateID >= 256
 }
 
+// UnmarshalBinary unmarshal a binary representation of IPFIX templateRecord, implements encoding.BinaryUnmarshaler.
+func (r *templateRecord) UnmarshalBinary(buf []byte) error {
+	reader := bytes.NewReader(buf)
+
+	// TODO implement reading fieldSpecifiers
+
+	return unmarshalFields(reader, &r.templateID, &r.fieldCount)
+}
+
 // optionsTemplateRecord provides additional information about the context of the reported InformationElement-s.
 // https://tools.ietf.org/html/rfc7011#section-3.4.2
 type optionsTemplateRecord struct {
@@ -287,6 +301,16 @@ func (r *optionsTemplateRecord) String() string {
 
 func (r *optionsTemplateRecord) valid() bool {
 	return r.templateID >= 256 && r.scopeFieldCount > 0 && r.scopeFieldCount <= r.fieldCount
+}
+
+// UnmarshalBinary unmarshal a binary representation of IPFIX optionsTemplateRecord, implements
+// encoding.BinaryUnmarshaler.
+func (r *optionsTemplateRecord) UnmarshalBinary(buf []byte) error {
+	reader := bytes.NewReader(buf)
+
+	// TODO implement reading fieldSpecifiers
+
+	return unmarshalFields(reader, &r.templateID, &r.fieldCount, &r.scopeFieldCount)
 }
 
 // dataRecord consists only of one or more field values, which belong to the template identified by the field setID of
