@@ -114,15 +114,11 @@ func TestFieldSpecifier_valid(t *testing.T) {
 		id := uint16(randomized.Int64())
 		if id >= 32768 {
 			fs = fieldSpecifier{
-				informationElementID: id,
-				fieldLength:          1,
-				enterpriseNumber:     uint32(1 + (randomized.Uint64() % 4294967295)),
+				id, 1, uint32(1 + (randomized.Uint64() % 4294967295)),
 			}
 		} else {
 			fs = fieldSpecifier{
-				informationElementID: id,
-				fieldLength:          1,
-				enterpriseNumber:     0,
+				id, 1, 0,
 			}
 		}
 
@@ -148,15 +144,11 @@ func TestFieldSpecifier_invalid(t *testing.T) {
 		id := uint16(randomized.Int64())
 		if id >= 32768 {
 			fs = fieldSpecifier{
-				informationElementID: id,
-				fieldLength:          1,
-				enterpriseNumber:     0,
+				id, 1, 0,
 			}
 		} else {
 			fs = fieldSpecifier{
-				informationElementID: id,
-				fieldLength:          1,
-				enterpriseNumber:     uint32(1 + (randomized.Uint64() % 4294967295)),
+				id, 1, uint32(1 + (randomized.Uint64() % 4294967295)),
 			}
 		}
 
@@ -177,36 +169,16 @@ func TestMessage_String(t *testing.T) {
 		{
 			name: "A Message with one template set",
 			arg: Message{
-				version:             0x000a,
-				length:              296,
-				exportTime:          0x5ee715b1,
-				sequenceNumber:      0,
-				observationDomainID: 0,
-				sets: []set{
-					{
-						setID:   2,
-						length:  280,
-						records: make([]interface{}, 2),
-					},
-				},
+				0x000a, 296, 0x5ee715b1, 0, 0,
+				[]set{{2, 280, make([]interface{}, 2)}},
 			},
 			want: "Message 10 (296 octets, 2020-06-15T06:31:13Z, 0, 0) 1 set",
 		},
 		{
 			name: "A Message with one data set",
 			arg: Message{
-				version:             0x000a,
-				length:              412,
-				exportTime:          0x5ee7163d,
-				sequenceNumber:      195,
-				observationDomainID: 0,
-				sets: []set{
-					{
-						setID:   259,
-						length:  396,
-						records: make([]interface{}, 1),
-					},
-				},
+				0x000a, 412, 0x5ee7163d, 195, 0,
+				[]set{{259, 396, make([]interface{}, 1)}},
 			},
 			want: "Message 10 (412 octets, 2020-06-15T06:33:33Z, 195, 0) 1 set",
 		},
@@ -234,11 +206,7 @@ func TestMessage_StringRand(t *testing.T) {
 
 		id := uint32(randomized.Int64())
 		h = Message{
-			version:             0x000a,
-			length:              uint16(id % 16),
-			exportTime:          id,
-			sequenceNumber:      1,
-			observationDomainID: 1,
+			0x000a, uint16(id % 16), id, 1, 1, nil,
 		}
 
 		want := fmt.Sprintf("Message %v (%v octets, %v, %v, %v) 0 sets",
@@ -262,16 +230,10 @@ func TestMessage_UnmarshalBinary(t *testing.T) {
 		{
 			name: "A valid Message header",
 			arg: []byte{
-				0x00, 0x0a, 0x01, 0x28, 0x5e, 0xe7, 0x15, 0xb1,
-				0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+				0x00, 0x0a, 0x01, 0x28, 0x5e, 0xe7, 0x15, 0xb1, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 			},
 			want: Message{
-				version:             0x000a,
-				length:              296,
-				exportTime:          0x5ee715b1,
-				sequenceNumber:      0,
-				observationDomainID: 0,
-				sets:                nil,
+				0x000a, 296, 0x5ee715b1, 0, 0, nil,
 			},
 			err: nil,
 		},
@@ -281,12 +243,7 @@ func TestMessage_UnmarshalBinary(t *testing.T) {
 				0x00, 0x0a, 0x01, 0x28, 0x5e, 0xe7,
 			},
 			want: Message{
-				version:             0x000a,
-				length:              296,
-				exportTime:          0,
-				sequenceNumber:      0,
-				observationDomainID: 0,
-				sets:                nil,
+				0x000a, 296, 0, 0, 0, nil,
 			},
 			err: io.ErrUnexpectedEOF,
 		},
@@ -312,6 +269,102 @@ func TestMessage_UnmarshalBinary(t *testing.T) {
 	}
 }
 
+func TestMessage_UnmarshalBinary_OneSet(t *testing.T) {
+	tests := []struct {
+		name string
+		arg  []byte
+		want Message
+		err  error
+	}{
+		{
+			name: "A valid Message header and a set's header",
+			arg: []byte{
+				0x00, 0x0a, 0x01, 0x28, 0x5e, 0xe7, 0x15, 0xb1, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+				0x00, 0x02, 0x01, 0x18,
+			},
+			want: Message{
+				0x000a, 296, 0x5ee715b1, 0, 0,
+				[]set{{2, 280, nil}},
+			},
+			err: nil,
+		},
+		{
+			name: "A valid Message header and an invalid set's header",
+			arg: []byte{
+				0x00, 0x0a, 0x01, 0x28, 0x5e, 0xe7, 0x15, 0xb1, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+				0x00, 0x02, 0x01,
+			},
+			want: Message{
+				0x000a, 296, 0x5ee715b1, 0, 0,
+				[]set{{2, 0, nil}},
+			},
+			err: io.ErrUnexpectedEOF,
+		},
+	}
+	for _, tt := range tests {
+		tt := tt // pin
+
+		var m Message
+
+		t.Run(tt.name, func(t *testing.T) {
+			if err := m.UnmarshalBinary(tt.arg); !errors.Is(err, tt.err) {
+				t.Errorf("%v got error %v, want %v", tt.name, err, tt.err)
+			}
+			for i, s := range m.sets {
+				if s.setID != tt.want.sets[i].setID ||
+					s.length != tt.want.sets[i].length ||
+					len(s.records) != len(tt.want.sets[i].records) {
+					t.Errorf("UnmarshalBinary data template set[%v] %v, want %v", i, s, tt.want.sets[i])
+				}
+			}
+		})
+	}
+}
+
+func TestMessage_UnmarshalBinaryDataTemplate(t *testing.T) {
+	arg := []byte{
+		0x00, 0x0a, 0x01, 0x28, 0x5e, 0xe7, 0x15, 0xb1, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x02, 0x01, 0x18,
+	}
+	want := Message{
+		version:             0x000a,
+		length:              296,
+		exportTime:          0x5ee715b1,
+		sequenceNumber:      0,
+		observationDomainID: 0,
+		sets: []set{
+			{
+				setID:   2,
+				length:  280,
+				records: nil,
+			},
+		},
+	}
+
+	var m Message
+
+	if err := m.UnmarshalBinary(arg); !errors.Is(err, nil) {
+		t.Errorf("UnmarshalBinary data template got error %v, want %v", err, nil)
+	}
+
+	if m.version != want.version ||
+		m.length != want.length ||
+		m.exportTime != want.exportTime ||
+		m.sequenceNumber != want.sequenceNumber ||
+		m.observationDomainID != want.observationDomainID ||
+		len(m.sets) != len(want.sets) {
+		t.Errorf("UnmarshalBinary data template message %v, want %v", m, want)
+	}
+
+	for i, s := range m.sets {
+		if s.setID != want.sets[i].setID ||
+			s.length != want.sets[i].length ||
+			len(s.records) != len(want.sets[i].records) {
+			t.Errorf("UnmarshalBinary data template set[%v] %v, want %v", i, m, want)
+		}
+	}
+}
+
 func TestSet_String(t *testing.T) {
 	tests := []struct {
 		name string
@@ -321,36 +374,28 @@ func TestSet_String(t *testing.T) {
 		{
 			name: "Template Set with 1 record",
 			arg: set{
-				setID:   2,
-				length:  16,
-				records: make([]interface{}, 1),
+				2, 16, make([]interface{}, 1),
 			},
 			want: "template set (16 octets) 1 record",
 		},
 		{
 			name: "Options Template Set with 2 record",
 			arg: set{
-				setID:   3,
-				length:  24,
-				records: make([]interface{}, 2),
+				3, 24, make([]interface{}, 2),
 			},
 			want: "options template set (24 octets) 2 records",
 		},
 		{
 			name: "Data Set with 1 record",
 			arg: set{
-				setID:   258,
-				length:  16,
-				records: make([]interface{}, 1),
+				258, 16, make([]interface{}, 1),
 			},
 			want: "data set (16 octets) 1 record",
 		},
 		{
 			name: "Invalid Set",
 			arg: set{
-				setID:   24,
-				length:  16,
-				records: make([]interface{}, 1),
+				24, 16, make([]interface{}, 1),
 			},
 			want: "invalid set #24",
 		},
@@ -374,37 +419,28 @@ func TestTemplateRecord_String(t *testing.T) {
 		{
 			name: "Template Record #258 with 1 field specifier",
 			arg: templateRecord{
-				templateID:      258,
-				fieldCount:      1,
-				fieldSpecifiers: make([]fieldSpecifier, 1),
+				258, 1, make([]fieldSpecifier, 1),
 			},
 			want: "template record #258 (1 field)",
 		},
 		{
 			name: "Template Record #259 with 19 field specifiers",
 			arg: templateRecord{
-				templateID:      259,
-				fieldCount:      19,
-				fieldSpecifiers: make([]fieldSpecifier, 19),
+				259, 19, make([]fieldSpecifier, 19),
 			},
 			want: "template record #259 (19 fields)",
 		},
 		{
 			name: "Template Record #260 with 0 field specifiers",
 			arg: templateRecord{
-				templateID:      260,
-				fieldCount:      0,
-				fieldSpecifiers: make([]fieldSpecifier, 0),
+				260, 0, make([]fieldSpecifier, 0),
 			},
 			want: "template record #260 (0 fields)",
 		},
 		{
 			name: "Template Record #24 with 1 field specifier",
 			arg: templateRecord{
-
-				templateID:      24,
-				fieldCount:      1,
-				fieldSpecifiers: make([]fieldSpecifier, 1),
+				24, 1, make([]fieldSpecifier, 1),
 			},
 			want: "invalid template record #24",
 		},
@@ -430,9 +466,7 @@ func TestTemplateRecord_UnmarshalBinary(t *testing.T) {
 			name: "Template Record #258 with 35 field specifiers",
 			arg:  []byte{0x01, 0x02, 0x00, 0x23},
 			want: templateRecord{
-				templateID:      258,
-				fieldCount:      35,
-				fieldSpecifiers: nil,
+				258, 35, nil,
 			},
 			err: nil,
 		},
@@ -440,9 +474,7 @@ func TestTemplateRecord_UnmarshalBinary(t *testing.T) {
 			name: "Template Record #259 with 32 field specifiers",
 			arg:  []byte{0x01, 0x03, 0x00, 0x20},
 			want: templateRecord{
-				templateID:      259,
-				fieldCount:      32,
-				fieldSpecifiers: nil,
+				259, 32, nil,
 			},
 			err: nil,
 		},
@@ -450,9 +482,7 @@ func TestTemplateRecord_UnmarshalBinary(t *testing.T) {
 			name: "An invalid Template Record (EOF)",
 			arg:  []byte{0x01, 0x04},
 			want: templateRecord{
-				templateID:      260,
-				fieldCount:      0,
-				fieldSpecifiers: nil,
+				260, 0, nil,
 			},
 			err: io.EOF,
 		},
@@ -484,42 +514,28 @@ func TestOptionsTemplateRecord_String(t *testing.T) {
 		{
 			name: "Options Template Record #258 with 3 field specifier",
 			arg: optionsTemplateRecord{
-				templateID:      258,
-				fieldCount:      3,
-				scopeFieldCount: 2,
-				fieldSpecifiers: make([]fieldSpecifier, 3),
+				258, 3, 2, make([]fieldSpecifier, 3),
 			},
 			want: "options template record #258 (scope 2 fields of 3 fields)",
 		},
 		{
 			name: "Options Template Record #24 with 1 field specifier",
 			arg: optionsTemplateRecord{
-
-				templateID:      24,
-				fieldCount:      1,
-				scopeFieldCount: 1,
-				fieldSpecifiers: make([]fieldSpecifier, 1),
+				24, 1, 1, make([]fieldSpecifier, 1),
 			},
 			want: "invalid options template record #24",
 		},
 		{
 			name: "Options Template Record #384 with 0 scope fields",
 			arg: optionsTemplateRecord{
-
-				templateID:      384,
-				fieldCount:      1,
-				scopeFieldCount: 0,
-				fieldSpecifiers: make([]fieldSpecifier, 1),
+				384, 1, 0, make([]fieldSpecifier, 1),
 			},
 			want: "invalid options template record #384",
 		},
 		{
 			name: "Options Template Record #385 with 2 field specifier",
 			arg: optionsTemplateRecord{
-				templateID:      385,
-				fieldCount:      2,
-				scopeFieldCount: 3,
-				fieldSpecifiers: make([]fieldSpecifier, 2),
+				385, 2, 3, make([]fieldSpecifier, 2),
 			},
 			want: "invalid options template record #385",
 		},
@@ -545,10 +561,7 @@ func TestOptionsTemplateRecord_UnmarshalBinary(t *testing.T) {
 			name: "Options Template Record #261 with 5 field specifiers and 2 scope fields",
 			arg:  []byte{0x01, 0x05, 0x00, 0x05, 0x00, 0x02},
 			want: optionsTemplateRecord{
-				templateID:      261,
-				fieldCount:      5,
-				scopeFieldCount: 2,
-				fieldSpecifiers: nil,
+				261, 5, 2, nil,
 			},
 			err: nil,
 		},
@@ -556,10 +569,7 @@ func TestOptionsTemplateRecord_UnmarshalBinary(t *testing.T) {
 			name: "Template Record #262 with 2 field specifiers and 3 scope fields",
 			arg:  []byte{0x01, 0x06, 0x00, 0x02, 0x00, 0x03},
 			want: optionsTemplateRecord{
-				templateID:      262,
-				fieldCount:      2,
-				scopeFieldCount: 3,
-				fieldSpecifiers: nil,
+				262, 2, 3, nil,
 			},
 			err: nil,
 		},
@@ -567,9 +577,7 @@ func TestOptionsTemplateRecord_UnmarshalBinary(t *testing.T) {
 			name: "An invalid Template Record (unexpected EOF)",
 			arg:  []byte{0x01, 0x07, 0x00, 0x00, 0xff},
 			want: optionsTemplateRecord{
-				templateID:      263,
-				fieldCount:      0,
-				fieldSpecifiers: nil,
+				263, 0, 0, nil,
 			},
 			err: io.ErrUnexpectedEOF,
 		},

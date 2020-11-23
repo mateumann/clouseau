@@ -197,13 +197,25 @@ func (m *Message) String() string {
 }
 
 // UnmarshalBinary unmarshal a binary representation of IPFIX Message, implements encoding.BinaryUnmarshaler.
-func (m *Message) UnmarshalBinary(buf []byte) error {
+func (m *Message) UnmarshalBinary(buf []byte) (err error) {
 	reader := bytes.NewReader(buf)
 
-	// TODO implement sets unmarshalling
+	if err = unmarshalFields(
+		reader, &m.version, &m.length, &m.exportTime, &m.sequenceNumber, &m.observationDomainID); err != nil {
+		return err
+	}
 
-	return unmarshalFields(reader,
-		&m.version, &m.length, &m.exportTime, &m.sequenceNumber, &m.observationDomainID)
+	if reader.Len() <= 0 {
+		return nil
+	}
+
+	m.sets = make([]set, 1)
+
+	if err = unmarshalFields(reader, &m.sets[0].setID, &m.sets[0].length); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // set describes a generic term for a collection of records that have a similar structure.  There are three different
