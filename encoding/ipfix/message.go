@@ -211,11 +211,7 @@ func (m *Message) UnmarshalBinary(buf []byte) (err error) {
 
 	m.sets = make([]set, 1)
 
-	if err = unmarshalFields(reader, &m.sets[0].setID, &m.sets[0].length); err != nil {
-		return err
-	}
-
-	return nil
+	return unmarshalFields(reader, &m.sets[0].setID, &m.sets[0].length)
 }
 
 // set describes a generic term for a collection of records that have a similar structure.  There are three different
