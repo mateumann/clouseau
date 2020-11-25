@@ -1,7 +1,9 @@
 package ipfix
 
 import (
+	"bytes"
 	"crypto/rand"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
@@ -230,10 +232,10 @@ func TestMessage_UnmarshalBinary(t *testing.T) {
 		{
 			name: "A valid Message header",
 			arg: []byte{
-				0x00, 0x0a, 0x01, 0x28, 0x5e, 0xe7, 0x15, 0xb1, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+				0x00, 0x0a, 0x00, 0x10, 0x5e, 0xe7, 0x15, 0xb1, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 			},
 			want: Message{
-				0x000a, 296, 0x5ee715b1, 0, 0, nil,
+				0x000a, 16, 0x5ee715b1, 0, 0, nil,
 			},
 			err: nil,
 		},
@@ -269,23 +271,25 @@ func TestMessage_UnmarshalBinary(t *testing.T) {
 	}
 }
 
-func TestMessage_UnmarshalBinary_OneSet(t *testing.T) {
+func TestMessage_Unmarshal_OneSet(t *testing.T) {
 	tests := []struct {
 		name string
 		arg  []byte
 		want Message
+		n    int
 		err  error
 	}{
 		{
 			name: "A valid Message header and a set's header",
 			arg: []byte{
-				0x00, 0x0a, 0x01, 0x28, 0x5e, 0xe7, 0x15, 0xb1, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-				0x00, 0x02, 0x01, 0x18,
+				0x00, 0x0a, 0x00, 0x14, 0x5e, 0xe7, 0x15, 0xb1, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+				0x00, 0x02, 0x00, 0x04,
 			},
 			want: Message{
-				0x000a, 296, 0x5ee715b1, 0, 0,
-				[]set{{2, 280, nil}},
+				0x000a, 20, 0x5ee715b1, 0, 0,
+				[]set{{2, 4, nil}},
 			},
+			n:   20,
 			err: nil,
 		},
 		{
@@ -298,6 +302,7 @@ func TestMessage_UnmarshalBinary_OneSet(t *testing.T) {
 				0x000a, 296, 0x5ee715b1, 0, 0,
 				[]set{{2, 0, nil}},
 			},
+			n:   18,
 			err: io.ErrUnexpectedEOF,
 		},
 	}
@@ -307,44 +312,62 @@ func TestMessage_UnmarshalBinary_OneSet(t *testing.T) {
 		var m Message
 
 		t.Run(tt.name, func(t *testing.T) {
-			if err := m.UnmarshalBinary(tt.arg); !errors.Is(err, tt.err) {
+			n, err := m.Unmarshal(bytes.NewReader(tt.arg))
+			if !errors.Is(err, tt.err) {
 				t.Errorf("%v got error %v, want %v", tt.name, err, tt.err)
+			}
+			if n != tt.n {
+				t.Errorf("%v read bytes %v, want %v", tt.name, n, tt.n)
 			}
 			for i, s := range m.sets {
 				if s.setID != tt.want.sets[i].setID ||
 					s.length != tt.want.sets[i].length ||
 					len(s.records) != len(tt.want.sets[i].records) {
-					t.Errorf("UnmarshalBinary data template set[%v] %v, want %v", i, s, tt.want.sets[i])
+					t.Errorf("Unmarshal data template set[%v] %v, want %v", i, s, tt.want.sets[i])
 				}
 			}
 		})
 	}
 }
 
-func TestMessage_UnmarshalBinaryDataTemplate(t *testing.T) {
+func TestMessage_UnmarshalDataTemplate(t *testing.T) {
 	arg := []byte{
-		0x00, 0x0a, 0x01, 0x28, 0x5e, 0xe7, 0x15, 0xb1, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-		0x00, 0x02, 0x01, 0x18,
+		0x00, 0x0a, 0x00, 0x38, 0x5e, 0xe7, 0x16, 0x26, 0x00, 0x00, 0x00, 0xa8, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x02, 0x00, 0x28, 0x01, 0x02, 0x00, 0x05, 0x00, 0x3c, 0x00, 0x01, 0x00, 0x16, 0x00, 0x04,
+		0x00, 0x15, 0x00, 0x04, 0x00, 0x02, 0x00, 0x04, 0x00, 0x01, 0x00, 0x04, 0x01, 0x03, 0x00, 0x02,
+		0x00, 0x06, 0x00, 0x01, 0x00, 0x50, 0x00, 0x06,
 	}
 	want := Message{
-		version:             0x000a,
-		length:              296,
-		exportTime:          0x5ee715b1,
-		sequenceNumber:      0,
-		observationDomainID: 0,
-		sets: []set{
+		0x000a, 56, 0x5ee71626, 168, 0,
+		[]set{
 			{
-				setID:   2,
-				length:  280,
-				records: nil,
+				2, 40, []interface{}{
+					templateRecord{258, 5, []fieldSpecifier{
+						{60, 1, 0},
+						{22, 4, 0},
+						{21, 4, 0},
+						{2, 4, 0},
+						{1, 4, 0},
+					}},
+					templateRecord{259, 2, []fieldSpecifier{
+						{6, 1, 0},
+						{80, 6, 0},
+					}},
+				},
 			},
 		},
 	}
 
 	var m Message
 
-	if err := m.UnmarshalBinary(arg); !errors.Is(err, nil) {
-		t.Errorf("UnmarshalBinary data template got error %v, want %v", err, nil)
+	n, err := m.Unmarshal(bytes.NewReader(arg))
+
+	if !errors.Is(err, nil) {
+		t.Errorf("Unmarshal data template got error %v, want %v", err, nil)
+	}
+
+	if n != binary.Size(arg) {
+		t.Errorf("Unmarshal data template read bytes %v, want %v", n, binary.Size(arg))
 	}
 
 	if m.version != want.version ||
@@ -353,14 +376,14 @@ func TestMessage_UnmarshalBinaryDataTemplate(t *testing.T) {
 		m.sequenceNumber != want.sequenceNumber ||
 		m.observationDomainID != want.observationDomainID ||
 		len(m.sets) != len(want.sets) {
-		t.Errorf("UnmarshalBinary data template message %v, want %v", m, want)
+		t.Errorf("Unmarshal data template message %v, want %v", m, want)
 	}
 
 	for i, s := range m.sets {
 		if s.setID != want.sets[i].setID ||
 			s.length != want.sets[i].length ||
 			len(s.records) != len(want.sets[i].records) {
-			t.Errorf("UnmarshalBinary data template set[%v] %v, want %v", i, m, want)
+			t.Errorf("Unmarshal data template set[%v] %v, want %v", i, s, want.sets[i])
 		}
 	}
 }
@@ -455,27 +478,21 @@ func TestTemplateRecord_String(t *testing.T) {
 	}
 }
 
-func TestTemplateRecord_UnmarshalBinary(t *testing.T) {
+func TestTemplateRecord_Unmarshal(t *testing.T) {
 	tests := []struct {
 		name string
 		arg  []byte
 		want templateRecord
+		n    int
 		err  error
 	}{
 		{
-			name: "Template Record #258 with 35 field specifiers",
-			arg:  []byte{0x01, 0x02, 0x00, 0x23},
+			name: "Template Record #258 with 1 field specifiers",
+			arg:  []byte{0x01, 0x02, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00},
 			want: templateRecord{
-				258, 35, nil,
+				258, 1, []fieldSpecifier{{0, 0, 0}},
 			},
-			err: nil,
-		},
-		{
-			name: "Template Record #259 with 32 field specifiers",
-			arg:  []byte{0x01, 0x03, 0x00, 0x20},
-			want: templateRecord{
-				259, 32, nil,
-			},
+			n:   8,
 			err: nil,
 		},
 		{
@@ -484,6 +501,7 @@ func TestTemplateRecord_UnmarshalBinary(t *testing.T) {
 			want: templateRecord{
 				260, 0, nil,
 			},
+			n:   2,
 			err: io.EOF,
 		},
 	}
@@ -493,8 +511,12 @@ func TestTemplateRecord_UnmarshalBinary(t *testing.T) {
 		var r templateRecord
 
 		t.Run(tt.name, func(t *testing.T) {
-			if err := r.UnmarshalBinary(tt.arg); !errors.Is(err, tt.err) {
+			n, err := r.Unmarshal(bytes.NewReader(tt.arg))
+			if !errors.Is(err, tt.err) {
 				t.Errorf("%v got error %v, want %v", tt.name, err, tt.err)
+			}
+			if n != tt.n {
+				t.Errorf("%v read bytes %v, want %v", tt.name, n, tt.n)
 			}
 			if r.templateID != tt.want.templateID ||
 				r.fieldCount != tt.want.fieldCount ||
@@ -550,11 +572,12 @@ func TestOptionsTemplateRecord_String(t *testing.T) {
 	}
 }
 
-func TestOptionsTemplateRecord_UnmarshalBinary(t *testing.T) {
+func TestOptionsTemplateRecord_Unmarshal(t *testing.T) {
 	tests := []struct {
 		name string
 		arg  []byte
 		want optionsTemplateRecord
+		n    int
 		err  error
 	}{
 		{
@@ -563,7 +586,8 @@ func TestOptionsTemplateRecord_UnmarshalBinary(t *testing.T) {
 			want: optionsTemplateRecord{
 				261, 5, 2, nil,
 			},
-			err: nil,
+			n:   6,
+			err: io.EOF,
 		},
 		{
 			name: "Template Record #262 with 2 field specifiers and 3 scope fields",
@@ -571,7 +595,8 @@ func TestOptionsTemplateRecord_UnmarshalBinary(t *testing.T) {
 			want: optionsTemplateRecord{
 				262, 2, 3, nil,
 			},
-			err: nil,
+			n:   6,
+			err: io.EOF,
 		},
 		{
 			name: "An invalid Template Record (unexpected EOF)",
@@ -579,6 +604,7 @@ func TestOptionsTemplateRecord_UnmarshalBinary(t *testing.T) {
 			want: optionsTemplateRecord{
 				263, 0, 0, nil,
 			},
+			n:   4,
 			err: io.ErrUnexpectedEOF,
 		},
 	}
@@ -588,8 +614,12 @@ func TestOptionsTemplateRecord_UnmarshalBinary(t *testing.T) {
 		var r optionsTemplateRecord
 
 		t.Run(tt.name, func(t *testing.T) {
-			if err := r.UnmarshalBinary(tt.arg); !errors.Is(err, tt.err) {
+			n, err := r.Unmarshal(bytes.NewReader(tt.arg))
+			if !errors.Is(err, tt.err) {
 				t.Errorf("%v got error %v, want %v", tt.name, err, tt.err)
+			}
+			if n != tt.n {
+				t.Errorf("%v read bytes %v, want %v", tt.name, n, tt.n)
 			}
 			if r.templateID != tt.want.templateID ||
 				r.fieldCount != tt.want.fieldCount ||

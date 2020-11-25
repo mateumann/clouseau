@@ -135,14 +135,24 @@ func (e UnmarshalError) Unwrap() error {
 
 // unmarshalFields is a helper function that reads BigEndian binary stream into a bunch of fields.
 // In case of an error returns UnmarshalError-wrapped error returned by the binary.Read.
-func unmarshalFields(r io.Reader, data ...interface{}) error {
+func unmarshalFields(reader io.Reader, data ...interface{}) (n int, err error) {
+	n = 0
+
 	for _, elem := range data {
-		if err := binary.Read(r, binary.BigEndian, elem); err != nil {
-			return &UnmarshalError{err: err}
+		if err = binary.Read(reader, binary.BigEndian, elem); err != nil {
+			return n, &UnmarshalError{err}
 		}
+
+		elemSize := binary.Size(elem)
+
+		if elemSize < 0 {
+			return n, &UnmarshalError{nil}
+		}
+
+		n += elemSize
 	}
 
-	return nil
+	return n, nil
 }
 
 // fieldSpecifier describes a single data element in a IPFIX record
@@ -179,6 +189,23 @@ func (s *fieldSpecifier) valid() bool {
 	return s.informationElementID < 32768 && s.enterpriseNumber == 0
 }
 
+func (s *fieldSpecifier) Unmarshal(reader io.Reader) (n int, err error) {
+	if n, err = unmarshalFields(reader, &s.informationElementID, &s.fieldLength); err != nil {
+		return n, err
+	}
+
+	if s.e() {
+		bytesRead, err := unmarshalFields(reader, &s.enterpriseNumber)
+		n += bytesRead
+
+		if err != nil {
+			return n, err
+		}
+	}
+
+	return n, err
+}
+
 // Message describes a IPFIX Message constaing of a header and zero or more sets
 // https://tools.ietf.org/html/rfc7011#section-3.1
 type Message struct {
@@ -196,22 +223,33 @@ func (m *Message) String() string {
 		m.sequenceNumber, m.observationDomainID, intDescribed(len(m.sets), "set", "sets"))
 }
 
+// Unmarshal unmarshal a IPFIX Message.
+func (m *Message) Unmarshal(reader io.Reader) (n int, err error) {
+	if n, err = unmarshalFields(reader,
+		&m.version, &m.length, &m.exportTime, &m.sequenceNumber, &m.observationDomainID); err != nil {
+		return n, err
+	}
+
+	for n < int(m.length) {
+		var s set
+		bytesRead, err := s.Unmarshal(reader)
+		n += bytesRead
+
+		if err != nil {
+			return n, err
+		}
+
+		m.sets = append(m.sets, s)
+	}
+
+	return n, err
+}
+
 // UnmarshalBinary unmarshal a binary representation of IPFIX Message, implements encoding.BinaryUnmarshaler.
 func (m *Message) UnmarshalBinary(buf []byte) (err error) {
-	reader := bytes.NewReader(buf)
+	_, err = m.Unmarshal(bytes.NewReader(buf))
 
-	if err = unmarshalFields(
-		reader, &m.version, &m.length, &m.exportTime, &m.sequenceNumber, &m.observationDomainID); err != nil {
-		return err
-	}
-
-	if reader.Len() <= 0 {
-		return nil
-	}
-
-	m.sets = make([]set, 1)
-
-	return unmarshalFields(reader, &m.sets[0].setID, &m.sets[0].length)
+	return err
 }
 
 // set describes a generic term for a collection of records that have a similar structure.  There are three different
@@ -260,6 +298,42 @@ func (s *set) valid() bool {
 	return (s.setID == 2 || s.setID == 3 || s.setID >= 256) && s.length > 3
 }
 
+// Unmarshal unmarshal a IPFIX Message.
+func (s *set) Unmarshal(reader io.Reader) (n int, err error) {
+	if n, err = unmarshalFields(reader, &s.setID, &s.length); err != nil {
+		return n, err
+	}
+
+	switch {
+	case s.setID == TemplateSetID:
+		for n < int(s.length) {
+			var r templateRecord
+			bytesRead, err := r.Unmarshal(reader)
+			n += bytesRead
+
+			if err != nil {
+				return n, err
+			}
+
+			s.records = append(s.records, r)
+		}
+	case s.setID == OptionsTemplateSetID:
+		for n < int(s.length) {
+			var r optionsTemplateRecord
+			bytesRead, err := r.Unmarshal(reader)
+			n += bytesRead
+
+			if err != nil {
+				return n, err
+			}
+
+			s.records = append(s.records, r)
+		}
+	}
+
+	return n, err
+}
+
 // templateRecord contains any combination of InformationElement-s.
 // https://tools.ietf.org/html/rfc7011#section-3.4.1
 type templateRecord struct {
@@ -280,13 +354,32 @@ func (r *templateRecord) valid() bool {
 	return r.templateID >= 256
 }
 
+// Unmarshal unmarshal a IPFIX templateRecord.
+func (r *templateRecord) Unmarshal(reader io.Reader) (n int, err error) {
+	if n, err = unmarshalFields(reader, &r.templateID, &r.fieldCount); err != nil {
+		return n, err
+	}
+
+	for i := uint16(0); i < r.fieldCount; i++ {
+		var fs fieldSpecifier
+		bytesRead, err := fs.Unmarshal(reader)
+		n += bytesRead
+
+		if err != nil {
+			return n, err
+		}
+
+		r.fieldSpecifiers = append(r.fieldSpecifiers, fs)
+	}
+
+	return n, err
+}
+
 // UnmarshalBinary unmarshal a binary representation of IPFIX templateRecord, implements encoding.BinaryUnmarshaler.
 func (r *templateRecord) UnmarshalBinary(buf []byte) error {
-	reader := bytes.NewReader(buf)
+	_, err := r.Unmarshal(bytes.NewReader(buf))
 
-	// TODO implement reading fieldSpecifiers
-
-	return unmarshalFields(reader, &r.templateID, &r.fieldCount)
+	return err
 }
 
 // optionsTemplateRecord provides additional information about the context of the reported InformationElement-s.
@@ -311,14 +404,33 @@ func (r *optionsTemplateRecord) valid() bool {
 	return r.templateID >= 256 && r.scopeFieldCount > 0 && r.scopeFieldCount <= r.fieldCount
 }
 
+// Unmarshal unmarshal a IPFIX templateRecord.
+func (r *optionsTemplateRecord) Unmarshal(reader io.Reader) (n int, err error) {
+	if n, err = unmarshalFields(reader, &r.templateID, &r.fieldCount, &r.scopeFieldCount); err != nil {
+		return n, err
+	}
+
+	for i := uint16(0); i < r.fieldCount; i++ {
+		var fs fieldSpecifier
+		bytesRead, err := fs.Unmarshal(reader)
+		n += bytesRead
+
+		if err != nil {
+			return n, err
+		}
+
+		r.fieldSpecifiers = append(r.fieldSpecifiers, fs)
+	}
+
+	return n, err
+}
+
 // UnmarshalBinary unmarshal a binary representation of IPFIX optionsTemplateRecord, implements
 // encoding.BinaryUnmarshaler.
 func (r *optionsTemplateRecord) UnmarshalBinary(buf []byte) error {
-	reader := bytes.NewReader(buf)
+	_, err := r.Unmarshal(bytes.NewReader(buf))
 
-	// TODO implement reading fieldSpecifiers
-
-	return unmarshalFields(reader, &r.templateID, &r.fieldCount, &r.scopeFieldCount)
+	return err
 }
 
 // dataRecord consists only of one or more field values, which belong to the template identified by the field setID of
