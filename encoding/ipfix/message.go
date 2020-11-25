@@ -3,6 +3,7 @@ package ipfix
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"io"
 	"time"
@@ -117,6 +118,8 @@ import (
 //      |        | |          |     |          |      | Set      | |
 //      |        | +----------+     +----------+      +----------+ |
 //      +--------+-------------------------------------------------+
+
+var errInvalidSetType = errors.New("invalid set type")
 
 // UnmarshalError describes an error while unmarshalling data.
 // It wraps an error returned by the binary.Read function.
@@ -304,34 +307,48 @@ func (s *set) Unmarshal(reader io.Reader) (n int, err error) {
 		return n, err
 	}
 
-	switch {
-	case s.setID == TemplateSetID:
-		for n < int(s.length) {
-			var r templateRecord
-			bytesRead, err := r.Unmarshal(reader)
-			n += bytesRead
+	bytesRead, err := s.unmarshalRecords(reader)
+	n += bytesRead
 
-			if err != nil {
-				return n, err
-			}
-
-			s.records = append(s.records, r)
-		}
-	case s.setID == OptionsTemplateSetID:
-		for n < int(s.length) {
-			var r optionsTemplateRecord
-			bytesRead, err := r.Unmarshal(reader)
-			n += bytesRead
-
-			if err != nil {
-				return n, err
-			}
-
-			s.records = append(s.records, r)
-		}
+	if err != nil {
+		return n, err
 	}
 
 	return n, err
+}
+
+type unmarshallable interface {
+	Unmarshal(reader io.Reader) (n int, err error)
+}
+
+func (s *set) unmarshalRecords(reader io.Reader) (n int, err error) {
+	n = 0
+
+	for binary.Size(s.setID)+binary.Size(s.length)+n < int(s.length) {
+		var record unmarshallable
+
+		switch {
+		case s.setID == TemplateSetID:
+			record = &templateRecord{}
+		case s.setID == OptionsTemplateSetID:
+			record = &optionsTemplateRecord{}
+		}
+
+		if record == nil {
+			return n, errInvalidSetType
+		}
+
+		bytesRead, err := record.Unmarshal(reader)
+		n += bytesRead
+
+		if err != nil {
+			return n, UnmarshalError{err}
+		}
+
+		s.records = append(s.records, &record)
+	}
+
+	return n, nil
 }
 
 // templateRecord contains any combination of InformationElement-s.
