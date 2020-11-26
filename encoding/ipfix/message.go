@@ -1,7 +1,11 @@
 package ipfix
 
 import (
+	"bytes"
+	"encoding/binary"
+	"errors"
 	"fmt"
+	"io"
 	"time"
 )
 
@@ -11,14 +15,14 @@ import (
 //      to a Collector.  Each Template is uniquely identifiable by means
 //      of a Template ID.
 
-// An IPFIX Message is a message that originates at the Exporting
+// An IPFIX Message is a Message that originates at the Exporting
 //      Process and carries the IPFIX records of this Exporting Process,
 //      and whose destination is a Collecting Process.  An IPFIX Message
 //      is encapsulated at the transport layer.
 
 // The Message Header is the first part of an IPFIX Message; the
-//      Message Header provides basic information about the message, such
-//      as the IPFIX version, length of the message, message sequence
+//      Message Header provides basic information about the Message, such
+//      as the IPFIX version, length of the Message, Message sequence
 //      number, etc.
 
 // A Template Record defines the structure and interpretation of
@@ -104,7 +108,7 @@ import (
 //       +--------+----------------------------------------------+
 
 // An IPFIX Message consisting entirely of Template and Options
-//      Template Sets, as shown in Figure E.  Such a message can be used
+//      Template Sets, as shown in Figure E.  Such a Message can be used
 //      to define or redefine Templates and Options Templates in bulk.
 //
 //      +--------+-------------------------------------------------+
@@ -114,6 +118,45 @@ import (
 //      |        | |          |     |          |      | Set      | |
 //      |        | +----------+     +----------+      +----------+ |
 //      +--------+-------------------------------------------------+
+
+var errInvalidSetType = errors.New("invalid set type")
+
+// UnmarshalError describes an error while unmarshalling data.
+// It wraps an error returned by the binary.Read function.
+type UnmarshalError struct {
+	err error
+}
+
+func (e UnmarshalError) Error() string {
+	return fmt.Sprintf("ipfix: unmarshalling error: %v", e.err)
+}
+
+// Unwrap returns the underlying error.
+func (e UnmarshalError) Unwrap() error {
+	return e.err
+}
+
+// unmarshalFields is a helper function that reads BigEndian binary stream into a bunch of fields.
+// In case of an error returns UnmarshalError-wrapped error returned by the binary.Read.
+func unmarshalFields(reader io.Reader, data ...interface{}) (n int, err error) {
+	n = 0
+
+	for _, elem := range data {
+		if err = binary.Read(reader, binary.BigEndian, elem); err != nil {
+			return n, &UnmarshalError{err}
+		}
+
+		elemSize := binary.Size(elem)
+
+		if elemSize < 0 {
+			return n, &UnmarshalError{nil}
+		}
+
+		n += elemSize
+	}
+
+	return n, nil
+}
 
 // fieldSpecifier describes a single data element in a IPFIX record
 // https://tools.ietf.org/html/rfc7011#section-3.2
@@ -149,21 +192,67 @@ func (s *fieldSpecifier) valid() bool {
 	return s.informationElementID < 32768 && s.enterpriseNumber == 0
 }
 
-// message describes a IPFIX message constaing of a header and zero or more sets
+func (s *fieldSpecifier) Unmarshal(reader io.Reader) (n int, err error) {
+	if n, err = unmarshalFields(reader, &s.informationElementID, &s.fieldLength); err != nil {
+		return n, err
+	}
+
+	if s.e() {
+		bytesRead, err := unmarshalFields(reader, &s.enterpriseNumber)
+		n += bytesRead
+
+		if err != nil {
+			return n, err
+		}
+	}
+
+	return n, err
+}
+
+// Message describes a IPFIX Message constaing of a header and zero or more sets
 // https://tools.ietf.org/html/rfc7011#section-3.1
-type message struct {
+type Message struct {
 	version             uint16 // version of the IPFIX, currently 0x000a
 	length              uint16 // total length of IPFIX Message, measured in octets, including the header and Set(s)
-	exportTime          uint32 // time at witch the message left the exporter, in seconds since the UNIX epoch, UTC
+	exportTime          uint32 // time at witch the Message left the exporter, in seconds since the UNIX epoch, UTC
 	sequenceNumber      uint32 // incremental sequence counter modulo 2^32
 	observationDomainID uint32 // a 32-bit identifier of the observation domain, locally unique to the exporting proc.
 	sets                []set
 }
 
-func (h *message) String() string {
-	return fmt.Sprintf("message %v (%v octets, %v, %v, %v) %v",
-		h.version, h.length, time.Unix(int64(h.exportTime), 0).UTC().Format(time.RFC3339),
-		h.sequenceNumber, h.observationDomainID, intDescribed(len(h.sets), "set", "sets"))
+func (m *Message) String() string {
+	return fmt.Sprintf("Message %v (%v octets, %v, %v, %v) %v",
+		m.version, m.length, time.Unix(int64(m.exportTime), 0).UTC().Format(time.RFC3339),
+		m.sequenceNumber, m.observationDomainID, intDescribed(len(m.sets), "set", "sets"))
+}
+
+// Unmarshal unmarshal a IPFIX Message.
+func (m *Message) Unmarshal(reader io.Reader) (n int, err error) {
+	if n, err = unmarshalFields(reader,
+		&m.version, &m.length, &m.exportTime, &m.sequenceNumber, &m.observationDomainID); err != nil {
+		return n, err
+	}
+
+	for n < int(m.length) {
+		var s set
+		bytesRead, err := s.Unmarshal(reader)
+		n += bytesRead
+
+		if err != nil {
+			return n, err
+		}
+
+		m.sets = append(m.sets, s)
+	}
+
+	return n, err
+}
+
+// UnmarshalBinary unmarshal a binary representation of IPFIX Message, implements encoding.BinaryUnmarshaler.
+func (m *Message) UnmarshalBinary(buf []byte) (err error) {
+	_, err = m.Unmarshal(bytes.NewReader(buf))
+
+	return err
 }
 
 // set describes a generic term for a collection of records that have a similar structure.  There are three different
@@ -212,6 +301,56 @@ func (s *set) valid() bool {
 	return (s.setID == 2 || s.setID == 3 || s.setID >= 256) && s.length > 3
 }
 
+// Unmarshal unmarshal a IPFIX Message.
+func (s *set) Unmarshal(reader io.Reader) (n int, err error) {
+	if n, err = unmarshalFields(reader, &s.setID, &s.length); err != nil {
+		return n, err
+	}
+
+	bytesRead, err := s.unmarshalRecords(reader)
+	n += bytesRead
+
+	if err != nil {
+		return n, err
+	}
+
+	return n, err
+}
+
+type unmarshallable interface {
+	Unmarshal(reader io.Reader) (n int, err error)
+}
+
+func (s *set) unmarshalRecords(reader io.Reader) (n int, err error) {
+	n = 0
+
+	for binary.Size(s.setID)+binary.Size(s.length)+n < int(s.length) {
+		var record unmarshallable
+
+		switch {
+		case s.setID == TemplateSetID:
+			record = &templateRecord{}
+		case s.setID == OptionsTemplateSetID:
+			record = &optionsTemplateRecord{}
+		}
+
+		if record == nil {
+			return n, errInvalidSetType
+		}
+
+		bytesRead, err := record.Unmarshal(reader)
+		n += bytesRead
+
+		if err != nil {
+			return n, UnmarshalError{err}
+		}
+
+		s.records = append(s.records, &record)
+	}
+
+	return n, nil
+}
+
 // templateRecord contains any combination of InformationElement-s.
 // https://tools.ietf.org/html/rfc7011#section-3.4.1
 type templateRecord struct {
@@ -230,6 +369,27 @@ func (r *templateRecord) String() string {
 
 func (r *templateRecord) valid() bool {
 	return r.templateID >= 256
+}
+
+// Unmarshal unmarshal a IPFIX templateRecord.
+func (r *templateRecord) Unmarshal(reader io.Reader) (n int, err error) {
+	if n, err = unmarshalFields(reader, &r.templateID, &r.fieldCount); err != nil {
+		return n, err
+	}
+
+	for i := uint16(0); i < r.fieldCount; i++ {
+		var fs fieldSpecifier
+		bytesRead, err := fs.Unmarshal(reader)
+		n += bytesRead
+
+		if err != nil {
+			return n, err
+		}
+
+		r.fieldSpecifiers = append(r.fieldSpecifiers, fs)
+	}
+
+	return n, err
 }
 
 // optionsTemplateRecord provides additional information about the context of the reported InformationElement-s.
@@ -254,9 +414,23 @@ func (r *optionsTemplateRecord) valid() bool {
 	return r.templateID >= 256 && r.scopeFieldCount > 0 && r.scopeFieldCount <= r.fieldCount
 }
 
-// dataRecord consists only of one or more field values, which belong to the template identified by the field setID of
-// the set header, i.e., "Set ID" = "Template ID"
-// https://tools.ietf.org/html/rfc7011#section-3.4.3
-// type dataRecord struct {
-// 	field []interface{}
-// }
+// Unmarshal unmarshal a IPFIX templateRecord.
+func (r *optionsTemplateRecord) Unmarshal(reader io.Reader) (n int, err error) {
+	if n, err = unmarshalFields(reader, &r.templateID, &r.fieldCount, &r.scopeFieldCount); err != nil {
+		return n, err
+	}
+
+	for i := uint16(0); i < r.fieldCount; i++ {
+		var fs fieldSpecifier
+		bytesRead, err := fs.Unmarshal(reader)
+		n += bytesRead
+
+		if err != nil {
+			return n, err
+		}
+
+		r.fieldSpecifiers = append(r.fieldSpecifiers, fs)
+	}
+
+	return n, err
+}

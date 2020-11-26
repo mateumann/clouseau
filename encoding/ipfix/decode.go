@@ -14,7 +14,7 @@ type decoder struct {
 	// r                io.Reader
 	// buf              []byte // leftover input
 	buf []byte // leftover decoded output
-	// messages         []message
+	// messages         []Message
 	// data             []*dataRecord
 	// templates        []*templateRecord
 	// optionsTemplates []*optionsTemplateRecord
@@ -35,13 +35,13 @@ func (e CorruptInputError) Unwrap() error {
 	return e.err
 }
 
-// Write decodes a IPFIX message(s) from p buffer (implements a io.Writer interface).
+// Write decodes a IPFIX Message(s) from p buffer (implements a io.Writer interface).
 func (d *decoder) Write(p []byte) (n int, err error) {
 	if d.err != nil {
 		return 0, d.err
 	}
 
-	var m message
+	var m Message
 
 	var nn int
 

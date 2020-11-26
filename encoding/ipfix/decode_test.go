@@ -208,16 +208,16 @@ func TestDecoder_Write_WholeMessageHeaders(t *testing.T) {
 	tests := []struct {
 		name string
 		arg  []byte
-		want message
+		want Message
 		err  error
 	}{
 		{
-			name: "Decoder Write read a message header",
+			name: "Decoder Write read a Message header",
 			arg: []byte{
 				0x00, 0x0a, 0x01, 0x28, 0x5e, 0xe7, 0x15, 0xb1,
 				0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 			},
-			want: message{
+			want: Message{
 				version: 10,
 				length:  296,
 				exportTime: uint32(time.Date(2020, 6, 15,
@@ -236,7 +236,7 @@ func TestDecoder_Write_WholeMessageHeaders(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := decoder.Write(tt.arg)
 			if got != 16 {
-				t.Errorf("%v read not exactly message header length bytes", tt.name)
+				t.Errorf("%v read not exactly Message header length bytes", tt.name)
 			}
 			if !errors.Is(err, tt.err) {
 				t.Errorf("%v error %v, want %v", tt.name, err, tt.err)
