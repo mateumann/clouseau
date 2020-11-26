@@ -148,9 +148,10 @@ func unmarshalFields(reader io.Reader, data ...interface{}) (n int, err error) {
 
 		elemSize := binary.Size(elem)
 
-		if elemSize < 0 {
-			return n, &UnmarshalError{nil}
-		}
+		// This will never happen because there is no such type that is "readable" but its size is not determined
+		// if elemSize < 0 {
+		// 	return n, &UnmarshalError{NotReadableError{reflect.TypeOf(elem)}}
+		// }
 
 		n += elemSize
 	}
