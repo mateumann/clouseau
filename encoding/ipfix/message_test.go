@@ -162,6 +162,56 @@ func TestFieldSpecifier_invalid(t *testing.T) {
 	}
 }
 
+func TestFieldSpecifier_Unmarshal(t *testing.T) {
+	tests := []struct {
+		name string
+		arg  []byte
+		want fieldSpecifier
+		n    int
+		err  error
+	}{
+		{
+			name: "FieldSpecifier Simple",
+			arg:  []byte{0x00, 0x42, 0x00, 0x01},
+			want: fieldSpecifier{66, 1, 0},
+			n:    4,
+			err:  nil,
+		},
+		{
+			name: "FieldSpecifier Enterprise Number",
+			arg:  []byte{0xF0, 0x42, 0x00, 0x01, 0x00, 0x00, 0x01, 0x00},
+			want: fieldSpecifier{61506, 1, 256},
+			n:    8,
+			err:  nil,
+		},
+		{
+			name: "FieldSpecifier EOF",
+			arg:  []byte{0xF0, 0x42, 0x00, 0x01, 0x00, 0x00, 0x01},
+			want: fieldSpecifier{61506, 1, 0},
+			n:    4,
+			err:  io.ErrUnexpectedEOF,
+		},
+	}
+	for _, tt := range tests {
+		tt := tt // pin
+
+		var s fieldSpecifier
+
+		t.Run(tt.name, func(t *testing.T) {
+			n, err := s.Unmarshal(bytes.NewReader(tt.arg))
+			if !errors.Is(err, tt.err) {
+				t.Errorf("%v got error %v, want %v", tt.name, err, tt.err)
+			}
+			if n != tt.n {
+				t.Errorf("%v read bytes %v, want %v", tt.name, n, tt.n)
+			}
+			if s != tt.want {
+				t.Errorf("%v got %v, want %v", tt.name, s, tt.want)
+			}
+		})
+	}
+}
+
 func TestMessage_String(t *testing.T) {
 	tests := []struct {
 		name string
@@ -222,7 +272,7 @@ func TestMessage_StringRand(t *testing.T) {
 	}
 }
 
-func TestMessage_UnmarshalBinary(t *testing.T) {
+func TestMessage_Unmarshal(t *testing.T) {
 	tests := []struct {
 		name string
 		arg  []byte
@@ -230,24 +280,25 @@ func TestMessage_UnmarshalBinary(t *testing.T) {
 		err  error
 	}{
 		{
-			name: "A valid Message header",
-			arg: []byte{
-				0x00, 0x0a, 0x00, 0x10, 0x5e, 0xe7, 0x15, 0xb1, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-			},
-			want: Message{
-				0x000a, 16, 0x5ee715b1, 0, 0, nil,
-			},
-			err: nil,
+			name: "A valid Message with no sets",
+			arg:  []byte{0x00, 0x0a, 0x00, 0x10, 0x5e, 0xe7, 0x15, 0xb1, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+			want: Message{0x000a, 16, 0x5ee715b1, 0, 0, nil},
+			err:  nil,
 		},
 		{
-			name: "An invalid Message header (unexpected EOF)",
+			name: "An invalid Message (unexpected EOF inside a template set)",
 			arg: []byte{
-				0x00, 0x0a, 0x01, 0x28, 0x5e, 0xe7,
+				0x00, 0x0a, 0x01, 0x28, 0x5e, 0xe7, 0x15, 0xb1, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+				0x00, 0x02, 0x00, 0x08, 0x02, 0x02, 0x00, 0x05, 0x0f,
 			},
-			want: Message{
-				0x000a, 296, 0, 0, 0, nil,
-			},
-			err: io.ErrUnexpectedEOF,
+			want: Message{10, 296, 0x5ee715b1, 0, 0, nil},
+			err:  io.ErrUnexpectedEOF,
+		},
+		{
+			name: "An invalid Message (unexpected EOF in message header)",
+			arg:  []byte{0x00, 0x0a, 0x01, 0x28, 0x5e, 0xe7, 0x15, 0xb1, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+			want: Message{10, 296, 0x5ee715b1, 0, 0, nil},
+			err:  io.ErrUnexpectedEOF,
 		},
 	}
 	for _, tt := range tests {
@@ -257,7 +308,7 @@ func TestMessage_UnmarshalBinary(t *testing.T) {
 
 		t.Run(tt.name, func(t *testing.T) {
 			if err := m.UnmarshalBinary(tt.arg); !errors.Is(err, tt.err) {
-				t.Errorf("%v got error %v, want %v", tt.name, err, tt.err)
+				t.Errorf("%v got error %v (%T), want %v", tt.name, err, err, tt.err)
 			}
 			if m.version != tt.want.version ||
 				m.length != tt.want.length ||
@@ -433,6 +484,55 @@ func TestSet_String(t *testing.T) {
 	}
 }
 
+func TestSet_Unmarshal(t *testing.T) {
+	tests := []struct {
+		name string
+		arg  []byte
+		want set
+		n    int
+		err  error
+	}{
+		{
+			name: "Set #3 with one optionTemplateSet",
+			arg:  []byte{0x00, 0x03, 0x00, 0x0e, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x0e, 0x00, 0x01},
+			want: set{3, 14, []interface{}{
+				optionsTemplateRecord{1, 1, 1, []fieldSpecifier{{
+					14, 1, 0,
+				}}},
+			}},
+			n:   14,
+			err: nil,
+		},
+		{
+			name: "Set #4 (invalid set type)",
+			arg:  []byte{0x00, 0x04, 0x00, 0x0e, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x0e, 0x00, 0x01},
+			want: set{4, 14, nil},
+			n:    4,
+			err:  errInvalidSetType,
+		},
+	}
+	for _, tt := range tests {
+		tt := tt // pin
+
+		var s set
+
+		t.Run(tt.name, func(t *testing.T) {
+			n, err := s.Unmarshal(bytes.NewReader(tt.arg))
+			if !errors.Is(err, tt.err) {
+				t.Errorf("%v got error %v, want %v", tt.name, err, tt.err)
+			}
+			if n != tt.n {
+				t.Errorf("%v read bytes %v, want %v", tt.name, n, tt.n)
+			}
+			if s.setID != tt.want.setID ||
+				s.length != tt.want.length ||
+				len(s.records) != len(tt.want.records) {
+				t.Errorf("%v got %v, want %v", tt.name, s, tt.want)
+			}
+		})
+	}
+}
+
 func TestTemplateRecord_String(t *testing.T) {
 	tests := []struct {
 		name string
@@ -581,31 +681,32 @@ func TestOptionsTemplateRecord_Unmarshal(t *testing.T) {
 		err  error
 	}{
 		{
-			name: "Options Template Record #261 with 5 field specifiers and 2 scope fields",
-			arg:  []byte{0x01, 0x05, 0x00, 0x05, 0x00, 0x02},
-			want: optionsTemplateRecord{
-				261, 5, 2, nil,
+			name: "Options Template Record #261 with 3 field specifiers and 2 scope fields",
+			arg: []byte{
+				0x01, 0x05, 0x00, 0x03, 0x00, 0x02, 0xF0, 0xF1, 0x00, 0x01, 0x12, 0x34, 0x56, 0x78, 0xF0, 0xF2,
+				0x00, 0x0F, 0x12, 0x34, 0x56, 0x79, 0xF0, 0xF3, 0x00, 0x40, 0x12, 0x34, 0x56, 0x78,
 			},
-			n:   6,
-			err: io.EOF,
+			want: optionsTemplateRecord{261, 3, 2, []fieldSpecifier{
+				{61681, 1, 305419896},
+				{61682, 15, 305419897},
+				{61683, 64, 305419896},
+			}},
+			n:   30,
+			err: nil,
 		},
 		{
 			name: "Template Record #262 with 2 field specifiers and 3 scope fields",
 			arg:  []byte{0x01, 0x06, 0x00, 0x02, 0x00, 0x03},
-			want: optionsTemplateRecord{
-				262, 2, 3, nil,
-			},
-			n:   6,
-			err: io.EOF,
+			want: optionsTemplateRecord{262, 2, 3, nil},
+			n:    6,
+			err:  io.EOF,
 		},
 		{
 			name: "An invalid Template Record (unexpected EOF)",
 			arg:  []byte{0x01, 0x07, 0x00, 0x00, 0xff},
-			want: optionsTemplateRecord{
-				263, 0, 0, nil,
-			},
-			n:   4,
-			err: io.ErrUnexpectedEOF,
+			want: optionsTemplateRecord{263, 0, 0, nil},
+			n:    4,
+			err:  io.ErrUnexpectedEOF,
 		},
 	}
 	for _, tt := range tests {

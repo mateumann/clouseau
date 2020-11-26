@@ -392,13 +392,6 @@ func (r *templateRecord) Unmarshal(reader io.Reader) (n int, err error) {
 	return n, err
 }
 
-// UnmarshalBinary unmarshal a binary representation of IPFIX templateRecord, implements encoding.BinaryUnmarshaler.
-func (r *templateRecord) UnmarshalBinary(buf []byte) error {
-	_, err := r.Unmarshal(bytes.NewReader(buf))
-
-	return err
-}
-
 // optionsTemplateRecord provides additional information about the context of the reported InformationElement-s.
 // https://tools.ietf.org/html/rfc7011#section-3.4.2
 type optionsTemplateRecord struct {
@@ -441,18 +434,3 @@ func (r *optionsTemplateRecord) Unmarshal(reader io.Reader) (n int, err error) {
 
 	return n, err
 }
-
-// UnmarshalBinary unmarshal a binary representation of IPFIX optionsTemplateRecord, implements
-// encoding.BinaryUnmarshaler.
-func (r *optionsTemplateRecord) UnmarshalBinary(buf []byte) error {
-	_, err := r.Unmarshal(bytes.NewReader(buf))
-
-	return err
-}
-
-// dataRecord consists only of one or more field values, which belong to the template identified by the field setID of
-// the set header, i.e., "Set ID" = "Template ID"
-// https://tools.ietf.org/html/rfc7011#section-3.4.3
-// type dataRecord struct {
-// 	field []interface{}
-// }
