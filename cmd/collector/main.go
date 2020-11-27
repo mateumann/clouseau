@@ -18,7 +18,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	defer ipfix.CloseCollector(conn)
+	defer conn.Close()
 
 	fmt.Printf("Server listening %v\n", conn.LocalAddr())
 }

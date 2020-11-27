@@ -20,7 +20,10 @@ func TestCollector_Start_Close(t *testing.T) {
 		t.Error("invalid connection address")
 	}
 
-	CloseCollector(conn)
+	err = conn.Close()
+	if err != nil {
+		t.Errorf("unable to close UDP connection: %v", err)
+	}
 
 	err = conn.Close()
 
