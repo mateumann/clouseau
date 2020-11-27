@@ -3,23 +3,22 @@ package main
 import (
 	"fmt"
 	"log"
-	"net"
+
+	"github.com/mateumann/clouseau/net/ipfix"
 )
 
 const (
+	ipfixIP   = "0.0.0.0"
 	ipfixPort = 4739
 )
 
 func main() {
-	conn, err := net.ListenUDP("udp", &net.UDPAddr{
-		Port: ipfixPort,
-		IP:   net.ParseIP("0.0.0.0"),
-	})
+	conn, err := ipfix.StartCollector(ipfixIP, ipfixPort)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	defer conn.Close()
+	defer ipfix.CloseCollector(conn)
 
-	fmt.Printf("Server listening %s\n", conn.LocalAddr().String())
+	fmt.Printf("Server listening %v\n", conn.LocalAddr())
 }
