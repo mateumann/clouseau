@@ -26,8 +26,7 @@ func main() {
 
 	for {
 		buf := make([]byte, bufferSize)
-		_, remote, err := conn.ReadFromUDP(buf)
-		if err != nil {
+		if _, _, err := conn.ReadFromUDP(buf); err != nil {
 			log.Fatal(err) //nolint:gocritic
 		}
 
@@ -38,6 +37,6 @@ func main() {
 			log.Print(fmt.Sprintf("%v\n", err)) //nolint:gocritic
 		}
 
-		fmt.Printf("%v:%v\t%s\n", remote.IP, remote.Port, message.String())
+		fmt.Printf("%s\n", message.String())
 	}
 }

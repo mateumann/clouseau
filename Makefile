@@ -24,8 +24,8 @@ fmt-encoding:
 
 .PHONY: fmt-net
 fmt-net:
-	gofumpt -s -w net/ipfix/*.go
-	gofumports -w net/ipfix/*.go
+	gofumpt -s -w net/*.go
+	gofumports -w net/*.go
 
 .PHONY: lint
 lint:
@@ -42,15 +42,15 @@ test-encoding:
 
 .PHONY: test-net
 test-net:
-	echo -n '' > ./net/ipfix/coverage.txt
-	go test -coverprofile=./net/ipfix/coverage.txt -covermode=atomic ./net/ipfix/
+	echo -n '' > ./net/coverage.txt
+	go test -coverprofile=./net/coverage.txt -covermode=atomic ./net/
 
 .PHONY: create-coverage-report
 create-coverage-report:
 	cat encoding/ipfix/coverage.txt >> coverage.txt
-	cat net/ipfix/coverage.txt >> coverage.txt
+	cat net/coverage.txt >> coverage.txt
 	rm encoding/ipfix/coverage.txt
-	rm net/ipfix/coverage.txt
+	rm net/coverage.txt
 
 .PHONY: build
 build: build-collector
