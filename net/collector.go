@@ -1,4 +1,4 @@
-package ipfix
+package net
 
 import (
 	"net"
