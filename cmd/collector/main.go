@@ -35,9 +35,9 @@ func main() {
 
 		err = message.UnmarshalBinary(buf)
 		if err != nil {
-			log.Fatal(err) //nolint:gocritic
+			log.Print(fmt.Sprintf("%v\n", err)) //nolint:gocritic
 		}
 
-		fmt.Printf("%v:%v\t%v", remote.IP, remote.Port, message)
+		fmt.Printf("%v:%v\t%s\n", remote.IP, remote.Port, message.String())
 	}
 }

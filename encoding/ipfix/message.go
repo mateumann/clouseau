@@ -222,9 +222,19 @@ type Message struct {
 }
 
 func (m *Message) String() string {
-	return fmt.Sprintf("Message %v (%v octets, %v, %v, %v) %v",
-		m.version, m.length, time.Unix(int64(m.exportTime), 0).UTC().Format(time.RFC3339),
-		m.sequenceNumber, m.observationDomainID, intDescribed(len(m.sets), "set", "sets"))
+	if len(m.sets) > 0 {
+		s := fmt.Sprintf("Message %v (%v octets, %v, %v, %v) %v",
+			m.version, m.length, time.Unix(int64(m.exportTime), 0).UTC().Format(time.RFC3339),
+			m.sequenceNumber, m.observationDomainID, intDescribed(len(m.sets), "set", "sets"))
+		for _, set := range m.sets {
+			s += fmt.Sprintf("\n  %v", set)
+		}
+		return s
+	} else {
+		return fmt.Sprintf("Message %v (%v octets, %v, %v, %v) %v",
+			m.version, m.length, time.Unix(int64(m.exportTime), 0).UTC().Format(time.RFC3339),
+			m.sequenceNumber, m.observationDomainID, intDescribed(len(m.sets), "set", "sets"))
+	}
 }
 
 // Unmarshal unmarshal a IPFIX Message.
