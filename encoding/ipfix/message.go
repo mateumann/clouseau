@@ -227,7 +227,7 @@ func (m *Message) String() string {
 			m.version, m.length, time.Unix(int64(m.exportTime), 0).UTC().Format(time.RFC3339),
 			m.sequenceNumber, m.observationDomainID, intDescribed(len(m.sets), "set", "sets"))
 		for _, set := range m.sets {
-			s += fmt.Sprintf("\n\t\t  %v", set.String())
+			s += fmt.Sprintf("\n\t\t\t  %v", set.String())
 		}
 		return s
 	} else {
