@@ -6,19 +6,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 )
 
-// decoder represents IPFIX flow already received by the collecting process.
-type decoder struct {
-	err error
-	// r                io.Reader
-	// buf              []byte // leftover input
-	buf []byte // leftover decoded output
-	// messages         []Message
-	// data             []*dataRecord
-	// templates        []*templateRecord
-	// optionsTemplates []*optionsTemplateRecord
-}
+const (
+	NoSpecificObservationDomainID = 0
+	initialDecoderBufSize         = 2048
+)
 
 // CorruptInputError describes an error in input data.
 type CorruptInputError struct {
@@ -35,8 +29,31 @@ func (e CorruptInputError) Unwrap() error {
 	return e.err
 }
 
+// Decoder represents IPFIX flow already received by the collecting process.
+type Decoder struct {
+	source              net.UDPAddr
+	observationDomainID uint32
+	err                 error
+	buf                 []byte // leftover decoded output
+	// r                io.Reader
+	// messages         []Message
+	// data             []*dataRecord
+	// templates        []*templateRecord
+	// optionsTemplates []*optionsTemplateRecord
+}
+
+func NewDecoder(s net.UDPAddr) *Decoder {
+	d := Decoder{
+		source:              s,
+		observationDomainID: NoSpecificObservationDomainID,
+		buf:                 make([]byte, initialDecoderBufSize),
+	}
+
+	return &d
+}
+
 // Write decodes a IPFIX Message(s) from p buffer (implements a io.Writer interface).
-func (d *decoder) Write(p []byte) (n int, err error) {
+func (d *Decoder) Write(p []byte) (n int, err error) {
 	if d.err != nil {
 		return 0, d.err
 	}
@@ -72,7 +89,7 @@ func (d *decoder) Write(p []byte) (n int, err error) {
 	return n, nil
 }
 
-func (d *decoder) fetchElements(r io.Reader, data ...interface{}) (n int, err error) {
+func (d *Decoder) fetchElements(r io.Reader, data ...interface{}) (n int, err error) {
 	n = 0
 
 	for _, elem := range data {
