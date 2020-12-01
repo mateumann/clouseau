@@ -5,7 +5,7 @@ import (
 	"log"
 
 	"github.com/mateumann/clouseau/encoding/ipfix"
-	"github.com/mateumann/clouseau/net"
+	"github.com/mateumann/clouseau/net/collector"
 )
 
 const (
@@ -15,7 +15,7 @@ const (
 )
 
 func main() {
-	conn, err := net.StartCollector(ipfixIP, ipfixPort)
+	conn, err := collector.StartCollector(ipfixIP, ipfixPort)
 	if err != nil {
 		log.Fatal(err)
 	}
