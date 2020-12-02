@@ -2,7 +2,6 @@ package ipfix
 
 import (
 	"bytes"
-	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
@@ -47,25 +46,16 @@ type Decoder struct {
 
 // NewDecoder initializes a Decoder with provided source (net.UDPAddr) and default values of other parameters.
 func NewDecoder(s net.UDPAddr) *Decoder {
-	d := Decoder{
-		source:              s,
-		observationDomainID: NoSpecificObservationDomainID,
-		err:                 nil,
-		buf:                 make([]byte, initialDecoderBufSize),
-	}
-
-	return &d
+	return &Decoder{s, NoSpecificObservationDomainID, nil, make([]byte, initialDecoderBufSize)}
 }
 
-// Write decodes a IPFIX Message(s) from p buffer (implements a io.Writer interface).
-func (d *Decoder) Write(p []byte) (n int, err error) {
+// Read decodes a IPFIX Message(s) from p buffer.
+func (d *Decoder) Read(p []byte) (n int, err error) {
 	if d.err != nil {
 		return 0, d.err
 	}
 
 	var m Message
-
-	var nn int
 
 	n = 0
 
@@ -78,8 +68,10 @@ func (d *Decoder) Write(p []byte) (n int, err error) {
 
 	r := bytes.NewReader(d.buf)
 
-	if nn, err = d.fetchElements(r,
-		&m.version, &m.length, &m.exportTime, &m.sequenceNumber, &m.observationDomainID); err != nil {
+	nn, err := m.Unmarshal(r)
+	d.buf = d.buf[nn:]
+
+	if err != nil {
 		if errors.Is(errors.Unwrap(err), io.EOF) {
 			return n + nn, nil
 		}
@@ -90,22 +82,6 @@ func (d *Decoder) Write(p []byte) (n int, err error) {
 	}
 
 	n += nn
-
-	return n, nil
-}
-
-func (d *Decoder) fetchElements(r io.Reader, data ...interface{}) (n int, err error) {
-	n = 0
-
-	for _, elem := range data {
-		if err := binary.Read(r, binary.BigEndian, elem); err != nil {
-			return n, CorruptInputError{n + 1, err}
-		}
-
-		nn := binary.Size(elem)
-		d.buf = d.buf[nn:]
-		n += nn
-	}
 
 	return n, nil
 }

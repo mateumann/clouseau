@@ -97,7 +97,7 @@ func TestNewDecoder(t *testing.T) {
 	}
 }
 
-func TestDecoder_Write_FewBytes(t *testing.T) {
+func TestDecoder_Read_FewBytes(t *testing.T) {
 	tests := []struct {
 		name string
 		arg  []byte
@@ -105,25 +105,25 @@ func TestDecoder_Write_FewBytes(t *testing.T) {
 		err  error
 	}{
 		{
-			name: "Decoder Write an empty buffer",
+			name: "Decoder Read an empty buffer",
 			arg:  []byte{},
 			want: 0,
 			err:  nil,
 		},
 		{
-			name: "Decoder Write 1-byte buffer",
+			name: "Decoder Read 1-byte buffer",
 			arg:  []byte{0x00},
 			want: 0,
 			err:  CorruptInputError{0, io.ErrUnexpectedEOF},
 		},
 		{
-			name: "Decoder Write 3-byte buffer",
+			name: "Decoder Read 3-byte buffer",
 			arg:  []byte{0x00, 0x0a, 0x01},
 			want: 2,
 			err:  CorruptInputError{2, io.ErrUnexpectedEOF},
 		},
 		{
-			name: "Decoder Write 8-byte buffer",
+			name: "Decoder Read 8-byte buffer",
 			arg:  []byte{0x00, 0x0a, 0x01, 0x28, 0x5e, 0xe7, 0x16, 0x26},
 			want: 8,
 			err:  nil,
@@ -134,7 +134,7 @@ func TestDecoder_Write_FewBytes(t *testing.T) {
 		decoder := Decoder{}
 
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := decoder.Write(tt.arg)
+			got, err := decoder.Read(tt.arg)
 			if got != tt.want {
 				t.Errorf("%v = %v, want %v", tt.name, got, tt.want)
 			}
@@ -145,7 +145,7 @@ func TestDecoder_Write_FewBytes(t *testing.T) {
 	}
 }
 
-func TestDecoder_Write_Buffer(t *testing.T) {
+func TestDecoder_Read_Buffer(t *testing.T) {
 	tests := []struct {
 		name             string
 		arg              []byte
@@ -155,7 +155,7 @@ func TestDecoder_Write_Buffer(t *testing.T) {
 		err              error
 	}{
 		{
-			name:             "Decoder Write an empty buffer, 2-byte Decoder.buf",
+			name:             "Decoder Read an empty buffer, 2-byte Decoder.buf",
 			arg:              []byte{},
 			decoderBufBefore: []byte{0x00, 0x0a},
 			decoderBufAfter:  []byte{},
@@ -163,7 +163,7 @@ func TestDecoder_Write_Buffer(t *testing.T) {
 			err:              nil,
 		},
 		{
-			name:             "Decoder Write 3-byte buffer, 1-byte Decoder.buf",
+			name:             "Decoder Read 3-byte buffer, 1-byte Decoder.buf",
 			arg:              []byte{0x0a, 0x01, 0x28},
 			decoderBufBefore: []byte{0x00},
 			decoderBufAfter:  []byte{},
@@ -171,12 +171,20 @@ func TestDecoder_Write_Buffer(t *testing.T) {
 			err:              nil,
 		},
 		{
-			name:             "Decoder Write 3-byte buffer, 3-byte Decoder.buf",
+			name:             "Decoder Read 3-byte buffer, 3-byte Decoder.buf",
 			arg:              []byte{0x28, 0x5e, 0xe7},
 			decoderBufBefore: []byte{0x00, 0x0a, 0x01},
 			decoderBufAfter:  []byte{0x5e, 0xe7},
 			want:             4,
 			err:              CorruptInputError{4, io.ErrUnexpectedEOF},
+		},
+		{
+			name:             "Decoder Read Message header from 8-byte buffer and 8-byte Decoder.buf",
+			arg:              []byte{0x00, 0x0a, 0x00, 0x10, 0x5e, 0xe7, 0x15, 0xb1},
+			decoderBufBefore: []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+			decoderBufAfter:  []byte{},
+			want:             16,
+			err:              nil,
 		},
 	}
 	for _, tt := range tests {
@@ -184,12 +192,12 @@ func TestDecoder_Write_Buffer(t *testing.T) {
 		decoder := Decoder{buf: tt.decoderBufBefore}
 
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := decoder.Write(tt.arg)
+			got, err := decoder.Read(tt.arg)
 			if got != tt.want {
 				t.Errorf("%v = %v, want %v", tt.name, got, tt.want)
 			}
 			if !bytes.Equal(decoder.buf, tt.decoderBufAfter) {
-				t.Errorf("%v Decoder's buf afger %v, want %v", tt.name, decoder.buf, tt.decoderBufAfter)
+				t.Errorf("%v Decoder's buf after %v, want %v", tt.name, decoder.buf, tt.decoderBufAfter)
 			}
 			if !errors.Is(err, tt.err) {
 				t.Errorf("%v error %v, want %v", tt.name, err, tt.err)
@@ -198,7 +206,7 @@ func TestDecoder_Write_Buffer(t *testing.T) {
 	}
 }
 
-func TestDecoder_Write_WithError(t *testing.T) {
+func TestDecoder_Read_WithError(t *testing.T) {
 	tests := []struct {
 		name       string
 		arg        []byte
@@ -207,14 +215,14 @@ func TestDecoder_Write_WithError(t *testing.T) {
 		err        error
 	}{
 		{
-			name:       "Decoder Write with nil Decoder.err",
+			name:       "Decoder Read with nil Decoder.err",
 			arg:        []byte{0x00, 0x0a},
 			decoderErr: nil,
 			want:       2,
 			err:        nil,
 		},
 		{
-			name:       "Decoder Write with non-nil Decoder.err",
+			name:       "Decoder Read with non-nil Decoder.err",
 			arg:        []byte{0x00, 0x0a, 0x01, 0x28},
 			decoderErr: CorruptInputError{0, nil},
 			want:       0,
@@ -226,7 +234,7 @@ func TestDecoder_Write_WithError(t *testing.T) {
 		decoder := Decoder{err: tt.decoderErr}
 
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := decoder.Write(tt.arg)
+			got, err := decoder.Read(tt.arg)
 			if got != tt.want {
 				t.Errorf("%v = %v, want %v", tt.name, got, tt.want)
 			}
@@ -237,7 +245,7 @@ func TestDecoder_Write_WithError(t *testing.T) {
 	}
 }
 
-func TestDecoder_Write_WholeMessageHeaders(t *testing.T) {
+func TestDecoder_Read_WholeMessageHeaders(t *testing.T) {
 	tests := []struct {
 		name string
 		arg  []byte
@@ -245,7 +253,7 @@ func TestDecoder_Write_WholeMessageHeaders(t *testing.T) {
 		err  error
 	}{
 		{
-			name: "Decoder Write read a Message header",
+			name: "Decoder Read read a Message header",
 			arg: []byte{
 				0x00, 0x0a, 0x01, 0x28, 0x5e, 0xe7, 0x15, 0xb1,
 				0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -267,7 +275,7 @@ func TestDecoder_Write_WholeMessageHeaders(t *testing.T) {
 		decoder := Decoder{}
 
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := decoder.Write(tt.arg)
+			got, err := decoder.Read(tt.arg)
 			if got != 16 {
 				t.Errorf("%v read not exactly Message header length bytes", tt.name)
 			}

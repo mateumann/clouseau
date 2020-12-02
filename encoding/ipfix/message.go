@@ -159,7 +159,7 @@ func unmarshalFields(reader io.Reader, data ...interface{}) (n int, err error) {
 	return n, nil
 }
 
-// fieldSpecifier describes a single data element in a IPFIX record
+// fieldSpecifier describes a single data element in a IPFIX record.
 // https://tools.ietf.org/html/rfc7011#section-3.2
 type fieldSpecifier struct {
 	informationElementID uint16
@@ -210,7 +210,7 @@ func (s *fieldSpecifier) Unmarshal(reader io.Reader) (n int, err error) {
 	return n, err
 }
 
-// Message describes a IPFIX Message constaing of a header and zero or more sets
+// Message describes a IPFIX Message constaing of a header and zero or more sets.
 // https://tools.ietf.org/html/rfc7011#section-3.1
 type Message struct {
 	version             uint16 // version of the IPFIX, currently 0x000a
