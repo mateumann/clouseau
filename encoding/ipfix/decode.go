@@ -10,6 +10,9 @@ import (
 )
 
 const (
+	// NoSpecificObservationDomainID represents no specific observation domain id relevant for the entire IPFIX Message
+	// e.g. when exporting the Exporting Process Statistics, or in the case of a hierarchy of Collectors when
+	// aggregated Data Records are exported.
 	NoSpecificObservationDomainID = 0
 	initialDecoderBufSize         = 2048
 )
@@ -42,10 +45,12 @@ type Decoder struct {
 	// optionsTemplates []*optionsTemplateRecord
 }
 
+// NewDecoder initializes a Decoder with provided source (net.UDPAddr) and default values of other parameters.
 func NewDecoder(s net.UDPAddr) *Decoder {
 	d := Decoder{
 		source:              s,
 		observationDomainID: NoSpecificObservationDomainID,
+		err:                 nil,
 		buf:                 make([]byte, initialDecoderBufSize),
 	}
 
