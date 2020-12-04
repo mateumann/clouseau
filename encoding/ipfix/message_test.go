@@ -301,13 +301,16 @@ func TestMessage_Unmarshal(t *testing.T) {
 			err:  io.ErrUnexpectedEOF,
 		},
 	}
+
+	var templates []*templateRecord
+
 	for _, tt := range tests {
 		tt := tt // pin
 
 		var m Message
 
 		t.Run(tt.name, func(t *testing.T) {
-			if err := m.UnmarshalBinary(tt.arg); !errors.Is(err, tt.err) {
+			if _, err := m.Unmarshal(bytes.NewReader(tt.arg), templates); !errors.Is(err, tt.err) {
 				t.Errorf("%v got error %v (%T), want %v", tt.name, err, err, tt.err)
 			}
 			if m.version != tt.want.version ||
@@ -357,13 +360,16 @@ func TestMessage_Unmarshal_OneSet(t *testing.T) {
 			err: io.ErrUnexpectedEOF,
 		},
 	}
+
+	var templates []*templateRecord
+
 	for _, tt := range tests {
 		tt := tt // pin
 
 		var m Message
 
 		t.Run(tt.name, func(t *testing.T) {
-			n, err := m.Unmarshal(bytes.NewReader(tt.arg))
+			n, err := m.Unmarshal(bytes.NewReader(tt.arg), templates)
 			if !errors.Is(err, tt.err) {
 				t.Errorf("%v got error %v, want %v", tt.name, err, tt.err)
 			}
@@ -411,7 +417,9 @@ func TestMessage_UnmarshalDataTemplate(t *testing.T) {
 
 	var m Message
 
-	n, err := m.Unmarshal(bytes.NewReader(arg))
+	var templates []*templateRecord
+
+	n, err := m.Unmarshal(bytes.NewReader(arg), templates)
 
 	if !errors.Is(err, nil) {
 		t.Errorf("Unmarshal data template got error %v, want %v", err, nil)
@@ -511,13 +519,16 @@ func TestSet_Unmarshal(t *testing.T) {
 			err:  errInvalidSetType,
 		},
 	}
+
+	var templates []*templateRecord
+
 	for _, tt := range tests {
 		tt := tt // pin
 
 		var s set
 
 		t.Run(tt.name, func(t *testing.T) {
-			n, err := s.Unmarshal(bytes.NewReader(tt.arg))
+			n, err := s.Unmarshal(bytes.NewReader(tt.arg), templates)
 			if !errors.Is(err, tt.err) {
 				t.Errorf("%v got error %v, want %v", tt.name, err, tt.err)
 			}
@@ -611,7 +622,7 @@ func TestTemplateRecord_Unmarshal(t *testing.T) {
 		var r templateRecord
 
 		t.Run(tt.name, func(t *testing.T) {
-			n, err := r.Unmarshal(bytes.NewReader(tt.arg))
+			n, err := r.Unmarshal(bytes.NewReader(tt.arg), nil)
 			if !errors.Is(err, tt.err) {
 				t.Errorf("%v got error %v, want %v", tt.name, err, tt.err)
 			}
@@ -715,7 +726,7 @@ func TestOptionsTemplateRecord_Unmarshal(t *testing.T) {
 		var r optionsTemplateRecord
 
 		t.Run(tt.name, func(t *testing.T) {
-			n, err := r.Unmarshal(bytes.NewReader(tt.arg))
+			n, err := r.Unmarshal(bytes.NewReader(tt.arg), nil)
 			if !errors.Is(err, tt.err) {
 				t.Errorf("%v got error %v, want %v", tt.name, err, tt.err)
 			}

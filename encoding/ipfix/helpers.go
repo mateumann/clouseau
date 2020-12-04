@@ -10,6 +10,6 @@ func intDescribed(n int, singular string, plural string) string {
 	return fmt.Sprintf("%v %v", n, plural)
 }
 
-func uint16Described(n uint16, singular string, plural string) string {
-	return intDescribed(int(n), singular, plural)
+func fieldDescribed(n uint16) string {
+	return intDescribed(int(n), "field", "fields")
 }

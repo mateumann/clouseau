@@ -1,7 +1,6 @@
 package ipfix
 
 import (
-	"bytes"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -228,7 +227,7 @@ func (m *Message) String() string {
 }
 
 // Unmarshal unmarshal a IPFIX Message.
-func (m *Message) Unmarshal(reader io.Reader) (n int, err error) {
+func (m *Message) Unmarshal(reader io.Reader, templates []*templateRecord) (n int, err error) {
 	if n, err = unmarshalFields(reader,
 		&m.version, &m.length, &m.exportTime, &m.sequenceNumber, &m.observationDomainID); err != nil {
 		return n, err
@@ -236,7 +235,7 @@ func (m *Message) Unmarshal(reader io.Reader) (n int, err error) {
 
 	for n < int(m.length) {
 		var s set
-		bytesRead, err := s.Unmarshal(reader)
+		bytesRead, err := s.Unmarshal(reader, templates)
 		n += bytesRead
 
 		if err != nil {
@@ -247,13 +246,6 @@ func (m *Message) Unmarshal(reader io.Reader) (n int, err error) {
 	}
 
 	return n, err
-}
-
-// UnmarshalBinary unmarshal a binary representation of IPFIX Message, implements encoding.BinaryUnmarshaler.
-func (m *Message) UnmarshalBinary(buf []byte) (err error) {
-	_, err = m.Unmarshal(bytes.NewReader(buf))
-
-	return err
 }
 
 // set describes a generic term for a collection of records that have a similar structure.  There are three different
@@ -303,12 +295,12 @@ func (s *set) valid() bool {
 }
 
 // Unmarshal unmarshal a IPFIX Message.
-func (s *set) Unmarshal(reader io.Reader) (n int, err error) {
+func (s *set) Unmarshal(reader io.Reader, templates []*templateRecord) (n int, err error) {
 	if n, err = unmarshalFields(reader, &s.setID, &s.length); err != nil {
 		return n, err
 	}
 
-	bytesRead, err := s.unmarshalRecords(reader)
+	bytesRead, err := s.unmarshalRecords(reader, templates)
 	n += bytesRead
 
 	if err != nil {
@@ -319,27 +311,39 @@ func (s *set) Unmarshal(reader io.Reader) (n int, err error) {
 }
 
 type unmarshallable interface {
-	Unmarshal(reader io.Reader) (n int, err error)
+	Unmarshal(reader io.Reader, template *templateRecord) (n int, err error)
 }
 
-func (s *set) unmarshalRecords(reader io.Reader) (n int, err error) {
-	n = 0
+func (s *set) unmarshalRecords(reader io.Reader, templates []*templateRecord) (n int, err error) {
+	var template *templateRecord
 
+	var templateFound bool
+
+	n = 0
 	for binary.Size(s.setID)+binary.Size(s.length)+n < int(s.length) {
 		var record unmarshallable
 
 		switch {
 		case s.setID == TemplateSetID:
 			record = &templateRecord{}
+			template = nil
 		case s.setID == OptionsTemplateSetID:
 			record = &optionsTemplateRecord{}
+			template = nil
+		case s.setID >= MinimumDataSetID:
+			record = &dataRecord{}
+			template, templateFound = getTemplate(s.setID, templates)
+
+			if !templateFound {
+				template = nil
+			}
 		}
 
 		if record == nil {
 			return n, errInvalidSetType
 		}
 
-		bytesRead, err := record.Unmarshal(reader)
+		bytesRead, err := record.Unmarshal(reader, template)
 		n += bytesRead
 
 		if err != nil {
@@ -350,6 +354,16 @@ func (s *set) unmarshalRecords(reader io.Reader) (n int, err error) {
 	}
 
 	return n, nil
+}
+
+func getTemplate(templateID uint16, templates []*templateRecord) (*templateRecord, bool) {
+	for _, template := range templates {
+		if template.templateID == templateID {
+			return template, true
+		}
+	}
+
+	return nil, false
 }
 
 // templateRecord contains any combination of InformationElement-s.
@@ -365,15 +379,15 @@ func (r *templateRecord) String() string {
 		return fmt.Sprintf("invalid template record #%v", r.templateID)
 	}
 
-	return fmt.Sprintf("template record #%v (%v)", r.templateID, uint16Described(r.fieldCount, "field", "fields"))
+	return fmt.Sprintf("template record #%v (%v)", r.templateID, fieldDescribed(r.fieldCount))
 }
 
 func (r *templateRecord) valid() bool {
-	return r.templateID >= 256
+	return r.templateID >= 256 && r.fieldCount == uint16(len(r.fieldSpecifiers))
 }
 
 // Unmarshal unmarshal a IPFIX templateRecord.
-func (r *templateRecord) Unmarshal(reader io.Reader) (n int, err error) {
+func (r *templateRecord) Unmarshal(reader io.Reader, _ *templateRecord) (n int, err error) {
 	if n, err = unmarshalFields(reader, &r.templateID, &r.fieldCount); err != nil {
 		return n, err
 	}
@@ -408,15 +422,18 @@ func (r *optionsTemplateRecord) String() string {
 	}
 
 	return fmt.Sprintf("options template record #%v (scope %v of %v)", r.templateID,
-		uint16Described(r.scopeFieldCount, "field", "fields"), uint16Described(r.fieldCount, "field", "fields"))
+		fieldDescribed(r.scopeFieldCount), fieldDescribed(r.fieldCount))
 }
 
 func (r *optionsTemplateRecord) valid() bool {
-	return r.templateID >= 256 && r.scopeFieldCount > 0 && r.scopeFieldCount <= r.fieldCount
+	return r.templateID >= 256 &&
+		r.fieldCount == uint16(len(r.fieldSpecifiers)) &&
+		r.scopeFieldCount > 0 &&
+		r.scopeFieldCount <= r.fieldCount
 }
 
 // Unmarshal unmarshal a IPFIX templateRecord.
-func (r *optionsTemplateRecord) Unmarshal(reader io.Reader) (n int, err error) {
+func (r *optionsTemplateRecord) Unmarshal(reader io.Reader, _ *templateRecord) (n int, err error) {
 	if n, err = unmarshalFields(reader, &r.templateID, &r.fieldCount, &r.scopeFieldCount); err != nil {
 		return n, err
 	}
@@ -432,6 +449,41 @@ func (r *optionsTemplateRecord) Unmarshal(reader io.Reader) (n int, err error) {
 
 		r.fieldSpecifiers = append(r.fieldSpecifiers, fs)
 	}
+
+	return n, err
+}
+
+// dataRecord consist only of one or more fieldValues.
+// https://tools.ietf.org/html/rfc7011#section-3.4.3
+type dataRecord struct {
+	fieldValues []interface{}
+}
+
+func (r *dataRecord) String() string {
+	return fmt.Sprintf("data record (%v)", fieldDescribed(uint16(len(r.fieldValues))))
+}
+
+// Unmarshal unmarshal a IPFIX dataRecord.
+func (r *dataRecord) Unmarshal(reader io.Reader, template *templateRecord) (n int, err error) {
+	for i, f := range template.fieldSpecifiers {
+		// TODO: read number of bytes defined by f and make a fieldValue out of it
+		fmt.Printf("%v: %v", i, f)
+	}
+	// if n, err = unmarshalFields(reader, &r.templateID, &r.fieldCount); err != nil {
+	// 	return n, err
+	// }
+	//
+	// for i := uint16(0); i < r.fieldCount; i++ {
+	// 	var fs fieldSpecifier
+	// 	bytesRead, err := fs.Unmarshal(reader)
+	// 	n += bytesRead
+	//
+	// 	if err != nil {
+	// 		return n, err
+	// 	}
+	//
+	// 	r.fieldSpecifiers = append(r.fieldSpecifiers, fs)
+	// }
 
 	return n, err
 }

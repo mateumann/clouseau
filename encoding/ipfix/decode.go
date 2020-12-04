@@ -33,20 +33,34 @@ func (e CorruptInputError) Unwrap() error {
 
 // Decoder represents IPFIX flow already received by the collecting process.
 type Decoder struct {
-	source              net.UDPAddr
+	source              *net.UDPAddr
 	observationDomainID uint32
 	err                 error
 	buf                 []byte // leftover decoded output
+	messages            []Message
+	data                []*dataRecord
+	templates           []*templateRecord
+	optionsTemplates    []*optionsTemplateRecord
 	// r                io.Reader
-	// messages         []Message
-	// data             []*dataRecord
-	// templates        []*templateRecord
-	// optionsTemplates []*optionsTemplateRecord
+}
+
+func (d *Decoder) String() string {
+	return fmt.Sprintf("Decoder (%s, %d): %s", d.source, d.observationDomainID,
+		intDescribed(len(d.messages), "message", "messages"))
 }
 
 // NewDecoder initializes a Decoder with provided source (net.UDPAddr) and default values of other parameters.
-func NewDecoder(s net.UDPAddr) *Decoder {
-	return &Decoder{s, NoSpecificObservationDomainID, nil, make([]byte, initialDecoderBufSize)}
+func NewDecoder(s *net.UDPAddr) *Decoder {
+	return &Decoder{
+		source:              s,
+		observationDomainID: NoSpecificObservationDomainID,
+		err:                 nil,
+		buf:                 make([]byte, initialDecoderBufSize),
+		messages:            make([]Message, 1),
+		data:                make([]*dataRecord, 0),
+		templates:           make([]*templateRecord, 0),
+		optionsTemplates:    make([]*optionsTemplateRecord, 0),
+	}
 }
 
 // Read decodes a IPFIX Message(s) from p buffer.
@@ -68,7 +82,7 @@ func (d *Decoder) Read(p []byte) (n int, err error) {
 
 	r := bytes.NewReader(d.buf)
 
-	nn, err := m.Unmarshal(r)
+	nn, err := m.Unmarshal(r, d.templates)
 	d.buf = d.buf[nn:]
 
 	if err != nil {

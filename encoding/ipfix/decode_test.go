@@ -75,7 +75,7 @@ func TestNewDecoder(t *testing.T) {
 			name: "Decoder on localhost:4739",
 			arg:  net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 4739, Zone: ""},
 			want: Decoder{
-				source:              net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 4739, Zone: ""},
+				source:              &net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 4739, Zone: ""},
 				observationDomainID: 0,
 				err:                 nil,
 				buf:                 make([]byte, 2048),
@@ -86,7 +86,7 @@ func TestNewDecoder(t *testing.T) {
 		tt := tt // pin
 
 		t.Run(tt.name, func(t *testing.T) {
-			got := NewDecoder(tt.arg)
+			got := NewDecoder(&tt.arg)
 			if !got.source.IP.Equal(tt.want.source.IP) ||
 				got.source.Port != tt.want.source.Port ||
 				got.source.Zone != tt.want.source.Zone ||
