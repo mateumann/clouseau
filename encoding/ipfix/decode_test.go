@@ -97,6 +97,35 @@ func TestNewDecoder(t *testing.T) {
 	}
 }
 
+func TestDecoder_String(t *testing.T) {
+	tests := []struct {
+		name string
+		arg  net.UDPAddr
+		want string
+	}{
+		{
+			name: "Decoder on localhost:4739",
+			arg:  net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 4739, Zone: ""},
+			want: "Decoder (127.0.0.1:4739, 0): 0 messages",
+		},
+		{
+			name: "Decoder on :4739",
+			arg:  net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 4739, Zone: ""},
+			want: "Decoder (127.0.0.1:4739, 0): 0 messages",
+		},
+	}
+	for _, tt := range tests {
+		tt := tt // pin
+
+		t.Run(tt.name, func(t *testing.T) {
+			got := NewDecoder(&tt.arg)
+			if got.String() != tt.want {
+				t.Errorf("%v = %v, want %v", tt.name, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestDecoder_Read_FewBytes(t *testing.T) {
 	tests := []struct {
 		name string

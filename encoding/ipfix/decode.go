@@ -56,7 +56,7 @@ func NewDecoder(s *net.UDPAddr) *Decoder {
 		observationDomainID: NoSpecificObservationDomainID,
 		err:                 nil,
 		buf:                 make([]byte, initialDecoderBufSize),
-		messages:            make([]Message, 1),
+		messages:            make([]Message, 0),
 		data:                make([]*dataRecord, 0),
 		templates:           make([]*templateRecord, 0),
 		optionsTemplates:    make([]*optionsTemplateRecord, 0),
