@@ -120,6 +120,10 @@ import (
 
 var errInvalidSetType = errors.New("invalid set type")
 
+var errTemplateNotDefined = errors.New("template not defined")
+
+// var errUnmarshalError = errors.New("unmarshal error")
+
 // UnmarshalError describes an error while unmarshalling data.
 // It wraps an error returned by the binary.Read function.
 type UnmarshalError struct {
@@ -227,7 +231,7 @@ func (m *Message) String() string {
 }
 
 // Unmarshal unmarshal a IPFIX Message.
-func (m *Message) Unmarshal(reader io.Reader, templates []*templateRecord) (n int, err error) {
+func (m *Message) Unmarshal(reader io.Reader, templates *[]*templateRecord) (n int, err error) {
 	if n, err = unmarshalFields(reader,
 		&m.version, &m.length, &m.exportTime, &m.sequenceNumber, &m.observationDomainID); err != nil {
 		return n, err
@@ -295,7 +299,7 @@ func (s *set) valid() bool {
 }
 
 // Unmarshal unmarshal a IPFIX Message.
-func (s *set) Unmarshal(reader io.Reader, templates []*templateRecord) (n int, err error) {
+func (s *set) Unmarshal(reader io.Reader, templates *[]*templateRecord) (n int, err error) {
 	if n, err = unmarshalFields(reader, &s.setID, &s.length); err != nil {
 		return n, err
 	}
@@ -314,28 +318,25 @@ type unmarshallable interface {
 	Unmarshal(reader io.Reader, template *templateRecord) (n int, err error)
 }
 
-func (s *set) unmarshalRecords(reader io.Reader, templates []*templateRecord) (n int, err error) {
-	var template *templateRecord
-
-	var templateFound bool
-
+func (s *set) unmarshalRecords(reader io.Reader, templates *[]*templateRecord) (n int, err error) {
 	n = 0
 	for binary.Size(s.setID)+binary.Size(s.length)+n < int(s.length) {
 		var record unmarshallable
 
+		template := (*templateRecord)(nil)
+
 		switch {
 		case s.setID == TemplateSetID:
-			record = &templateRecord{}
-			template = nil
+			var tr templateRecord
+			record = &tr
+			*templates = append(*templates, &tr)
 		case s.setID == OptionsTemplateSetID:
 			record = &optionsTemplateRecord{}
-			template = nil
 		case s.setID >= MinimumDataSetID:
 			record = &dataRecord{}
-			template, templateFound = getTemplate(s.setID, templates)
 
-			if !templateFound {
-				template = nil
+			if t, ok := getTemplate(s.setID, *templates); ok {
+				template = t
 			}
 		}
 
@@ -465,6 +466,10 @@ func (r *dataRecord) String() string {
 
 // Unmarshal unmarshal a IPFIX dataRecord.
 func (r *dataRecord) Unmarshal(reader io.Reader, template *templateRecord) (n int, err error) {
+	if template == nil {
+		return 0, errTemplateNotDefined
+	}
+
 	for i, f := range template.fieldSpecifiers {
 		// TODO: read number of bytes defined by f and make a fieldValue out of it
 		fmt.Printf("%v: %v", i, f)
@@ -484,6 +489,8 @@ func (r *dataRecord) Unmarshal(reader io.Reader, template *templateRecord) (n in
 	//
 	// 	r.fieldSpecifiers = append(r.fieldSpecifiers, fs)
 	// }
+
+	n = 2
 
 	return n, err
 }
