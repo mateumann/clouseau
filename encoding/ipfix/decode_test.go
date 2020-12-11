@@ -239,14 +239,14 @@ func TestDecoder_Read_WithError(t *testing.T) {
 		err        error
 	}{
 		{
-			name:       "Decoder Read with nil Decoder.err",
+			name:       "Decoder Read with nil Decoder.found",
 			arg:        []byte{0x00, 0x0a},
 			decoderErr: nil,
 			want:       2,
 			err:        nil,
 		},
 		{
-			name:       "Decoder Read with non-nil Decoder.err",
+			name:       "Decoder Read with non-nil Decoder.found",
 			arg:        []byte{0x00, 0x0a, 0x01, 0x28},
 			decoderErr: CorruptInputError{0, nil},
 			want:       0,

@@ -474,17 +474,17 @@ func (r *dataRecord) Unmarshal(reader io.Reader, template *templateRecord) (n in
 		// TODO: read number of bytes defined by f and make a fieldValue out of it
 		fmt.Printf("%v: %v", i, f)
 	}
-	// if n, err = unmarshalFields(reader, &r.templateID, &r.fieldCount); err != nil {
-	// 	return n, err
+	// if n, found = unmarshalFields(reader, &r.templateID, &r.fieldCount); found != nil {
+	// 	return n, found
 	// }
 	//
 	// for i := uint16(0); i < r.fieldCount; i++ {
 	// 	var fs fieldSpecifier
-	// 	bytesRead, err := fs.Unmarshal(reader)
+	// 	bytesRead, found := fs.Unmarshal(reader)
 	// 	n += bytesRead
 	//
-	// 	if err != nil {
-	// 		return n, err
+	// 	if found != nil {
+	// 		return n, found
 	// 	}
 	//
 	// 	r.fieldSpecifiers = append(r.fieldSpecifiers, fs)

@@ -742,3 +742,102 @@ func TestOptionsTemplateRecord_Unmarshal(t *testing.T) {
 		})
 	}
 }
+
+func TestDataRecord_String(t *testing.T) {
+	tests := []struct {
+		name string
+		arg  dataRecord
+		want string
+	}{
+		{
+			name: "data record with 3 field values",
+			arg: dataRecord{
+				fieldValues: []interface{}{
+					uint8(6),
+					uint32(0x18fa5d76),
+					uint32(0x18fa5d76),
+				},
+			},
+			want: "data record (3 fields)",
+		},
+		{
+			name: "data record with 0 field values",
+			arg: dataRecord{
+				fieldValues: []interface{}{},
+			},
+			want: "data record (0 fields)",
+		},
+		{
+			name: "data record with 1 field values",
+			arg: dataRecord{
+				fieldValues: []interface{}{
+					uint32(0x18fa5d76),
+				},
+			},
+			want: "data record (1 field)",
+		},
+	}
+	for _, tt := range tests {
+		tt := tt // pin
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.arg.String(); got != tt.want {
+				t.Errorf("%v got %v, want %v", tt.name, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestGetTemplate(t *testing.T) {
+	template1 := templateRecord{
+		templateID:      258,
+		fieldCount:      1,
+		fieldSpecifiers: []fieldSpecifier{{0, 0, 0}},
+	}
+	template2 := templateRecord{
+		templateID:      259,
+		fieldCount:      1,
+		fieldSpecifiers: []fieldSpecifier{{0, 0, 0}},
+	}
+	templates := []*templateRecord{&template1, &template2}
+
+	tests := []struct {
+		name  string
+		arg   uint16
+		found bool
+		want  *templateRecord
+	}{
+		{
+			name:  "get template #258",
+			arg:   258,
+			want:  &template1,
+			found: true,
+		},
+		{
+			name:  "get template #259",
+			arg:   259,
+			want:  &template2,
+			found: true,
+		},
+		{
+			name:  "get inexistent template",
+			arg:   999,
+			want:  nil,
+			found: false,
+		},
+	}
+	for _, tt := range tests {
+		tt := tt // pin
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := getTemplate(tt.arg, templates)
+			if got != tt.want {
+				t.Errorf("%v got %v, want %v", tt.name, got, tt.want)
+			}
+			if err != tt.found {
+				t.Errorf("%v error %v, want %v", tt.name, err, tt.found)
+			}
+		})
+	}
+}
+
+func TestDataRecord_Unmarshal(t *testing.T) {
+}
