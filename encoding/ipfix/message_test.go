@@ -840,4 +840,54 @@ func TestGetTemplate(t *testing.T) {
 }
 
 func TestDataRecord_Unmarshal(t *testing.T) {
+	templates := []*templateRecord{{
+		258, 1,
+		[]fieldSpecifier{{0x3c, 1, 0}},
+	}}
+
+	tests := []struct {
+		name     string
+		arg      []byte
+		template *templateRecord
+		want     dataRecord
+		n        int
+		err      error
+	}{
+		{
+			name:     "single byte (ipVersion)",
+			arg:      []byte{0x06},
+			template: templates[0],
+			want:     dataRecord{fieldValues: []interface{}{uint8(6)}},
+			n:        1,
+			err:      nil,
+		},
+		{
+			name:     "too much data for a template (ipVersion)",
+			arg:      []byte{0x06, 0x00},
+			template: templates[0],
+			want:     dataRecord{fieldValues: []interface{}{uint8(6)}},
+			n:        1,
+			err:      errUnmarshalError,
+		},
+	}
+	for _, tt := range tests {
+		tt := tt // pin
+
+		var r dataRecord
+
+		t.Run(tt.name, func(t *testing.T) {
+			n, err := r.Unmarshal(bytes.NewReader(tt.arg), tt.template)
+			if !errors.Is(err, tt.err) {
+				t.Errorf("%v got error %v, want %v", tt.name, err, tt.err)
+			}
+			if n != tt.n {
+				t.Errorf("%v read bytes %v, want %v", tt.name, n, tt.n)
+			}
+			// if r.templateID != tt.want.templateID ||
+			// 	r.fieldCount != tt.want.fieldCount ||
+			// 	len(r.fieldSpecifiers) != len(tt.want.fieldSpecifiers) {
+			// 	t.Errorf("%v got %v, want %v", tt.name, r, tt.want)
+			// }
+		})
+	}
 }

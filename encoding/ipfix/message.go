@@ -122,7 +122,7 @@ var errInvalidSetType = errors.New("invalid set type")
 
 var errTemplateNotDefined = errors.New("template not defined")
 
-// var errUnmarshalError = errors.New("unmarshal error")
+var errUnmarshalError = errors.New("unmarshal error")
 
 // UnmarshalError describes an error while unmarshalling data.
 // It wraps an error returned by the binary.Read function.
@@ -340,11 +340,7 @@ func (s *set) unmarshalRecords(reader io.Reader, templates *[]*templateRecord) (
 			}
 		}
 
-		if record == nil {
-			return n, errInvalidSetType
-		}
-
-		bytesRead, err := record.Unmarshal(reader, template)
+		bytesRead, err := unmarshalRecord(reader, &record, template)
 		n += bytesRead
 
 		if err != nil {
@@ -355,6 +351,14 @@ func (s *set) unmarshalRecords(reader io.Reader, templates *[]*templateRecord) (
 	}
 
 	return n, nil
+}
+
+func unmarshalRecord(reader io.Reader, record *unmarshallable, template *templateRecord) (n int, err error) {
+	if *record == nil {
+		return n, errInvalidSetType
+	}
+
+	return (*record).Unmarshal(reader, template)
 }
 
 func getTemplate(templateID uint16, templates []*templateRecord) (*templateRecord, bool) {
@@ -492,5 +496,5 @@ func (r *dataRecord) Unmarshal(reader io.Reader, template *templateRecord) (n in
 
 	n = 2
 
-	return n, err
+	return n, errUnmarshalError
 }
