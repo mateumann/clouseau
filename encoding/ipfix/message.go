@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"reflect"
 	"time"
 )
 
@@ -123,6 +124,23 @@ var errInvalidSetType = errors.New("invalid set type")
 var errTemplateNotDefined = errors.New("template not defined")
 
 var errUnmarshalError = errors.New("unmarshal error")
+
+type errUnhandledKind struct {
+	kind reflect.Kind
+}
+
+func (e errUnhandledKind) Error() string {
+	return fmt.Sprintf("ipfix: unhandled kind %s", e.kind)
+}
+
+type errIncompatibleData struct {
+	informationElement InformationElement
+	data []byte
+}
+
+func (e errIncompatibleData) Error() string {
+	return fmt.Sprintf("ipfix: data %v incompatible with Information Element %v", e.data, e.informationElement)
+}
 
 // UnmarshalError describes an error while unmarshalling data.
 // It wraps an error returned by the binary.Read function.
@@ -474,27 +492,75 @@ func (r *dataRecord) Unmarshal(reader io.Reader, template *templateRecord) (n in
 		return 0, errTemplateNotDefined
 	}
 
-	for i, f := range template.fieldSpecifiers {
+	n = 0
+	for _, f := range template.fieldSpecifiers {
 		// TODO: read number of bytes defined by f and make a fieldValue out of it
-		fmt.Printf("%v: %v", i, f)
+		e := InformationElementByID(f.informationElementID)
+		// elem, err := zeroValue(e.dataType, f.fieldLength)
+		// if err = binary.Read(reader, binary.BigEndian, elem); err != nil {
+		// 	return n, &UnmarshalError{err}
+		// }
+		// elemSize := binary.Size(elem)
+
+		buf := make([]byte, f.fieldLength)
+		if err = binary.Read(reader, binary.BigEndian, &buf); err != nil {
+			return n, &UnmarshalError{err}
+		}
+
+		elem, err := createValue(e, buf)
+		if err != nil {
+			return n, &UnmarshalError{err}
+		}
+
+		r.fieldValues = append(r.fieldValues, elem)
+
+		n += int(f.fieldLength)
 	}
-	// if n, found = unmarshalFields(reader, &r.templateID, &r.fieldCount); found != nil {
-	// 	return n, found
-	// }
-	//
-	// for i := uint16(0); i < r.fieldCount; i++ {
-	// 	var fs fieldSpecifier
-	// 	bytesRead, found := fs.Unmarshal(reader)
-	// 	n += bytesRead
-	//
-	// 	if found != nil {
-	// 		return n, found
-	// 	}
-	//
-	// 	r.fieldSpecifiers = append(r.fieldSpecifiers, fs)
-	// }
 
-	n = 2
+	return n, nil
+}
 
-	return n, errUnmarshalError
+func zeroValue(k reflect.Kind, l uint16) (r interface{}, err error) {
+	switch k {
+	case reflect.Uint8:
+		var s uint8
+		return s, nil
+	case reflect.Uint16:
+		var s uint16
+		return s, nil
+	case reflect.Uint32:
+		var s uint32
+		return s, nil
+	case reflect.Uint64:
+		var s uint64
+		return s, nil
+	case reflect.String:
+		var s string
+		return s, nil
+	case reflect.Array:
+		s := make([]byte, l)
+		return s, nil
+	}
+	return nil, errUnhandledKind{k}
+}
+
+func createValue(e InformationElement, data []byte) (r interface{}, err error) {
+	switch e.dataType {
+	case reflect.Uint8:
+		return data[0], nil
+	case reflect.Uint16:
+		return binary.BigEndian.Uint16(data), nil
+	case reflect.Uint32:
+		return binary.BigEndian.Uint32(data), nil
+	case reflect.Uint64:
+		if len(data) >= 4 {
+			return binary.BigEndian.Uint64(data), nil
+		}
+		return nil, errIncompatibleData{e, data}
+	case reflect.String:
+		return string(data[:]), nil
+	case reflect.Array:
+		return data, nil
+	}
+	return nil, errUnmarshalError
 }
