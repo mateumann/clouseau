@@ -356,28 +356,31 @@ func (s *set) unmarshalRecords(reader io.Reader, templates *[]*templateRecord) (
 			if t, ok := getTemplate(s.setID, *templates); ok {
 				template = t
 			}
+		default:
+			return n, errInvalidSetType
 		}
 
-		bytesRead, err := unmarshalRecord(reader, &record, template)
+		bytesRead, err := record.Unmarshal(reader, template)
+
 		n += bytesRead
 
 		if err != nil {
 			return n, UnmarshalError{err}
 		}
 
-		s.records = append(s.records, &record)
+		s.records = append(s.records, &record)  // FIXME in case of dataRecord, record is empty []interface{} with len=1, cap=1
 	}
 
 	return n, nil
 }
 
-func unmarshalRecord(reader io.Reader, record *unmarshallable, template *templateRecord) (n int, err error) {
-	if *record == nil {
-		return n, errInvalidSetType
-	}
-
-	return (*record).Unmarshal(reader, template)
-}
+// func unmarshalRecord(reader io.Reader, record *unmarshallable, template *templateRecord) (n int, err error) {
+// 	if *record == nil {
+// 		return n, errInvalidSetType
+// 	}
+//
+// 	return (*record).Unmarshal(reader, template)
+// }
 
 func getTemplate(templateID uint16, templates []*templateRecord) (*templateRecord, bool) {
 	for _, template := range templates {

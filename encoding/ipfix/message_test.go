@@ -839,11 +839,13 @@ func TestGetTemplate(t *testing.T) {
 	}
 }
 
-func TestDataRecord_Unmarshal(t *testing.T) {
-	templates := []*templateRecord{{
-		258, 1,
-		[]fieldSpecifier{{0x3c, 1, 0}},
-	}}
+func TestDataRecord_Unmarshal_Simple(t *testing.T) {
+	templates := []*templateRecord{
+		{
+			258, 1,
+			[]fieldSpecifier{{0x3c, 1, 0}},
+		},
+	}
 
 	tests := []struct {
 		name     string
@@ -868,6 +870,66 @@ func TestDataRecord_Unmarshal(t *testing.T) {
 			want:     dataRecord{fieldValues: []interface{}{uint8(6)}},
 			n:        1,
 			err:      nil,
+		},
+	}
+	for _, tt := range tests {
+		tt := tt // pin
+
+		var r dataRecord
+
+		t.Run(tt.name, func(t *testing.T) {
+			n, err := r.Unmarshal(bytes.NewReader(tt.arg), tt.template)
+			if !errors.Is(err, tt.err) {
+				t.Errorf("%v got error %v, want %v", tt.name, err, tt.err)
+			}
+			if n != tt.n {
+				t.Errorf("%v read bytes %v, want %v", tt.name, n, tt.n)
+			}
+		})
+	}
+}
+
+func TestDataRecord_Unmarshal_Mild(t *testing.T) {
+	templates := []*templateRecord{
+		{
+			258, 1,
+			[]fieldSpecifier{{0x3c, 1, 0}},
+		},
+		{
+			259, 7,
+			[]fieldSpecifier{
+				{0x003c, 1, 0},
+				{0x0016, 4, 0},
+				{0x0015, 4, 0},
+				{0x0002, 4, 0},
+				{0x0001, 4, 0},
+				{0x0007, 2, 0},
+				{0x000b, 2, 0},
+			},
+		},
+	}
+
+	tests := []struct {
+		name     string
+		arg      []byte
+		template *templateRecord
+		want     dataRecord
+		n        int
+		err      error
+	}{
+		{
+			name: "seven fields data set #259",
+			arg: []byte{
+				0x06, 0x18, 0xfa, 0x5d, 0x76, 0x18, 0xfa, 0x5d, 0x76, 0x00, 0x00,
+				0x00, 0x01, 0x00, 0x00, 0x00, 0x48, 0x00, 0x00, 0x00, 0x00,
+			},
+			template: templates[0],
+			want: dataRecord{fieldValues: []interface{}{
+				uint8(6), uint32(0x18fa5d76),
+				uint32(0x18fa5d76), uint32(1), uint32(72), uint16(0), uint16(0),
+			}},
+			n:   1,
+			err: nil,
 		},
 	}
 	for _, tt := range tests {
