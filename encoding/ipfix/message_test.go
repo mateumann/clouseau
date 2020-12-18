@@ -867,7 +867,7 @@ func TestDataRecord_Unmarshal(t *testing.T) {
 			template: templates[0],
 			want:     dataRecord{fieldValues: []interface{}{uint8(6)}},
 			n:        1,
-			err:      errUnmarshalError,
+			err:      nil,
 		},
 	}
 	for _, tt := range tests {
@@ -883,11 +883,6 @@ func TestDataRecord_Unmarshal(t *testing.T) {
 			if n != tt.n {
 				t.Errorf("%v read bytes %v, want %v", tt.name, n, tt.n)
 			}
-			// if r.templateID != tt.want.templateID ||
-			// 	r.fieldCount != tt.want.fieldCount ||
-			// 	len(r.fieldSpecifiers) != len(tt.want.fieldSpecifiers) {
-			// 	t.Errorf("%v got %v, want %v", tt.name, r, tt.want)
-			// }
 		})
 	}
 }
