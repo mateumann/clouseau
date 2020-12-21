@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"reflect"
 	"time"
 )
@@ -368,7 +369,7 @@ func (s *set) unmarshalRecords(reader io.Reader, templates *[]*templateRecord) (
 			return n, UnmarshalError{err}
 		}
 
-		s.records = append(s.records, &record)  // FIXME in case of dataRecord, record is empty []interface{} with len=1, cap=1
+		s.records = append(s.records, &record) // FIXME in case of dataRecord, record is empty []interface{} with len=1, cap=1
 	}
 
 	return n, nil
@@ -521,6 +522,10 @@ func (r *dataRecord) Unmarshal(reader io.Reader, template *templateRecord) (n in
 // nolint: exhaustive, gomnd
 func createValue(e InformationElement, data []byte) (r interface{}, err error) {
 	switch e.dataType {
+	case reflect.Bool:
+		return data[0] != 0, nil
+	case reflect.Int32:
+		return int32(binary.BigEndian.Uint32(fillUp(4, data))), nil
 	case reflect.Uint8:
 		return data[0], nil
 	case reflect.Uint16:
@@ -529,9 +534,13 @@ func createValue(e InformationElement, data []byte) (r interface{}, err error) {
 		return binary.BigEndian.Uint32(fillUp(4, data)), nil
 	case reflect.Uint64:
 		return binary.BigEndian.Uint64(fillUp(8, data)), nil
+	case reflect.Float64:
+		return math.Float64frombits(binary.BigEndian.Uint64(fillUp(8, data))), nil
 	case reflect.String:
 		return string(data), nil
 	case reflect.Array:
+		return data, nil
+	case reflect.Slice:
 		return data, nil
 	default:
 		return nil, errUnmarshalError

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"math/big"
+	"reflect"
 	"testing"
 	"time"
 )
@@ -839,11 +840,15 @@ func TestGetTemplate(t *testing.T) {
 	}
 }
 
-func TestDataRecord_Unmarshal_Simple(t *testing.T) {
+func TestDataRecord_Unmarshal(t *testing.T) {
 	templates := []*templateRecord{
 		{
 			258, 1,
 			[]fieldSpecifier{{0x3c, 1, 0}},
+		},
+		{
+			999, 1,
+			[]fieldSpecifier{{0x00, 1, 0}},
 		},
 	}
 
@@ -855,22 +860,16 @@ func TestDataRecord_Unmarshal_Simple(t *testing.T) {
 		n        int
 		err      error
 	}{
+		{"single byte (ipVersion)", []byte{0x06}, templates[0], dataRecord{fieldValues: []interface{}{uint8(6)}}, 1, nil},
 		{
-			name:     "single byte (ipVersion)",
-			arg:      []byte{0x06},
-			template: templates[0],
-			want:     dataRecord{fieldValues: []interface{}{uint8(6)}},
-			n:        1,
-			err:      nil,
+			"too much data for a template (ipVersion)",
+			[]byte{0x06, 0x00},
+			templates[0],
+			dataRecord{fieldValues: []interface{}{uint8(6)}},
+			1, nil,
 		},
-		{
-			name:     "too much data for a template (ipVersion)",
-			arg:      []byte{0x06, 0x00},
-			template: templates[0],
-			want:     dataRecord{fieldValues: []interface{}{uint8(6)}},
-			n:        1,
-			err:      nil,
-		},
+		{"nil template", []byte{0x06, 0x00}, nil, dataRecord{}, 0, errTemplateNotDefined},
+		{"invalid template", []byte{0x01}, templates[1], dataRecord{}, 0, errUnmarshalError},
 	}
 	for _, tt := range tests {
 		tt := tt // pin
@@ -944,6 +943,56 @@ func TestDataRecord_Unmarshal_Mild(t *testing.T) {
 			}
 			if n != tt.n {
 				t.Errorf("%v read bytes %v, want %v", tt.name, n, tt.n)
+			}
+		})
+	}
+}
+
+func TestCreateValue(t *testing.T) {
+	tests := []struct {
+		name string
+		arg  InformationElement
+		data []byte
+		want interface{}
+		err  error
+	}{
+		{"hashDigestOutput (bool)", InformationElementByID(333), []byte{0x01}, true, nil},
+		{"dot1qDEI (bool)", InformationElementByID(388), []byte{0x00}, false, nil},
+		{"mibObjectValueInteger (int32)", InformationElementByID(434), []byte{0xff, 0xfe, 0xfd, 0xfc}, int32(-66052), nil},
+		{"mibObjectValueInteger (int32)", InformationElementByID(434), []byte{0xff, 0xfe, 0xfd, 0xfc}, int32(-66052), nil},
+		{"protocolIdentifier (uint8)", InformationElementByID(60), []byte{0x06}, uint8(6), nil},
+		{"udpSourcePort (uint16)", InformationElementByID(180), []byte{0x01, 0x02}, uint16(258), nil},
+		{"tcpSequenceNumber (uint32)", InformationElementByID(184), []byte{0x01, 0x02, 0x03, 0x04}, uint32(16909060), nil},
+		{
+			"exportedOctetTotalCount (uint64)", InformationElementByID(40),
+			[]byte{0xff, 0xfe, 0xfd, 0x01, 0x02, 0x03},
+			uint64(281470631477763), nil,
+		},
+		{
+			"absoluteError (float64)", InformationElementByID(320),
+			[]byte{0xaa, 0x55, 0xaa, 0x55, 0xaa},
+			float64(3.614493686586e-312), nil,
+		},
+		{"interfaceName (string)", InformationElementByID(82), []byte{0x65, 0x74, 0x68, 0x30}, "eth0", nil},
+		{
+			"destinationMacAddress (array)", InformationElementByID(80),
+			[]byte{0x5a, 0xea, 0xf0, 0xa8, 0xd3, 0x7b},
+			[]byte{0x5a, 0xea, 0xf0, 0xa8, 0xd3, 0x7b},
+			nil,
+		},
+		{"layer2packetSectionData (slice)", InformationElementByID(104), []byte{0xca, 0xfe}, []byte{0xca, 0xfe}, nil},
+		{"reserved InformationElement", InformationElementByID(0), []byte{0xca, 0xfe}, nil, errUnmarshalError},
+	}
+	for _, tt := range tests {
+		tt := tt // pin
+
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := createValue(tt.arg, tt.data)
+			if !errors.Is(err, tt.err) {
+				t.Errorf("%v got error %v, want %v", tt.name, err, tt.err)
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("%v created value %v, want %v", tt.name, got, tt.want)
 			}
 		})
 	}
