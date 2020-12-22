@@ -250,7 +250,7 @@ func (m *Message) String() string {
 }
 
 // Unmarshal unmarshal a IPFIX Message.
-func (m *Message) Unmarshal(reader io.Reader, templates *[]*templateRecord) (n int, err error) {
+func (m *Message) Unmarshal(reader io.Reader, templates []*templateRecord) (n int, err error) {
 	if n, err = unmarshalFields(reader,
 		&m.version, &m.length, &m.exportTime, &m.sequenceNumber, &m.observationDomainID); err != nil {
 		return n, err
@@ -318,7 +318,7 @@ func (s *set) valid() bool {
 }
 
 // Unmarshal unmarshal a IPFIX Message.
-func (s *set) Unmarshal(reader io.Reader, templates *[]*templateRecord) (n int, err error) {
+func (s *set) Unmarshal(reader io.Reader, templates []*templateRecord) (n int, err error) {
 	if n, err = unmarshalFields(reader, &s.setID, &s.length); err != nil {
 		return n, err
 	}
@@ -337,24 +337,23 @@ type unmarshallable interface {
 	Unmarshal(reader io.Reader, template *templateRecord) (n int, err error)
 }
 
-func (s *set) unmarshalRecords(reader io.Reader, templates *[]*templateRecord) (n int, err error) {
+func (s *set) unmarshalRecords(reader io.Reader, templates []*templateRecord) (n int, err error) {
 	n = 0
 	for binary.Size(s.setID)+binary.Size(s.length)+n < int(s.length) {
 		var record unmarshallable
-
-		template := (*templateRecord)(nil)
+		var template *templateRecord
 
 		switch {
 		case s.setID == TemplateSetID:
 			var tr templateRecord
 			record = &tr
-			*templates = append(*templates, &tr)
+			templates = append(templates, &tr)
 		case s.setID == OptionsTemplateSetID:
 			record = &optionsTemplateRecord{}
 		case s.setID >= MinimumDataSetID:
 			record = &dataRecord{}
 
-			if t, ok := getTemplate(s.setID, *templates); ok {
+			if t, ok := getTemplate(s.setID, templates); ok {
 				template = t
 			}
 		default:

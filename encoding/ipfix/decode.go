@@ -82,7 +82,7 @@ func (d *Decoder) Read(p []byte) (n int, err error) {
 
 	r := bytes.NewReader(d.buf)
 
-	nn, err := m.Unmarshal(r, &d.templates)
+	nn, err := m.Unmarshal(r, d.templates)
 	d.buf = d.buf[nn:]
 
 	if err != nil {
