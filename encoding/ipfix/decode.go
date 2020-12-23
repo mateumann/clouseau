@@ -82,18 +82,13 @@ func (d *Decoder) Read(p []byte) (n int, err error) {
 
 	nn, err := m.Unmarshal(r, d.templates)
 	d.buf = d.buf[nn:]
+	n += nn
 
-	if err != nil {
-		if errors.Is(errors.Unwrap(err), io.EOF) {
-			return n + nn, nil
-		}
-
+	if err != nil && !errors.Is(errors.Unwrap(err), io.EOF) {
 		d.err = err
 
-		return n + nn, CorruptInputError{n + nn, errors.Unwrap(err)}
+		return n, CorruptInputError{n, errors.Unwrap(err)}
 	}
-
-	n += nn
 
 	d.updateTemplates(m.sets)
 	d.messages = append(d.messages, m)
@@ -110,12 +105,12 @@ func (d *Decoder) updateTemplates(sets []set) {
 					d.templates = append(d.templates, &template)
 				}
 			}
-		// case OptionsTemplateSetID:
-		// 	for _, r := range s.records {
-		// 		if template, ok := r.(optionsTemplateRecord); ok {
-		// 			d.optionsTemplates = append(d.optionsTemplates, &template)
-		// 		}
-		// 	}
+		case OptionsTemplateSetID:
+			for _, r := range s.records {
+				if template, ok := r.(optionsTemplateRecord); ok {
+					d.optionsTemplates = append(d.optionsTemplates, &template)
+				}
+			}
 		}
 	}
 }
