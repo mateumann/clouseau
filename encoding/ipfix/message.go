@@ -429,7 +429,13 @@ func (r *templateRecord) valid() bool {
 
 // Size returns a binary size of the templateRecord.
 func (r templateRecord) Size() int {
-	return binary.Size(r.templateID) + binary.Size(r.fieldCount) + binary.Size(r.fieldSpecifiers)
+	n := binary.Size(r.templateID) + binary.Size(r.fieldCount)
+
+	for _, s := range r.fieldSpecifiers {
+		n += binary.Size(s)
+	}
+
+	return n
 }
 
 // Unmarshal unmarshal a IPFIX templateRecord.
@@ -480,8 +486,13 @@ func (r *optionsTemplateRecord) valid() bool {
 
 // Size returns a binary size of the optionsTemplateRecord.
 func (r optionsTemplateRecord) Size() int {
-	return binary.Size(r.templateID) + binary.Size(r.fieldCount) + binary.Size(r.scopeFieldCount) +
-		binary.Size(r.fieldSpecifiers)
+	n := binary.Size(r.templateID) + binary.Size(r.fieldCount) + binary.Size(r.scopeFieldCount)
+
+	for _, s := range r.fieldSpecifiers {
+		n += binary.Size(s)
+	}
+
+	return n
 }
 
 // Unmarshal unmarshal a IPFIX templateRecord.

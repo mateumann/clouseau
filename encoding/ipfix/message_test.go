@@ -563,6 +563,38 @@ func TestTemplateRecord_String(t *testing.T) {
 	}
 }
 
+func TestTemplateRecord_Size(t *testing.T) {
+	tests := []struct {
+		name string
+		arg  templateRecord
+		want int
+	}{
+		{
+			"Template Record #258 with 1 field specifier",
+			templateRecord{258, 1, make([]fieldSpecifier, 1)},
+			4 + 8,
+		},
+		{
+			"Template Record #259 with 19 field specifiers",
+			templateRecord{259, 19, make([]fieldSpecifier, 19)},
+			4 + 19*8,
+		},
+		{
+			"Template Record #260 with 0 field specifiers",
+			templateRecord{260, 0, make([]fieldSpecifier, 0)},
+			4 + 0,
+		},
+	}
+	for _, tt := range tests {
+		tt := tt // pin
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.arg.Size(); got != tt.want {
+				t.Errorf("%v got %v, want %v", tt.name, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestTemplateRecord_Unmarshal(t *testing.T) {
 	tests := []struct {
 		name string
@@ -572,22 +604,16 @@ func TestTemplateRecord_Unmarshal(t *testing.T) {
 		err  error
 	}{
 		{
-			name: "Template Record #258 with 1 field specifiers",
-			arg:  []byte{0x01, 0x02, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00},
-			want: templateRecord{
-				258, 1, []fieldSpecifier{{0, 0, 0}},
-			},
-			n:   8,
-			err: nil,
+			"Template Record #258 with 1 field specifiers",
+			[]byte{0x01, 0x02, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00},
+			templateRecord{258, 1, []fieldSpecifier{{0, 0, 0}}},
+			8, nil,
 		},
 		{
-			name: "An invalid Template Record (EOF)",
-			arg:  []byte{0x01, 0x04},
-			want: templateRecord{
-				260, 0, nil,
-			},
-			n:   2,
-			err: io.EOF,
+			"An invalid Template Record (EOF)",
+			[]byte{0x01, 0x04},
+			templateRecord{260, 0, nil},
+			2, io.EOF,
 		},
 	}
 	for _, tt := range tests {
@@ -619,38 +645,67 @@ func TestOptionsTemplateRecord_String(t *testing.T) {
 		want string
 	}{
 		{
-			name: "Options Template Record #258 with 3 field specifier",
-			arg: optionsTemplateRecord{
-				258, 3, 2, make([]fieldSpecifier, 3),
-			},
-			want: "options template record #258 (scope 2 fields of 3 fields)",
+			"Options Template Record #258 with 3 field specifier",
+			optionsTemplateRecord{258, 3, 2, make([]fieldSpecifier, 3)},
+			"options template record #258 (scope 2 fields of 3 fields)",
 		},
 		{
-			name: "Options Template Record #24 with 1 field specifier",
-			arg: optionsTemplateRecord{
-				24, 1, 1, make([]fieldSpecifier, 1),
-			},
-			want: "invalid options template record #24",
+			"Options Template Record #24 with 1 field specifier",
+			optionsTemplateRecord{24, 1, 1, make([]fieldSpecifier, 1)},
+			"invalid options template record #24",
 		},
 		{
-			name: "Options Template Record #384 with 0 scope fields",
-			arg: optionsTemplateRecord{
-				384, 1, 0, make([]fieldSpecifier, 1),
-			},
-			want: "invalid options template record #384",
+			"Options Template Record #384 with 0 scope fields",
+			optionsTemplateRecord{384, 1, 0, make([]fieldSpecifier, 1)},
+			"invalid options template record #384",
 		},
 		{
-			name: "Options Template Record #385 with 2 field specifier",
-			arg: optionsTemplateRecord{
-				385, 2, 3, make([]fieldSpecifier, 2),
-			},
-			want: "invalid options template record #385",
+			"Options Template Record #385 with 2 field specifier",
+			optionsTemplateRecord{385, 2, 3, make([]fieldSpecifier, 2)},
+			"invalid options template record #385",
 		},
 	}
 	for _, tt := range tests {
 		tt := tt // pin
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.arg.String(); got != tt.want {
+				t.Errorf("%v got %v, want %v", tt.name, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestOptionsTemplateRecord_Size(t *testing.T) {
+	tests := []struct {
+		name string
+		arg  optionsTemplateRecord
+		want int
+	}{
+		{
+			"Options Template Record #258 with 3 field specifier",
+			optionsTemplateRecord{258, 3, 2, make([]fieldSpecifier, 3)},
+			6 + 3*8,
+		},
+		{
+			"Options Template Record #24 with 1 field specifier",
+			optionsTemplateRecord{24, 1, 1, make([]fieldSpecifier, 1)},
+			6 + 8,
+		},
+		{
+			"Options Template Record #384 with 0 scope fields",
+			optionsTemplateRecord{384, 1, 0, make([]fieldSpecifier, 1)},
+			6 + 8,
+		},
+		{
+			"Options Template Record #385 with 2 field specifier",
+			optionsTemplateRecord{385, 2, 3, make([]fieldSpecifier, 2)},
+			6 + 2*8,
+		},
+	}
+	for _, tt := range tests {
+		tt := tt // pin
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.arg.Size(); got != tt.want {
 				t.Errorf("%v got %v, want %v", tt.name, got, tt.want)
 			}
 		})
