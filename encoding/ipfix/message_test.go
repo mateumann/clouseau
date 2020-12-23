@@ -311,7 +311,7 @@ func TestMessage_Unmarshal(t *testing.T) {
 		var m Message
 
 		t.Run(tt.name, func(t *testing.T) {
-			if _, err := m.Unmarshal(bytes.NewReader(tt.arg), &templates); !errors.Is(err, tt.err) {
+			if _, err := m.Unmarshal(bytes.NewReader(tt.arg), templates); !errors.Is(err, tt.err) {
 				t.Errorf("%v got error %v (%T), want %v", tt.name, err, err, tt.err)
 			}
 			if m.version != tt.want.version ||
@@ -370,7 +370,7 @@ func TestMessage_Unmarshal_OneSet(t *testing.T) {
 		var m Message
 
 		t.Run(tt.name, func(t *testing.T) {
-			n, err := m.Unmarshal(bytes.NewReader(tt.arg), &templates)
+			n, err := m.Unmarshal(bytes.NewReader(tt.arg), templates)
 			if !errors.Is(err, tt.err) {
 				t.Errorf("%v got error %v, want %v", tt.name, err, tt.err)
 			}
@@ -420,7 +420,7 @@ func TestMessage_UnmarshalDataTemplate(t *testing.T) {
 
 	var templates []*templateRecord
 
-	n, err := m.Unmarshal(bytes.NewReader(arg), &templates)
+	n, err := m.Unmarshal(bytes.NewReader(arg), templates)
 
 	if !errors.Is(err, nil) {
 		t.Errorf("Unmarshal data template got error %v, want %v", err, nil)
@@ -502,22 +502,27 @@ func TestSet_Unmarshal(t *testing.T) {
 		err  error
 	}{
 		{
-			name: "Set #3 with one optionTemplateSet",
-			arg:  []byte{0x00, 0x03, 0x00, 0x0e, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x0e, 0x00, 0x01},
-			want: set{3, 14, []interface{}{
+			"Set #2 with invalid optionTemplateSet",
+			[]byte{0x00, 0x03, 0x00, 0x0e, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x0e},
+			set{3, 14, []interface{}{}},
+			12,
+			io.EOF,
+		},
+		{
+			"Set #3 with one optionTemplateSet",
+			[]byte{0x00, 0x03, 0x00, 0x0e, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x0e, 0x00, 0x01},
+			set{3, 14, []interface{}{
 				optionsTemplateRecord{1, 1, 1, []fieldSpecifier{{
 					14, 1, 0,
 				}}},
 			}},
-			n:   14,
-			err: nil,
+			14, nil,
 		},
 		{
-			name: "Set #4 (invalid set type)",
-			arg:  []byte{0x00, 0x04, 0x00, 0x0e, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x0e, 0x00, 0x01},
-			want: set{4, 14, nil},
-			n:    4,
-			err:  errInvalidSetType,
+			"Set #4 (invalid set type)",
+			[]byte{0x00, 0x04, 0x00, 0x0e, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x0e, 0x00, 0x01},
+			set{4, 14, nil},
+			4, errInvalidSetType,
 		},
 	}
 
@@ -529,7 +534,7 @@ func TestSet_Unmarshal(t *testing.T) {
 		var s set
 
 		t.Run(tt.name, func(t *testing.T) {
-			n, err := s.Unmarshal(bytes.NewReader(tt.arg), &templates)
+			n, err := s.Unmarshal(bytes.NewReader(tt.arg), templates)
 			if !errors.Is(err, tt.err) {
 				t.Errorf("%v got error %v, want %v", tt.name, err, tt.err)
 			}

@@ -69,10 +69,6 @@ func (d *Decoder) Read(p []byte) (n int, err error) {
 		return 0, d.err
 	}
 
-	var m Message
-
-	n = 0
-
 	if d.buf == nil {
 		d.buf = make([]byte, len(p))
 		copy(d.buf, p)
@@ -81,6 +77,8 @@ func (d *Decoder) Read(p []byte) (n int, err error) {
 	}
 
 	r := bytes.NewReader(d.buf)
+
+	var m Message
 
 	nn, err := m.Unmarshal(r, d.templates)
 	d.buf = d.buf[nn:]
@@ -95,7 +93,28 @@ func (d *Decoder) Read(p []byte) (n int, err error) {
 		return n + nn, CorruptInputError{n + nn, errors.Unwrap(err)}
 	}
 
+	d.updateTemplates(m.sets)
+
 	n += nn
 
 	return n, nil
+}
+
+func (d *Decoder) updateTemplates(sets []set) {
+	for _, s := range sets {
+		switch s.setID {
+		case TemplateSetID:
+			for _, r := range s.records {
+				if template, ok := r.(templateRecord); ok {
+					d.templates = append(d.templates, &template)
+				}
+			}
+		case OptionsTemplateSetID:
+			for _, r := range s.records {
+				if template, ok := r.(optionsTemplateRecord); ok {
+					d.optionsTemplates = append(d.optionsTemplates, &template)
+				}
+			}
+		}
+	}
 }

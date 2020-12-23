@@ -323,64 +323,52 @@ func (s *set) Unmarshal(reader io.Reader, templates []*templateRecord) (n int, e
 		return n, err
 	}
 
-	bytesRead, err := s.unmarshalRecords(reader, templates)
-	n += bytesRead
-
-	if err != nil {
-		return n, err
-	}
-
-	return n, err
-}
-
-type unmarshallable interface {
-	Unmarshal(reader io.Reader, template *templateRecord) (n int, err error)
-}
-
-func (s *set) unmarshalRecords(reader io.Reader, templates []*templateRecord) (n int, err error) {
-	n = 0
-	for binary.Size(s.setID)+binary.Size(s.length)+n < int(s.length) {
-		var record unmarshallable
-		var template *templateRecord
+	for n < int(s.length) {
+		var bytesRead int
 
 		switch {
 		case s.setID == TemplateSetID:
-			var tr templateRecord
-			record = &tr
-			templates = append(templates, &tr)
-		case s.setID == OptionsTemplateSetID:
-			record = &optionsTemplateRecord{}
-		case s.setID >= MinimumDataSetID:
-			record = &dataRecord{}
+			var record templateRecord
+			bytesRead, err = record.Unmarshal(reader, nil)
 
-			if t, ok := getTemplate(s.setID, templates); ok {
-				template = t
+			if err != nil {
+				return n + bytesRead, UnmarshalError{err}
 			}
-		default:
-			return n, errInvalidSetType
-		}
 
-		bytesRead, err := record.Unmarshal(reader, template)
+			templates = append(templates, &record)
+
+			s.records = append(s.records, record)
+		case s.setID == OptionsTemplateSetID:
+			var record optionsTemplateRecord
+			bytesRead, err = record.Unmarshal(reader, nil)
+
+			if err != nil {
+				return n + bytesRead, UnmarshalError{err}
+			}
+
+			s.records = append(s.records, record)
+		case s.setID >= MinimumDataSetID:
+			var record dataRecord
+
+			if template, ok := getTemplate(s.setID, templates); ok {
+				bytesRead, err := record.Unmarshal(reader, template)
+				if err != nil {
+					return n + bytesRead, UnmarshalError{err}
+				}
+			} else {
+				return n + bytesRead, UnmarshalError{errTemplateNotDefined}
+			}
+
+			s.records = append(s.records, record)
+		default:
+			return n, UnmarshalError{errInvalidSetType}
+		}
 
 		n += bytesRead
-
-		if err != nil {
-			return n, UnmarshalError{err}
-		}
-
-		s.records = append(s.records, &record) // FIXME in case of dataRecord, record is empty []interface{} with len=1, cap=1
 	}
 
 	return n, nil
 }
-
-// func unmarshalRecord(reader io.Reader, record *unmarshallable, template *templateRecord) (n int, err error) {
-// 	if *record == nil {
-// 		return n, errInvalidSetType
-// 	}
-//
-// 	return (*record).Unmarshal(reader, template)
-// }
 
 func getTemplate(templateID uint16, templates []*templateRecord) (*templateRecord, bool) {
 	for _, template := range templates {
