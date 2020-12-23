@@ -93,9 +93,10 @@ func (d *Decoder) Read(p []byte) (n int, err error) {
 		return n + nn, CorruptInputError{n + nn, errors.Unwrap(err)}
 	}
 
-	d.updateTemplates(m.sets)
-
 	n += nn
+
+	d.updateTemplates(m.sets)
+	d.messages = append(d.messages, m)
 
 	return n, nil
 }

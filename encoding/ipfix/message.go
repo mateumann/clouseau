@@ -271,6 +271,11 @@ func (m *Message) Unmarshal(reader io.Reader, templates []*templateRecord) (n in
 	return n, err
 }
 
+// record describes one of three ipfix records.
+type record interface {
+	Size() int
+}
+
 // set describes a generic term for a collection of records that have a similar structure.  There are three different
 // types of set: template sets, options template sets, and data sets.  Each of these sets consists of a set header and
 // one or more records.  The exporting process may insert some padding octets, so that the subsequent set starts at an
@@ -279,7 +284,7 @@ func (m *Message) Unmarshal(reader io.Reader, templates []*templateRecord) (n in
 type set struct {
 	setID   uint16
 	length  uint16 // total length of the set, including set header, all records, and the optional padding; in octets
-	records []interface{}
+	records []record
 }
 
 // Set ID constants defining valid IPFIX set identifiers (or a minimum valid set id in case of MinimumDataSetID).
@@ -317,49 +322,60 @@ func (s *set) valid() bool {
 	return (s.setID == 2 || s.setID == 3 || s.setID >= 256) && s.length > 3
 }
 
+//nolint: nestif, gocognit
 // Unmarshal unmarshal a IPFIX Message.
 func (s *set) Unmarshal(reader io.Reader, templates []*templateRecord) (n int, err error) {
 	if n, err = unmarshalFields(reader, &s.setID, &s.length); err != nil {
 		return n, err
 	}
 
-	for n < int(s.length) {
-		var bytesRead int
+	var bytesRead int
 
+	for n < int(s.length) {
 		switch {
 		case s.setID == TemplateSetID:
-			var record templateRecord
-			bytesRead, err = record.Unmarshal(reader, nil)
+			var r templateRecord
+			bytesRead, err = r.Unmarshal(reader, nil)
 
 			if err != nil {
 				return n + bytesRead, UnmarshalError{err}
 			}
 
-			templates = append(templates, &record)
+			templates = append(templates, &r)
 
-			s.records = append(s.records, record)
+			s.records = append(s.records, r)
+
 		case s.setID == OptionsTemplateSetID:
-			var record optionsTemplateRecord
-			bytesRead, err = record.Unmarshal(reader, nil)
+			var r optionsTemplateRecord
+			bytesRead, err = r.Unmarshal(reader, nil)
 
 			if err != nil {
 				return n + bytesRead, UnmarshalError{err}
 			}
 
-			s.records = append(s.records, record)
+			s.records = append(s.records, r)
+
 		case s.setID >= MinimumDataSetID:
-			var record dataRecord
+			var r dataRecord
 
 			if template, ok := getTemplate(s.setID, templates); ok {
-				bytesRead, err := record.Unmarshal(reader, template)
+				bytesRead, err = r.Unmarshal(reader, template)
 				if err != nil {
-					return n + bytesRead, UnmarshalError{err}
+					if !errors.Is(err, io.ErrUnexpectedEOF) || len(s.records) < 1 || bytesRead >= smallestRecordSize(s.records) {
+						return n + bytesRead, UnmarshalError{err}
+					}
+					// read the rest of the padding
+					buf := make([]byte, int(s.length)-n)
+					if err := binary.Read(reader, binary.BigEndian, &buf); err != nil {
+						return n + len(buf), UnmarshalError{err}
+					}
+				} else {
+					s.records = append(s.records, r)
 				}
 			} else {
 				return n + bytesRead, UnmarshalError{errTemplateNotDefined}
 			}
 
-			s.records = append(s.records, record)
 		default:
 			return n, UnmarshalError{errInvalidSetType}
 		}
@@ -380,6 +396,17 @@ func getTemplate(templateID uint16, templates []*templateRecord) (*templateRecor
 	return nil, false
 }
 
+func smallestRecordSize(records []record) (n int) {
+	n = -1
+	for _, record := range records {
+		if n > record.Size() || n == -1 {
+			n = record.Size()
+		}
+	}
+
+	return n
+}
+
 // templateRecord contains any combination of InformationElement-s.
 // https://tools.ietf.org/html/rfc7011#section-3.4.1
 type templateRecord struct {
@@ -398,6 +425,11 @@ func (r *templateRecord) String() string {
 
 func (r *templateRecord) valid() bool {
 	return r.templateID >= 256 && r.fieldCount == uint16(len(r.fieldSpecifiers))
+}
+
+// Size returns a binary size of the templateRecord.
+func (r templateRecord) Size() int {
+	return binary.Size(r.templateID) + binary.Size(r.fieldCount) + binary.Size(r.fieldSpecifiers)
 }
 
 // Unmarshal unmarshal a IPFIX templateRecord.
@@ -446,6 +478,12 @@ func (r *optionsTemplateRecord) valid() bool {
 		r.scopeFieldCount <= r.fieldCount
 }
 
+// Size returns a binary size of the optionsTemplateRecord.
+func (r optionsTemplateRecord) Size() int {
+	return binary.Size(r.templateID) + binary.Size(r.fieldCount) + binary.Size(r.scopeFieldCount) +
+		binary.Size(r.fieldSpecifiers)
+}
+
 // Unmarshal unmarshal a IPFIX templateRecord.
 func (r *optionsTemplateRecord) Unmarshal(reader io.Reader, _ *templateRecord) (n int, err error) {
 	if n, err = unmarshalFields(reader, &r.templateID, &r.fieldCount, &r.scopeFieldCount); err != nil {
@@ -477,6 +515,16 @@ func (r *dataRecord) String() string {
 	return fmt.Sprintf("data record (%v)", fieldDescribed(uint16(len(r.fieldValues))))
 }
 
+// Size returns a binary size of the dataRecord.
+func (r dataRecord) Size() int {
+	n := 0
+	for _, v := range r.fieldValues {
+		n += binary.Size(v)
+	}
+
+	return n
+}
+
 // Unmarshal unmarshal a IPFIX dataRecord.
 func (r *dataRecord) Unmarshal(reader io.Reader, template *templateRecord) (n int, err error) {
 	if template == nil {
@@ -493,14 +541,14 @@ func (r *dataRecord) Unmarshal(reader io.Reader, template *templateRecord) (n in
 			return n, &UnmarshalError{err}
 		}
 
+		n += int(f.fieldLength)
+
 		elem, err := createValue(e, buf)
 		if err != nil {
 			return n, &UnmarshalError{err}
 		}
 
 		r.fieldValues = append(r.fieldValues, elem)
-
-		n += int(f.fieldLength)
 	}
 
 	return n, nil
@@ -535,6 +583,10 @@ func createValue(e InformationElement, data []byte) (r interface{}, err error) {
 }
 
 func fillUp(n int, data []byte) []byte {
+	if n <= len(data) {
+		return data
+	}
+
 	buf := make([]byte, n-len(data))
 
 	return append(buf, data...)

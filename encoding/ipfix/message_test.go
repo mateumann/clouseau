@@ -223,7 +223,7 @@ func TestMessage_String(t *testing.T) {
 			name: "A Message with one template set",
 			arg: Message{
 				0x000a, 296, 0x5ee715b1, 0, 0,
-				[]set{{2, 280, make([]interface{}, 2)}},
+				[]set{{2, 280, make([]record, 2)}},
 			},
 			want: "Message 10 (296 octets, 2020-06-15T06:31:13Z, 0, 0) 1 set",
 		},
@@ -231,7 +231,7 @@ func TestMessage_String(t *testing.T) {
 			name: "A Message with one data set",
 			arg: Message{
 				0x000a, 412, 0x5ee7163d, 195, 0,
-				[]set{{259, 396, make([]interface{}, 1)}},
+				[]set{{259, 396, make([]record, 1)}},
 			},
 			want: "Message 10 (412 octets, 2020-06-15T06:33:33Z, 195, 0) 1 set",
 		},
@@ -399,7 +399,7 @@ func TestMessage_UnmarshalDataTemplate(t *testing.T) {
 		0x000a, 56, 0x5ee71626, 168, 0,
 		[]set{
 			{
-				2, 40, []interface{}{
+				2, 40, []record{
 					templateRecord{258, 5, []fieldSpecifier{
 						{60, 1, 0},
 						{22, 4, 0},
@@ -454,34 +454,10 @@ func TestSet_String(t *testing.T) {
 		arg  set
 		want string
 	}{
-		{
-			name: "Template Set with 1 record",
-			arg: set{
-				2, 16, make([]interface{}, 1),
-			},
-			want: "template set (16 octets) 1 record",
-		},
-		{
-			name: "Options Template Set with 2 record",
-			arg: set{
-				3, 24, make([]interface{}, 2),
-			},
-			want: "options template set (24 octets) 2 records",
-		},
-		{
-			name: "Data Set with 1 record",
-			arg: set{
-				258, 16, make([]interface{}, 1),
-			},
-			want: "data set (16 octets) 1 record",
-		},
-		{
-			name: "Invalid Set",
-			arg: set{
-				24, 16, make([]interface{}, 1),
-			},
-			want: "invalid set #24",
-		},
+		{"Template Set with 1 record", set{2, 16, make([]record, 1)}, "template set (16 octets) 1 record"},
+		{"Options Template Set with 2 record", set{3, 24, make([]record, 2)}, "options template set (24 octets) 2 records"},
+		{"Data Set with 1 record", set{258, 16, make([]record, 1)}, "data set (16 octets) 1 record"},
+		{"Invalid Set", set{24, 16, make([]record, 1)}, "invalid set #24"},
 	}
 	for _, tt := range tests {
 		tt := tt // pin
@@ -504,14 +480,14 @@ func TestSet_Unmarshal(t *testing.T) {
 		{
 			"Set #2 with invalid optionTemplateSet",
 			[]byte{0x00, 0x03, 0x00, 0x0e, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x0e},
-			set{3, 14, []interface{}{}},
+			set{3, 14, []record{}},
 			12,
 			io.EOF,
 		},
 		{
 			"Set #3 with one optionTemplateSet",
 			[]byte{0x00, 0x03, 0x00, 0x0e, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x0e, 0x00, 0x01},
-			set{3, 14, []interface{}{
+			set{3, 14, []record{
 				optionsTemplateRecord{1, 1, 1, []fieldSpecifier{{
 					14, 1, 0,
 				}}},
@@ -557,32 +533,24 @@ func TestTemplateRecord_String(t *testing.T) {
 		want string
 	}{
 		{
-			name: "Template Record #258 with 1 field specifier",
-			arg: templateRecord{
-				258, 1, make([]fieldSpecifier, 1),
-			},
-			want: "template record #258 (1 field)",
+			"Template Record #258 with 1 field specifier",
+			templateRecord{258, 1, make([]fieldSpecifier, 1)},
+			"template record #258 (1 field)",
 		},
 		{
-			name: "Template Record #259 with 19 field specifiers",
-			arg: templateRecord{
-				259, 19, make([]fieldSpecifier, 19),
-			},
-			want: "template record #259 (19 fields)",
+			"Template Record #259 with 19 field specifiers",
+			templateRecord{259, 19, make([]fieldSpecifier, 19)},
+			"template record #259 (19 fields)",
 		},
 		{
-			name: "Template Record #260 with 0 field specifiers",
-			arg: templateRecord{
-				260, 0, make([]fieldSpecifier, 0),
-			},
-			want: "template record #260 (0 fields)",
+			"Template Record #260 with 0 field specifiers",
+			templateRecord{260, 0, make([]fieldSpecifier, 0)},
+			"template record #260 (0 fields)",
 		},
 		{
-			name: "Template Record #24 with 1 field specifier",
-			arg: templateRecord{
-				24, 1, make([]fieldSpecifier, 1),
-			},
-			want: "invalid template record #24",
+			"Template Record #24 with 1 field specifier",
+			templateRecord{24, 1, make([]fieldSpecifier, 1)},
+			"invalid template record #24",
 		},
 	}
 	for _, tt := range tests {
@@ -874,7 +842,7 @@ func TestDataRecord_Unmarshal(t *testing.T) {
 			1, nil,
 		},
 		{"nil template", []byte{0x06, 0x00}, nil, dataRecord{}, 0, errTemplateNotDefined},
-		{"invalid template", []byte{0x01}, templates[1], dataRecord{}, 0, errUnmarshalError},
+		{"invalid template", []byte{0x01}, templates[1], dataRecord{}, 1, errUnmarshalError},
 	}
 	for _, tt := range tests {
 		tt := tt // pin
