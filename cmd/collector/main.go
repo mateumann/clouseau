@@ -41,7 +41,7 @@ func main() {
 		_, err = decoder.Read(buf)
 		// err = message.UnmarshalBinary(bytes.NewReader(buf), templates)
 		if err != nil {
-			log.Print(fmt.Sprintf("%v\n", err)) //nolint:gocritic
+			log.Print(fmt.Sprintf("%v\n", err))
 		}
 
 		fmt.Printf("%v\n", decoder)
