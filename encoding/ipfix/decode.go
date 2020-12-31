@@ -101,14 +101,14 @@ func (d *Decoder) updateTemplates(sets []set) {
 		switch s.setID {
 		case TemplateSetID:
 			for _, r := range s.records {
-				if template, ok := r.(templateRecord); ok {
-					d.templates = append(d.templates, &template)
+				if template, ok := r.(*templateRecord); ok {
+					d.templates = append(d.templates, template)
 				}
 			}
 		case OptionsTemplateSetID:
 			for _, r := range s.records {
-				if template, ok := r.(optionsTemplateRecord); ok {
-					d.optionsTemplates = append(d.optionsTemplates, &template)
+				if template, ok := r.(*optionsTemplateRecord); ok {
+					d.optionsTemplates = append(d.optionsTemplates, template)
 				}
 			}
 		}

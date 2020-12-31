@@ -274,6 +274,7 @@ func (m *Message) Unmarshal(reader io.Reader, templates []*templateRecord) (n in
 // record describes one of three ipfix records.
 type record interface {
 	Size() int
+	Unmarshal(io.Reader, *templateRecord) (int, error)
 }
 
 // set describes a generic term for a collection of records that have a similar structure.  There are three different
@@ -334,19 +335,19 @@ func (s *set) Unmarshal(reader io.Reader, templates []*templateRecord) (n int, e
 	for n < int(s.length) {
 		switch {
 		case s.setID == TemplateSetID:
-			var r templateRecord
+			r := &templateRecord{}
 			bytesRead, err = r.Unmarshal(reader, nil)
 
 			if err != nil {
 				return n + bytesRead, UnmarshalError{err}
 			}
 
-			templates = append(templates, &r)
-
 			s.records = append(s.records, r)
 
+			templates = append(templates, r)
+
 		case s.setID == OptionsTemplateSetID:
-			var r optionsTemplateRecord
+			r := &optionsTemplateRecord{}
 			bytesRead, err = r.Unmarshal(reader, nil)
 
 			if err != nil {
@@ -356,12 +357,14 @@ func (s *set) Unmarshal(reader io.Reader, templates []*templateRecord) (n int, e
 			s.records = append(s.records, r)
 
 		case s.setID >= MinimumDataSetID:
-			var r dataRecord
+			r := &dataRecord{}
 
 			if template, ok := getTemplate(s.setID, templates); ok {
 				bytesRead, err = r.Unmarshal(reader, template)
 				if err != nil {
-					if !errors.Is(err, io.ErrUnexpectedEOF) || len(s.records) < 1 || bytesRead >= smallestRecordSize(s.records) {
+					if !errors.Is(err, io.ErrUnexpectedEOF) ||
+						len(s.records) < 1 ||
+						bytesRead >= smallestRecordSize(s.records) {
 						return n + bytesRead, UnmarshalError{err}
 					}
 					// read the rest of the padding

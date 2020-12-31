@@ -400,14 +400,14 @@ func TestMessage_UnmarshalDataTemplate(t *testing.T) {
 		[]set{
 			{
 				2, 40, []record{
-					templateRecord{258, 5, []fieldSpecifier{
+					&templateRecord{258, 5, []fieldSpecifier{
 						{60, 1, 0},
 						{22, 4, 0},
 						{21, 4, 0},
 						{2, 4, 0},
 						{1, 4, 0},
 					}},
-					templateRecord{259, 2, []fieldSpecifier{
+					&templateRecord{259, 2, []fieldSpecifier{
 						{6, 1, 0},
 						{80, 6, 0},
 					}},
@@ -488,7 +488,7 @@ func TestSet_Unmarshal(t *testing.T) {
 			"Set #3 with one optionTemplateSet",
 			[]byte{0x00, 0x03, 0x00, 0x0e, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x0e, 0x00, 0x01},
 			set{3, 14, []record{
-				optionsTemplateRecord{1, 1, 1, []fieldSpecifier{{
+				&optionsTemplateRecord{1, 1, 1, []fieldSpecifier{{
 					14, 1, 0,
 				}}},
 			}},
