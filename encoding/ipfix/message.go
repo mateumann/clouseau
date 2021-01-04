@@ -262,6 +262,14 @@ func (m *Message) Unmarshal(reader io.Reader, templates []*templateRecord) (n in
 		n += bytesRead
 
 		if err != nil {
+			if errors.Is(errors.Unwrap(err), io.ErrUnexpectedEOF) && (int(s.length) > bytesRead) {
+				// assume s.Unmarshal failed to read a record which was actually a padding
+				buf := make([]byte, int(s.length)-bytesRead)
+				if err := binary.Read(reader, binary.BigEndian, &buf); err != nil {
+					return n + len(buf), UnmarshalError{err}
+				}
+			}
+
 			return n, err
 		}
 

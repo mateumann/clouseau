@@ -311,7 +311,7 @@ func TestMessage_Unmarshal(t *testing.T) {
 		var m Message
 
 		t.Run(tt.name, func(t *testing.T) {
-			if _, err := m.Unmarshal(bytes.NewReader(tt.arg), templates); !errors.Is(err, tt.err) {
+			if _, err := m.Unmarshal(bytes.NewReader(tt.arg), templates); !errors.Is(errors.Unwrap(err), tt.err) {
 				t.Errorf("%v got error %v (%T), want %v", tt.name, err, err, tt.err)
 			}
 			if m.version != tt.want.version ||
@@ -371,7 +371,7 @@ func TestMessage_Unmarshal_OneSet(t *testing.T) {
 
 		t.Run(tt.name, func(t *testing.T) {
 			n, err := m.Unmarshal(bytes.NewReader(tt.arg), templates)
-			if !errors.Is(err, tt.err) {
+			if !errors.Is(errors.Unwrap(err), tt.err) {
 				t.Errorf("%v got error %v, want %v", tt.name, err, tt.err)
 			}
 			if n != tt.n {
