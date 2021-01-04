@@ -335,32 +335,26 @@ func (s *set) Unmarshal(reader io.Reader, templates []*templateRecord) (n int, e
 	for n < int(s.length) {
 		switch {
 		case s.setID == TemplateSetID:
-			r := &templateRecord{}
-			bytesRead, err = r.Unmarshal(reader, nil)
+			bytesRead, err = s.unmarshalTemplateRecord(reader)
 
 			if err != nil {
 				return n + bytesRead, UnmarshalError{err}
 			}
 
-			s.records = append(s.records, r)
-
-			templates = append(templates, r)
+			templates = append(templates, s.records[len(s.records)-1].(*templateRecord))
 
 		case s.setID == OptionsTemplateSetID:
-			r := &optionsTemplateRecord{}
-			bytesRead, err = r.Unmarshal(reader, nil)
+			bytesRead, err = s.unmarshalOptionsTemplateRecord(reader)
 
 			if err != nil {
 				return n + bytesRead, UnmarshalError{err}
 			}
 
-			s.records = append(s.records, r)
-
 		case s.setID >= MinimumDataSetID:
-			r := &dataRecord{}
-
 			if template, ok := getTemplate(s.setID, templates); ok {
+				r := &dataRecord{}
 				bytesRead, err = r.Unmarshal(reader, template)
+
 				if err != nil {
 					if !errors.Is(err, io.ErrUnexpectedEOF) ||
 						len(s.records) < 1 ||
@@ -385,6 +379,32 @@ func (s *set) Unmarshal(reader io.Reader, templates []*templateRecord) (n int, e
 
 		n += bytesRead
 	}
+
+	return n, nil
+}
+
+func (s *set) unmarshalTemplateRecord(reader io.Reader) (n int, err error) {
+	r := &templateRecord{}
+	n, err = r.Unmarshal(reader, nil)
+
+	if err != nil {
+		return n, err
+	}
+
+	s.records = append(s.records, r)
+
+	return n, nil
+}
+
+func (s *set) unmarshalOptionsTemplateRecord(reader io.Reader) (n int, err error) {
+	r := &optionsTemplateRecord{}
+	n, err = r.Unmarshal(reader, nil)
+
+	if err != nil {
+		return n, err
+	}
+
+	s.records = append(s.records, r)
 
 	return n, nil
 }
