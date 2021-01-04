@@ -323,7 +323,6 @@ func (s *set) valid() bool {
 	return (s.setID == 2 || s.setID == 3 || s.setID >= 256) && s.length > 3
 }
 
-//nolint: nestif, gocognit
 // Unmarshal unmarshal a IPFIX Message.
 func (s *set) Unmarshal(reader io.Reader, templates []*templateRecord) (n int, err error) {
 	if n, err = unmarshalFields(reader, &s.setID, &s.length); err != nil {
@@ -352,22 +351,10 @@ func (s *set) Unmarshal(reader io.Reader, templates []*templateRecord) (n int, e
 
 		case s.setID >= MinimumDataSetID:
 			if template, ok := getTemplate(s.setID, templates); ok {
-				r := &dataRecord{}
-				bytesRead, err = r.Unmarshal(reader, template)
+				bytesRead, err = s.unmarshalDataRecord(reader, template)
 
 				if err != nil {
-					if !errors.Is(err, io.ErrUnexpectedEOF) ||
-						len(s.records) < 1 ||
-						bytesRead >= smallestRecordSize(s.records) {
-						return n + bytesRead, UnmarshalError{err}
-					}
-					// read the rest of the padding
-					buf := make([]byte, int(s.length)-n)
-					if err := binary.Read(reader, binary.BigEndian, &buf); err != nil {
-						return n + len(buf), UnmarshalError{err}
-					}
-				} else {
-					s.records = append(s.records, r)
+					return n + bytesRead, UnmarshalError{err}
 				}
 			} else {
 				return n + bytesRead, UnmarshalError{errTemplateNotDefined}
@@ -419,15 +406,17 @@ func getTemplate(templateID uint16, templates []*templateRecord) (*templateRecor
 	return nil, false
 }
 
-func smallestRecordSize(records []record) (n int) {
-	n = -1
-	for _, record := range records {
-		if n > record.Size() || n == -1 {
-			n = record.Size()
-		}
+func (s *set) unmarshalDataRecord(reader io.Reader, template *templateRecord) (n int, err error) {
+	r := &dataRecord{}
+	n, err = r.Unmarshal(reader, template)
+
+	if err != nil {
+		return n, err
 	}
 
-	return n
+	s.records = append(s.records, r)
+
+	return n, nil
 }
 
 // templateRecord contains any combination of InformationElement-s.
