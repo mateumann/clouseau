@@ -816,6 +816,29 @@ func TestDataRecord_String(t *testing.T) {
 	}
 }
 
+func TestDataRecord_Size(t *testing.T) {
+	tests := []struct {
+		name string
+		arg  dataRecord
+		want int
+	}{
+		{
+			"Data Record with 3 integers",
+			dataRecord{[]interface{}{1, 2, 3}},
+			3 * 8,
+		},
+	}
+	for _, tt := range tests {
+		tt := tt // pin
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.arg.Size(); got != tt.want {
+				t.Errorf("%v got %v, want %v", tt.name, got, tt.want)
+			}
+		})
+	}
+}
+
+
 func TestGetTemplate(t *testing.T) {
 	template1 := templateRecord{
 		templateID:      258,

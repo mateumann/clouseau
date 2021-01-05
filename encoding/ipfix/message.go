@@ -550,7 +550,7 @@ func (r *dataRecord) String() string {
 func (r dataRecord) Size() int {
 	n := 0
 	for _, v := range r.fieldValues {
-		n += binary.Size(v)
+		n += int(reflect.ValueOf(v).Type().Size())
 	}
 
 	return n
