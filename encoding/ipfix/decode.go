@@ -90,14 +90,16 @@ func (d *Decoder) Read(p []byte) (n int, err error) {
 		return n, CorruptInputError{n, errors.Unwrap(err)}
 	}
 
-	d.messages = append(d.messages, m)
-	d.updateDecoderTemplates(m.sets)
+	d.appendMessage(m)
 
 	return n, nil
 }
 
-func (d *Decoder) updateDecoderTemplates(sets []set) {
-	for _, s := range sets {
+func (d *Decoder) appendMessage(m Message) {
+	d.messages = append(d.messages, m)
+
+	// update decoder's templates (which mill be used to decode new messages)
+	for _, s := range m.sets {
 		switch s.setID {
 		case TemplateSetID:
 			d.updateTemplates(s.records)
