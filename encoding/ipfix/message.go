@@ -344,28 +344,18 @@ func (s *set) Unmarshal(reader io.Reader, templates []*templateRecord) (n int, e
 		case s.setID == TemplateSetID:
 			bytesRead, err = s.unmarshalTemplateRecord(reader)
 
-			if err != nil {
-				return n + bytesRead, UnmarshalError{err}
+			if err == nil {
+				templates = append(templates, s.records[len(s.records)-1].(*templateRecord))
 			}
-
-			templates = append(templates, s.records[len(s.records)-1].(*templateRecord))
 
 		case s.setID == OptionsTemplateSetID:
 			bytesRead, err = s.unmarshalOptionsTemplateRecord(reader)
 
-			if err != nil {
-				return n + bytesRead, UnmarshalError{err}
-			}
-
 		case s.setID >= MinimumDataSetID:
 			if template, ok := getTemplate(s.setID, templates); ok {
 				bytesRead, err = s.unmarshalDataRecord(reader, template)
-
-				if err != nil {
-					return n + bytesRead, UnmarshalError{err}
-				}
 			} else {
-				return n + bytesRead, UnmarshalError{errTemplateNotDefined}
+				return n, UnmarshalError{errTemplateNotDefined}
 			}
 
 		default:
@@ -373,6 +363,10 @@ func (s *set) Unmarshal(reader io.Reader, templates []*templateRecord) (n int, e
 		}
 
 		n += bytesRead
+
+		if err != nil {
+			return n, UnmarshalError{err}
+		}
 	}
 
 	return n, nil
