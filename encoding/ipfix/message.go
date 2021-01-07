@@ -124,7 +124,7 @@ var errInvalidSetType = errors.New("invalid set type")
 
 var errTemplateNotDefined = errors.New("template not defined")
 
-var errUnmarshalError = errors.New("unmarshal error")
+// var errUnmarshalError = errors.New("unmarshal error")
 
 // type errUnhandledKind struct {
 // 	kind reflect.Kind
@@ -563,10 +563,7 @@ func (r *dataRecord) Unmarshal(reader io.Reader, template *templateRecord) (n in
 
 		n += int(f.fieldLength)
 
-		elem, err := createValue(e, buf)
-		if err != nil {
-			return n, &UnmarshalError{err}
-		}
+		elem := createValue(e, buf)
 
 		r.fieldValues = append(r.fieldValues, elem)
 	}
@@ -575,31 +572,27 @@ func (r *dataRecord) Unmarshal(reader io.Reader, template *templateRecord) (n in
 }
 
 // nolint: exhaustive, gomnd
-func createValue(e InformationElement, data []byte) (r interface{}, err error) {
+func createValue(e InformationElement, data []byte) interface{} {
 	switch e.dataType {
 	case reflect.Bool:
-		return data[0] != 0, nil
+		return data[0] != 0
 	case reflect.Int32:
-		return int32(binary.BigEndian.Uint32(fillUp(4, data))), nil
+		return int32(binary.BigEndian.Uint32(fillUp(4, data)))
 	case reflect.Uint8:
-		return data[0], nil
+		return data[0]
 	case reflect.Uint16:
-		return binary.BigEndian.Uint16(fillUp(2, data)), nil
+		return binary.BigEndian.Uint16(fillUp(2, data))
 	case reflect.Uint32:
-		return binary.BigEndian.Uint32(fillUp(4, data)), nil
+		return binary.BigEndian.Uint32(fillUp(4, data))
 	case reflect.Uint64:
-		return binary.BigEndian.Uint64(fillUp(8, data)), nil
+		return binary.BigEndian.Uint64(fillUp(8, data))
 	case reflect.Float64:
-		return math.Float64frombits(binary.BigEndian.Uint64(fillUp(8, data))), nil
+		return math.Float64frombits(binary.BigEndian.Uint64(fillUp(8, data)))
 	case reflect.String:
-		return string(data), nil
-	case reflect.Array:
-		return data, nil
-	case reflect.Slice:
-		return data, nil
-	default:
-		return nil, errUnmarshalError
+		return string(data)
 	}
+
+	return data
 }
 
 func fillUp(n int, data []byte) []byte {
