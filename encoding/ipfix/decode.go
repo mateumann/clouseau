@@ -90,27 +90,35 @@ func (d *Decoder) Read(p []byte) (n int, err error) {
 		return n, CorruptInputError{n, errors.Unwrap(err)}
 	}
 
-	d.updateTemplates(m.sets)
 	d.messages = append(d.messages, m)
+	d.updateDecoderTemplates(m.sets)
 
 	return n, nil
 }
 
-func (d *Decoder) updateTemplates(sets []set) {
+func (d *Decoder) updateDecoderTemplates(sets []set) {
 	for _, s := range sets {
 		switch s.setID {
 		case TemplateSetID:
-			for _, r := range s.records {
-				if template, ok := r.(*templateRecord); ok {
-					d.templates = append(d.templates, template)
-				}
-			}
+			d.updateTemplates(s.records)
 		case OptionsTemplateSetID:
-			for _, r := range s.records {
-				if template, ok := r.(*optionsTemplateRecord); ok {
-					d.optionsTemplates = append(d.optionsTemplates, template)
-				}
-			}
+			d.updateOptionsTemplates(s.records)
+		}
+	}
+}
+
+func (d *Decoder) updateTemplates(records []record) {
+	for _, r := range records {
+		if template, ok := r.(*templateRecord); ok {
+			d.templates = append(d.templates, template)
+		}
+	}
+}
+
+func (d *Decoder) updateOptionsTemplates(records []record) {
+	for _, r := range records {
+		if template, ok := r.(*optionsTemplateRecord); ok {
+			d.optionsTemplates = append(d.optionsTemplates, template)
 		}
 	}
 }

@@ -838,7 +838,6 @@ func TestDataRecord_Size(t *testing.T) {
 	}
 }
 
-
 func TestGetTemplate(t *testing.T) {
 	template1 := templateRecord{
 		templateID:      258,
