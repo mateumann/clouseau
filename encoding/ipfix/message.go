@@ -319,12 +319,7 @@ func (s *set) String() string {
 		setGenre = "data set"
 	}
 
-	recordsDescription := "records"
-	if len(s.records) == 1 {
-		recordsDescription = "record"
-	}
-
-	return fmt.Sprintf("%v (%v octets) %v %v", setGenre, s.length, len(s.records), recordsDescription)
+	return fmt.Sprintf("%v (%v octets) %v", setGenre, s.length, intDescribed(len(s.records), "record", "records"))
 }
 
 func (s *set) valid() bool {
