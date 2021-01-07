@@ -579,7 +579,7 @@ func (r *dataRecord) Unmarshal(reader io.Reader, template *templateRecord) (n in
 	return n, nil
 }
 
-// nolint: exhaustive, gomnd
+// : exhaustive, gomnd
 func createValue(e InformationElement, data []byte) (r interface{}, err error) {
 	switch e.dataType {
 	case reflect.Bool:
