@@ -2,23 +2,19 @@ package ipfix
 
 import (
 	"bytes"
-	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
+	"net"
 )
 
-// decoder represents IPFIX flow already received by the collecting process.
-type decoder struct {
-	err error
-	// r                io.Reader
-	// buf              []byte // leftover input
-	buf []byte // leftover decoded output
-	// messages         []Message
-	// data             []*dataRecord
-	// templates        []*templateRecord
-	// optionsTemplates []*optionsTemplateRecord
-}
+const (
+	// NoSpecificObservationDomainID represents no specific observation domain id relevant for the entire IPFIX Message
+	// e.g. when exporting the Exporting Process Statistics, or in the case of a hierarchy of Collectors when
+	// aggregated Data Records are exported.
+	NoSpecificObservationDomainID = 0
+	initialDecoderBufSize         = 2048
+)
 
 // CorruptInputError describes an error in input data.
 type CorruptInputError struct {
@@ -35,17 +31,43 @@ func (e CorruptInputError) Unwrap() error {
 	return e.err
 }
 
-// Write decodes a IPFIX Message(s) from p buffer (implements a io.Writer interface).
-func (d *decoder) Write(p []byte) (n int, err error) {
+// Decoder represents IPFIX flow already received by the collecting process.
+type Decoder struct {
+	source              *net.UDPAddr
+	observationDomainID uint32
+	err                 error
+	buf                 []byte // leftover decoded output
+	messages            []Message
+	data                []*dataRecord
+	templates           []*templateRecord
+	optionsTemplates    []*optionsTemplateRecord
+	// r                io.Reader
+}
+
+func (d *Decoder) String() string {
+	return fmt.Sprintf("Decoder (%s, %d): %s", d.source, d.observationDomainID,
+		intDescribed(len(d.messages), "message", "messages"))
+}
+
+// NewDecoder initializes a Decoder with provided source (net.UDPAddr) and default values of other parameters.
+func NewDecoder(s *net.UDPAddr) *Decoder {
+	return &Decoder{
+		source:              s,
+		observationDomainID: NoSpecificObservationDomainID,
+		err:                 nil,
+		buf:                 make([]byte, initialDecoderBufSize),
+		messages:            make([]Message, 0),
+		data:                make([]*dataRecord, 0),
+		templates:           make([]*templateRecord, 0),
+		optionsTemplates:    make([]*optionsTemplateRecord, 0),
+	}
+}
+
+// Read decodes a IPFIX Message(s) from p buffer.
+func (d *Decoder) Read(p []byte) (n int, err error) {
 	if d.err != nil {
 		return 0, d.err
 	}
-
-	var m Message
-
-	var nn int
-
-	n = 0
 
 	if d.buf == nil {
 		d.buf = make([]byte, len(p))
@@ -56,34 +78,49 @@ func (d *decoder) Write(p []byte) (n int, err error) {
 
 	r := bytes.NewReader(d.buf)
 
-	if nn, err = d.fetchElements(r,
-		&m.version, &m.length, &m.exportTime, &m.sequenceNumber, &m.observationDomainID); err != nil {
-		if errors.Is(errors.Unwrap(err), io.EOF) {
-			return n + nn, nil
-		}
+	var m Message
 
+	nn, err := m.Unmarshal(r, d.templates)
+	d.buf = d.buf[nn:]
+	n += nn
+
+	if err != nil && !errors.Is(errors.Unwrap(err), io.EOF) {
 		d.err = err
 
-		return n + nn, CorruptInputError{n + nn, errors.Unwrap(err)}
+		return n, CorruptInputError{n, errors.Unwrap(err)}
 	}
 
-	n += nn
+	d.appendMessage(m)
 
 	return n, nil
 }
 
-func (d *decoder) fetchElements(r io.Reader, data ...interface{}) (n int, err error) {
-	n = 0
+func (d *Decoder) appendMessage(m Message) {
+	d.messages = append(d.messages, m)
 
-	for _, elem := range data {
-		if err := binary.Read(r, binary.BigEndian, elem); err != nil {
-			return n, CorruptInputError{n + 1, err}
+	// update decoder's templates (which mill be used to decode new messages)
+	for _, s := range m.sets {
+		switch s.setID {
+		case TemplateSetID:
+			d.updateTemplates(s.records)
+		case OptionsTemplateSetID:
+			d.updateOptionsTemplates(s.records)
 		}
-
-		nn := binary.Size(elem)
-		d.buf = d.buf[nn:]
-		n += nn
 	}
+}
 
-	return n, nil
+func (d *Decoder) updateTemplates(records []record) {
+	for _, r := range records {
+		if template, ok := r.(*templateRecord); ok {
+			d.templates = append(d.templates, template)
+		}
+	}
+}
+
+func (d *Decoder) updateOptionsTemplates(records []record) {
+	for _, r := range records {
+		if template, ok := r.(*optionsTemplateRecord); ok {
+			d.optionsTemplates = append(d.optionsTemplates, template)
+		}
+	}
 }

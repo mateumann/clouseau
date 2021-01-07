@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"math/big"
+	"reflect"
 	"testing"
 	"time"
 )
@@ -222,7 +223,7 @@ func TestMessage_String(t *testing.T) {
 			name: "A Message with one template set",
 			arg: Message{
 				0x000a, 296, 0x5ee715b1, 0, 0,
-				[]set{{2, 280, make([]interface{}, 2)}},
+				[]set{{2, 280, make([]record, 2)}},
 			},
 			want: "Message 10 (296 octets, 2020-06-15T06:31:13Z, 0, 0) 1 set",
 		},
@@ -230,7 +231,7 @@ func TestMessage_String(t *testing.T) {
 			name: "A Message with one data set",
 			arg: Message{
 				0x000a, 412, 0x5ee7163d, 195, 0,
-				[]set{{259, 396, make([]interface{}, 1)}},
+				[]set{{259, 396, make([]record, 1)}},
 			},
 			want: "Message 10 (412 octets, 2020-06-15T06:33:33Z, 195, 0) 1 set",
 		},
@@ -301,13 +302,16 @@ func TestMessage_Unmarshal(t *testing.T) {
 			err:  io.ErrUnexpectedEOF,
 		},
 	}
+
+	var templates []*templateRecord
+
 	for _, tt := range tests {
 		tt := tt // pin
 
 		var m Message
 
 		t.Run(tt.name, func(t *testing.T) {
-			if err := m.UnmarshalBinary(tt.arg); !errors.Is(err, tt.err) {
+			if _, err := m.Unmarshal(bytes.NewReader(tt.arg), templates); !errors.Is(errors.Unwrap(err), tt.err) {
 				t.Errorf("%v got error %v (%T), want %v", tt.name, err, err, tt.err)
 			}
 			if m.version != tt.want.version ||
@@ -357,14 +361,17 @@ func TestMessage_Unmarshal_OneSet(t *testing.T) {
 			err: io.ErrUnexpectedEOF,
 		},
 	}
+
+	var templates []*templateRecord
+
 	for _, tt := range tests {
 		tt := tt // pin
 
 		var m Message
 
 		t.Run(tt.name, func(t *testing.T) {
-			n, err := m.Unmarshal(bytes.NewReader(tt.arg))
-			if !errors.Is(err, tt.err) {
+			n, err := m.Unmarshal(bytes.NewReader(tt.arg), templates)
+			if !errors.Is(errors.Unwrap(err), tt.err) {
 				t.Errorf("%v got error %v, want %v", tt.name, err, tt.err)
 			}
 			if n != tt.n {
@@ -392,15 +399,15 @@ func TestMessage_UnmarshalDataTemplate(t *testing.T) {
 		0x000a, 56, 0x5ee71626, 168, 0,
 		[]set{
 			{
-				2, 40, []interface{}{
-					templateRecord{258, 5, []fieldSpecifier{
+				2, 40, []record{
+					&templateRecord{258, 5, []fieldSpecifier{
 						{60, 1, 0},
 						{22, 4, 0},
 						{21, 4, 0},
 						{2, 4, 0},
 						{1, 4, 0},
 					}},
-					templateRecord{259, 2, []fieldSpecifier{
+					&templateRecord{259, 2, []fieldSpecifier{
 						{6, 1, 0},
 						{80, 6, 0},
 					}},
@@ -411,7 +418,9 @@ func TestMessage_UnmarshalDataTemplate(t *testing.T) {
 
 	var m Message
 
-	n, err := m.Unmarshal(bytes.NewReader(arg))
+	var templates []*templateRecord
+
+	n, err := m.Unmarshal(bytes.NewReader(arg), templates)
 
 	if !errors.Is(err, nil) {
 		t.Errorf("Unmarshal data template got error %v, want %v", err, nil)
@@ -445,34 +454,10 @@ func TestSet_String(t *testing.T) {
 		arg  set
 		want string
 	}{
-		{
-			name: "Template Set with 1 record",
-			arg: set{
-				2, 16, make([]interface{}, 1),
-			},
-			want: "template set (16 octets) 1 record",
-		},
-		{
-			name: "Options Template Set with 2 record",
-			arg: set{
-				3, 24, make([]interface{}, 2),
-			},
-			want: "options template set (24 octets) 2 records",
-		},
-		{
-			name: "Data Set with 1 record",
-			arg: set{
-				258, 16, make([]interface{}, 1),
-			},
-			want: "data set (16 octets) 1 record",
-		},
-		{
-			name: "Invalid Set",
-			arg: set{
-				24, 16, make([]interface{}, 1),
-			},
-			want: "invalid set #24",
-		},
+		{"Template Set with 1 record", set{2, 16, make([]record, 1)}, "template set (16 octets) 1 record"},
+		{"Options Template Set with 2 record", set{3, 24, make([]record, 2)}, "options template set (24 octets) 2 records"},
+		{"Data Set with 1 record", set{258, 16, make([]record, 1)}, "data set (16 octets) 1 record"},
+		{"Invalid Set", set{24, 16, make([]record, 1)}, "invalid set #24"},
 	}
 	for _, tt := range tests {
 		tt := tt // pin
@@ -493,31 +478,39 @@ func TestSet_Unmarshal(t *testing.T) {
 		err  error
 	}{
 		{
-			name: "Set #3 with one optionTemplateSet",
-			arg:  []byte{0x00, 0x03, 0x00, 0x0e, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x0e, 0x00, 0x01},
-			want: set{3, 14, []interface{}{
-				optionsTemplateRecord{1, 1, 1, []fieldSpecifier{{
+			"Set #2 with invalid optionTemplateSet",
+			[]byte{0x00, 0x03, 0x00, 0x0e, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x0e},
+			set{3, 14, []record{}},
+			12,
+			io.EOF,
+		},
+		{
+			"Set #3 with one optionTemplateSet",
+			[]byte{0x00, 0x03, 0x00, 0x0e, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x0e, 0x00, 0x01},
+			set{3, 14, []record{
+				&optionsTemplateRecord{1, 1, 1, []fieldSpecifier{{
 					14, 1, 0,
 				}}},
 			}},
-			n:   14,
-			err: nil,
+			14, nil,
 		},
 		{
-			name: "Set #4 (invalid set type)",
-			arg:  []byte{0x00, 0x04, 0x00, 0x0e, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x0e, 0x00, 0x01},
-			want: set{4, 14, nil},
-			n:    4,
-			err:  errInvalidSetType,
+			"Set #4 (invalid set type)",
+			[]byte{0x00, 0x04, 0x00, 0x0e, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x0e, 0x00, 0x01},
+			set{4, 14, nil},
+			4, errInvalidSetType,
 		},
 	}
+
+	var templates []*templateRecord
+
 	for _, tt := range tests {
 		tt := tt // pin
 
 		var s set
 
 		t.Run(tt.name, func(t *testing.T) {
-			n, err := s.Unmarshal(bytes.NewReader(tt.arg))
+			n, err := s.Unmarshal(bytes.NewReader(tt.arg), templates)
 			if !errors.Is(err, tt.err) {
 				t.Errorf("%v got error %v, want %v", tt.name, err, tt.err)
 			}
@@ -540,38 +533,62 @@ func TestTemplateRecord_String(t *testing.T) {
 		want string
 	}{
 		{
-			name: "Template Record #258 with 1 field specifier",
-			arg: templateRecord{
-				258, 1, make([]fieldSpecifier, 1),
-			},
-			want: "template record #258 (1 field)",
+			"Template Record #258 with 1 field specifier",
+			templateRecord{258, 1, make([]fieldSpecifier, 1)},
+			"template record #258 (1 field)",
 		},
 		{
-			name: "Template Record #259 with 19 field specifiers",
-			arg: templateRecord{
-				259, 19, make([]fieldSpecifier, 19),
-			},
-			want: "template record #259 (19 fields)",
+			"Template Record #259 with 19 field specifiers",
+			templateRecord{259, 19, make([]fieldSpecifier, 19)},
+			"template record #259 (19 fields)",
 		},
 		{
-			name: "Template Record #260 with 0 field specifiers",
-			arg: templateRecord{
-				260, 0, make([]fieldSpecifier, 0),
-			},
-			want: "template record #260 (0 fields)",
+			"Template Record #260 with 0 field specifiers",
+			templateRecord{260, 0, make([]fieldSpecifier, 0)},
+			"template record #260 (0 fields)",
 		},
 		{
-			name: "Template Record #24 with 1 field specifier",
-			arg: templateRecord{
-				24, 1, make([]fieldSpecifier, 1),
-			},
-			want: "invalid template record #24",
+			"Template Record #24 with 1 field specifier",
+			templateRecord{24, 1, make([]fieldSpecifier, 1)},
+			"invalid template record #24",
 		},
 	}
 	for _, tt := range tests {
 		tt := tt // pin
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.arg.String(); got != tt.want {
+				t.Errorf("%v got %v, want %v", tt.name, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestTemplateRecord_Size(t *testing.T) {
+	tests := []struct {
+		name string
+		arg  templateRecord
+		want int
+	}{
+		{
+			"Template Record #258 with 1 field specifier",
+			templateRecord{258, 1, make([]fieldSpecifier, 1)},
+			4 + 8,
+		},
+		{
+			"Template Record #259 with 19 field specifiers",
+			templateRecord{259, 19, make([]fieldSpecifier, 19)},
+			4 + 19*8,
+		},
+		{
+			"Template Record #260 with 0 field specifiers",
+			templateRecord{260, 0, make([]fieldSpecifier, 0)},
+			4 + 0,
+		},
+	}
+	for _, tt := range tests {
+		tt := tt // pin
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.arg.Size(); got != tt.want {
 				t.Errorf("%v got %v, want %v", tt.name, got, tt.want)
 			}
 		})
@@ -587,22 +604,16 @@ func TestTemplateRecord_Unmarshal(t *testing.T) {
 		err  error
 	}{
 		{
-			name: "Template Record #258 with 1 field specifiers",
-			arg:  []byte{0x01, 0x02, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00},
-			want: templateRecord{
-				258, 1, []fieldSpecifier{{0, 0, 0}},
-			},
-			n:   8,
-			err: nil,
+			"Template Record #258 with 1 field specifiers",
+			[]byte{0x01, 0x02, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00},
+			templateRecord{258, 1, []fieldSpecifier{{0, 0, 0}}},
+			8, nil,
 		},
 		{
-			name: "An invalid Template Record (EOF)",
-			arg:  []byte{0x01, 0x04},
-			want: templateRecord{
-				260, 0, nil,
-			},
-			n:   2,
-			err: io.EOF,
+			"An invalid Template Record (EOF)",
+			[]byte{0x01, 0x04},
+			templateRecord{260, 0, nil},
+			2, io.EOF,
 		},
 	}
 	for _, tt := range tests {
@@ -611,7 +622,7 @@ func TestTemplateRecord_Unmarshal(t *testing.T) {
 		var r templateRecord
 
 		t.Run(tt.name, func(t *testing.T) {
-			n, err := r.Unmarshal(bytes.NewReader(tt.arg))
+			n, err := r.Unmarshal(bytes.NewReader(tt.arg), nil)
 			if !errors.Is(err, tt.err) {
 				t.Errorf("%v got error %v, want %v", tt.name, err, tt.err)
 			}
@@ -634,38 +645,67 @@ func TestOptionsTemplateRecord_String(t *testing.T) {
 		want string
 	}{
 		{
-			name: "Options Template Record #258 with 3 field specifier",
-			arg: optionsTemplateRecord{
-				258, 3, 2, make([]fieldSpecifier, 3),
-			},
-			want: "options template record #258 (scope 2 fields of 3 fields)",
+			"Options Template Record #258 with 3 field specifier",
+			optionsTemplateRecord{258, 3, 2, make([]fieldSpecifier, 3)},
+			"options template record #258 (scope 2 fields of 3 fields)",
 		},
 		{
-			name: "Options Template Record #24 with 1 field specifier",
-			arg: optionsTemplateRecord{
-				24, 1, 1, make([]fieldSpecifier, 1),
-			},
-			want: "invalid options template record #24",
+			"Options Template Record #24 with 1 field specifier",
+			optionsTemplateRecord{24, 1, 1, make([]fieldSpecifier, 1)},
+			"invalid options template record #24",
 		},
 		{
-			name: "Options Template Record #384 with 0 scope fields",
-			arg: optionsTemplateRecord{
-				384, 1, 0, make([]fieldSpecifier, 1),
-			},
-			want: "invalid options template record #384",
+			"Options Template Record #384 with 0 scope fields",
+			optionsTemplateRecord{384, 1, 0, make([]fieldSpecifier, 1)},
+			"invalid options template record #384",
 		},
 		{
-			name: "Options Template Record #385 with 2 field specifier",
-			arg: optionsTemplateRecord{
-				385, 2, 3, make([]fieldSpecifier, 2),
-			},
-			want: "invalid options template record #385",
+			"Options Template Record #385 with 2 field specifier",
+			optionsTemplateRecord{385, 2, 3, make([]fieldSpecifier, 2)},
+			"invalid options template record #385",
 		},
 	}
 	for _, tt := range tests {
 		tt := tt // pin
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.arg.String(); got != tt.want {
+				t.Errorf("%v got %v, want %v", tt.name, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestOptionsTemplateRecord_Size(t *testing.T) {
+	tests := []struct {
+		name string
+		arg  optionsTemplateRecord
+		want int
+	}{
+		{
+			"Options Template Record #258 with 3 field specifier",
+			optionsTemplateRecord{258, 3, 2, make([]fieldSpecifier, 3)},
+			6 + 3*8,
+		},
+		{
+			"Options Template Record #24 with 1 field specifier",
+			optionsTemplateRecord{24, 1, 1, make([]fieldSpecifier, 1)},
+			6 + 8,
+		},
+		{
+			"Options Template Record #384 with 0 scope fields",
+			optionsTemplateRecord{384, 1, 0, make([]fieldSpecifier, 1)},
+			6 + 8,
+		},
+		{
+			"Options Template Record #385 with 2 field specifier",
+			optionsTemplateRecord{385, 2, 3, make([]fieldSpecifier, 2)},
+			6 + 2*8,
+		},
+	}
+	for _, tt := range tests {
+		tt := tt // pin
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.arg.Size(); got != tt.want {
 				t.Errorf("%v got %v, want %v", tt.name, got, tt.want)
 			}
 		})
@@ -715,7 +755,7 @@ func TestOptionsTemplateRecord_Unmarshal(t *testing.T) {
 		var r optionsTemplateRecord
 
 		t.Run(tt.name, func(t *testing.T) {
-			n, err := r.Unmarshal(bytes.NewReader(tt.arg))
+			n, err := r.Unmarshal(bytes.NewReader(tt.arg), nil)
 			if !errors.Is(err, tt.err) {
 				t.Errorf("%v got error %v, want %v", tt.name, err, tt.err)
 			}
@@ -727,6 +767,282 @@ func TestOptionsTemplateRecord_Unmarshal(t *testing.T) {
 				r.scopeFieldCount != tt.want.scopeFieldCount ||
 				len(r.fieldSpecifiers) != len(tt.want.fieldSpecifiers) {
 				t.Errorf("%v got %v, want %v", tt.name, r, tt.want)
+			}
+		})
+	}
+}
+
+func TestDataRecord_String(t *testing.T) {
+	tests := []struct {
+		name string
+		arg  dataRecord
+		want string
+	}{
+		{
+			name: "data record with 3 field values",
+			arg: dataRecord{
+				fieldValues: []interface{}{
+					uint8(6),
+					uint32(0x18fa5d76),
+					uint32(0x18fa5d76),
+				},
+			},
+			want: "data record (3 fields)",
+		},
+		{
+			name: "data record with 0 field values",
+			arg: dataRecord{
+				fieldValues: []interface{}{},
+			},
+			want: "data record (0 fields)",
+		},
+		{
+			name: "data record with 1 field values",
+			arg: dataRecord{
+				fieldValues: []interface{}{
+					uint32(0x18fa5d76),
+				},
+			},
+			want: "data record (1 field)",
+		},
+	}
+	for _, tt := range tests {
+		tt := tt // pin
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.arg.String(); got != tt.want {
+				t.Errorf("%v got %v, want %v", tt.name, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestDataRecord_Size(t *testing.T) {
+	tests := []struct {
+		name string
+		arg  dataRecord
+		want int
+	}{
+		{
+			"Data Record with 3 integers",
+			dataRecord{[]interface{}{1, 2, 3}},
+			3 * 8,
+		},
+	}
+	for _, tt := range tests {
+		tt := tt // pin
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.arg.Size(); got != tt.want {
+				t.Errorf("%v got %v, want %v", tt.name, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestGetTemplate(t *testing.T) {
+	template1 := templateRecord{
+		templateID:      258,
+		fieldCount:      1,
+		fieldSpecifiers: []fieldSpecifier{{0, 0, 0}},
+	}
+	template2 := templateRecord{
+		templateID:      259,
+		fieldCount:      1,
+		fieldSpecifiers: []fieldSpecifier{{0, 0, 0}},
+	}
+	templates := []*templateRecord{&template1, &template2}
+
+	tests := []struct {
+		name  string
+		arg   uint16
+		found bool
+		want  *templateRecord
+	}{
+		{
+			name:  "get template #258",
+			arg:   258,
+			want:  &template1,
+			found: true,
+		},
+		{
+			name:  "get template #259",
+			arg:   259,
+			want:  &template2,
+			found: true,
+		},
+		{
+			name:  "get inexistent template",
+			arg:   999,
+			want:  nil,
+			found: false,
+		},
+	}
+	for _, tt := range tests {
+		tt := tt // pin
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := getTemplate(tt.arg, templates)
+			if got != tt.want {
+				t.Errorf("%v got %v, want %v", tt.name, got, tt.want)
+			}
+			if err != tt.found {
+				t.Errorf("%v error %v, want %v", tt.name, err, tt.found)
+			}
+		})
+	}
+}
+
+func TestDataRecord_Unmarshal(t *testing.T) {
+	templates := []*templateRecord{
+		{
+			258, 1,
+			[]fieldSpecifier{{0x3c, 1, 0}},
+		},
+		{
+			999, 1,
+			[]fieldSpecifier{{0x00, 1, 0}},
+		},
+	}
+
+	tests := []struct {
+		name     string
+		arg      []byte
+		template *templateRecord
+		want     dataRecord
+		n        int
+		err      error
+	}{
+		{"single byte (ipVersion)", []byte{0x06}, templates[0], dataRecord{fieldValues: []interface{}{uint8(6)}}, 1, nil},
+		{
+			"too much data for a template (ipVersion)",
+			[]byte{0x06, 0x00},
+			templates[0],
+			dataRecord{fieldValues: []interface{}{uint8(6)}},
+			1, nil,
+		},
+		{"nil template", []byte{0x06, 0x00}, nil, dataRecord{}, 0, errTemplateNotDefined},
+		{"invalid template", []byte{0x01}, templates[1], dataRecord{}, 1, errUnmarshalError},
+	}
+	for _, tt := range tests {
+		tt := tt // pin
+
+		var r dataRecord
+
+		t.Run(tt.name, func(t *testing.T) {
+			n, err := r.Unmarshal(bytes.NewReader(tt.arg), tt.template)
+			if !errors.Is(err, tt.err) {
+				t.Errorf("%v got error %v, want %v", tt.name, err, tt.err)
+			}
+			if n != tt.n {
+				t.Errorf("%v read bytes %v, want %v", tt.name, n, tt.n)
+			}
+		})
+	}
+}
+
+func TestDataRecord_Unmarshal_Mild(t *testing.T) {
+	templates := []*templateRecord{
+		{
+			258, 1,
+			[]fieldSpecifier{{0x3c, 1, 0}},
+		},
+		{
+			259, 7,
+			[]fieldSpecifier{
+				{0x003c, 1, 0},
+				{0x0016, 4, 0},
+				{0x0015, 4, 0},
+				{0x0002, 4, 0},
+				{0x0001, 4, 0},
+				{0x0007, 2, 0},
+				{0x000b, 2, 0},
+			},
+		},
+	}
+
+	tests := []struct {
+		name     string
+		arg      []byte
+		template *templateRecord
+		want     dataRecord
+		n        int
+		err      error
+	}{
+		{
+			name: "seven fields data set #259",
+			arg: []byte{
+				0x06, 0x18, 0xfa, 0x5d, 0x76, 0x18, 0xfa, 0x5d, 0x76, 0x00, 0x00,
+				0x00, 0x01, 0x00, 0x00, 0x00, 0x48, 0x00, 0x00, 0x00, 0x00,
+			},
+			template: templates[0],
+			want: dataRecord{fieldValues: []interface{}{
+				uint8(6), uint32(0x18fa5d76),
+				uint32(0x18fa5d76), uint32(1), uint32(72), uint16(0), uint16(0),
+			}},
+			n:   1,
+			err: nil,
+		},
+	}
+	for _, tt := range tests {
+		tt := tt // pin
+
+		var r dataRecord
+
+		t.Run(tt.name, func(t *testing.T) {
+			n, err := r.Unmarshal(bytes.NewReader(tt.arg), tt.template)
+			if !errors.Is(err, tt.err) {
+				t.Errorf("%v got error %v, want %v", tt.name, err, tt.err)
+			}
+			if n != tt.n {
+				t.Errorf("%v read bytes %v, want %v", tt.name, n, tt.n)
+			}
+		})
+	}
+}
+
+func TestCreateValue(t *testing.T) {
+	tests := []struct {
+		name string
+		arg  InformationElement
+		data []byte
+		want interface{}
+		err  error
+	}{
+		{"hashDigestOutput (bool)", InformationElementByID(333), []byte{0x01}, true, nil},
+		{"dot1qDEI (bool)", InformationElementByID(388), []byte{0x00}, false, nil},
+		{"mibObjectValueInteger (int32)", InformationElementByID(434), []byte{0xff, 0xfe, 0xfd, 0xfc}, int32(-66052), nil},
+		{"mibObjectValueInteger (int32)", InformationElementByID(434), []byte{0xff, 0xfe, 0xfd, 0xfc}, int32(-66052), nil},
+		{"protocolIdentifier (uint8)", InformationElementByID(60), []byte{0x06}, uint8(6), nil},
+		{"udpSourcePort (uint16)", InformationElementByID(180), []byte{0x01, 0x02}, uint16(258), nil},
+		{"tcpSequenceNumber (uint32)", InformationElementByID(184), []byte{0x01, 0x02, 0x03, 0x04}, uint32(16909060), nil},
+		{
+			"exportedOctetTotalCount (uint64)", InformationElementByID(40),
+			[]byte{0xff, 0xfe, 0xfd, 0x01, 0x02, 0x03},
+			uint64(281470631477763), nil,
+		},
+		{
+			"absoluteError (float64)", InformationElementByID(320),
+			[]byte{0xaa, 0x55, 0xaa, 0x55, 0xaa},
+			float64(3.614493686586e-312), nil,
+		},
+		{"interfaceName (string)", InformationElementByID(82), []byte{0x65, 0x74, 0x68, 0x30}, "eth0", nil},
+		{
+			"destinationMacAddress (array)", InformationElementByID(80),
+			[]byte{0x5a, 0xea, 0xf0, 0xa8, 0xd3, 0x7b},
+			[]byte{0x5a, 0xea, 0xf0, 0xa8, 0xd3, 0x7b},
+			nil,
+		},
+		{"layer2packetSectionData (slice)", InformationElementByID(104), []byte{0xca, 0xfe}, []byte{0xca, 0xfe}, nil},
+		{"reserved InformationElement", InformationElementByID(0), []byte{0xca, 0xfe}, nil, errUnmarshalError},
+	}
+	for _, tt := range tests {
+		tt := tt // pin
+
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := createValue(tt.arg, tt.data)
+			if !errors.Is(err, tt.err) {
+				t.Errorf("%v got error %v, want %v", tt.name, err, tt.err)
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("%v created value %v, want %v", tt.name, got, tt.want)
 			}
 		})
 	}
