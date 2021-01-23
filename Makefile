@@ -30,7 +30,11 @@ fmt-net:
 .PHONY: lint
 lint:
 	golangci-lint run
-	gocyclo -over 7 -ignore "_test.go$$" .
+	gocyclo -over 9 -ignore "_test.go$$" .
+	gocognit -over 11 \
+		cmd/collector/main.go \
+		encoding/ipfix/{decode,element,helpers,message}.go \
+		net/collector/collector.go
 
 .PHONY: test
 test: export TMPDIR=${XDG_RUNTIME_DIR}/tmp
