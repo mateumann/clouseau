@@ -33,7 +33,10 @@ lint:
 	gocyclo -over 9 -ignore "_test.go$$" .
 	gocognit -over 11 \
 		cmd/collector/main.go \
-		encoding/ipfix/{decode,element,helpers,message}.go \
+		encoding/ipfix/decode.go \
+		encoding/ipfix/element.go \
+		encoding/ipfix/helpers.go \
+		encoding/ipfix/message.go \
 		net/collector/collector.go
 
 .PHONY: test
