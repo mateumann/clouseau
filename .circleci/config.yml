@@ -70,7 +70,12 @@ jobs:
             golangci-lint --version
       - run:
           name: Run linter
-          command: make lint
+          command: |
+            echo "Working directory $( pwd )"
+            ls -lR
+            echo "CircleCI working directory ${CIRCLE_WORKING_DIRECTORY}"
+            ls -lR "${CIRCLE_WORKING_DIRECTORY}"
+            make lint
 #      - persist_to_workspace:
 #          root: /go/src/github.com/mateumann/clouseau
 #          paths:
