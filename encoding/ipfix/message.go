@@ -347,11 +347,7 @@ func (s *set) Unmarshal(reader io.Reader, templates []*templateRecord) (n int, e
 	for n < int(s.length) {
 		switch {
 		case s.setID == TemplateSetID:
-			bytesRead, err = s.unmarshalTemplateRecord(reader)
-
-			if err == nil {
-				templates = append(templates, s.records[len(s.records)-1].(*templateRecord))
-			}
+			bytesRead, err = s.unmarshalTemplateRecord(reader, &templates)
 
 		case s.setID == OptionsTemplateSetID:
 			bytesRead, err = s.unmarshalOptionsTemplateRecord(reader)
@@ -373,7 +369,7 @@ func (s *set) Unmarshal(reader io.Reader, templates []*templateRecord) (n int, e
 	return n, nil
 }
 
-func (s *set) unmarshalTemplateRecord(reader io.Reader) (n int, err error) {
+func (s *set) unmarshalTemplateRecord(reader io.Reader, templates *[]*templateRecord) (n int, err error) {
 	r := &templateRecord{}
 	n, err = r.Unmarshal(reader, nil)
 
@@ -382,6 +378,8 @@ func (s *set) unmarshalTemplateRecord(reader io.Reader) (n int, err error) {
 	}
 
 	s.records = append(s.records, r)
+
+	*templates = append(*templates, s.records[len(s.records)-1].(*templateRecord))
 
 	return n, nil
 }
