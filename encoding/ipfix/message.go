@@ -257,26 +257,36 @@ func (m *Message) Unmarshal(reader io.Reader, templates []*templateRecord) (n in
 	}
 
 	for n < int(m.length) {
-		var s set
-		bytesRead, err := s.Unmarshal(reader, templates)
+		bytesRead, err := m.unmarshalSet(reader, templates)
 		n += bytesRead
-
-		if err != nil && errors.Is(errors.Unwrap(err), io.ErrUnexpectedEOF) && (int(s.length) > bytesRead) {
-			// assume s.Unmarshal failed to read a record which was actually a padding
-			buf := make([]byte, int(s.length)-bytesRead)
-			if err := binary.Read(reader, binary.BigEndian, &buf); err != nil {
-				return n + len(buf), UnmarshalError{err}
-			}
-		}
 
 		if err != nil {
 			return n, err
 		}
-
-		m.sets = append(m.sets, s)
 	}
 
 	return n, err
+}
+
+func (m *Message) unmarshalSet(reader io.Reader, templates []*templateRecord) (int, error) {
+	var s set
+	n, err := s.Unmarshal(reader, templates)
+
+	if err != nil && errors.Is(errors.Unwrap(err), io.ErrUnexpectedEOF) && (int(s.length) > n) {
+		// assume s.Unmarshal failed to read a record which was actually a padding
+		buf := make([]byte, int(s.length)-n)
+		if err := binary.Read(reader, binary.BigEndian, &buf); err != nil {
+			return n + len(buf), UnmarshalError{err}
+		}
+	}
+
+	if err != nil {
+		return n, err
+	}
+
+	m.sets = append(m.sets, s)
+
+	return n, nil
 }
 
 // record describes one of three ipfix records.
