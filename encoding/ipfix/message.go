@@ -357,11 +357,7 @@ func (s *set) Unmarshal(reader io.Reader, templates []*templateRecord) (n int, e
 			bytesRead, err = s.unmarshalOptionsTemplateRecord(reader)
 
 		case s.setID >= MinimumDataSetID:
-			if template, ok := getTemplate(s.setID, templates); ok {
-				bytesRead, err = s.unmarshalDataRecord(reader, template)
-			} else {
-				return n, UnmarshalError{errTemplateNotDefined}
-			}
+			bytesRead, err = s.unmarshalDataRecord(reader, templates)
 
 		default:
 			return n, UnmarshalError{errInvalidSetType}
@@ -403,6 +399,23 @@ func (s *set) unmarshalOptionsTemplateRecord(reader io.Reader) (n int, err error
 	return n, nil
 }
 
+func (s *set) unmarshalDataRecord(reader io.Reader, templates []*templateRecord) (n int, err error) {
+	if template, ok := getTemplate(s.setID, templates); ok {
+		r := &dataRecord{}
+		n, err = r.Unmarshal(reader, template)
+
+		if err != nil {
+			return n, err
+		}
+
+		s.records = append(s.records, r)
+
+		return n, nil
+	}
+
+	return 0, UnmarshalError{errTemplateNotDefined}
+}
+
 func getTemplate(templateID uint16, templates []*templateRecord) (*templateRecord, bool) {
 	for _, template := range templates {
 		if template.templateID == templateID {
@@ -411,19 +424,6 @@ func getTemplate(templateID uint16, templates []*templateRecord) (*templateRecor
 	}
 
 	return nil, false
-}
-
-func (s *set) unmarshalDataRecord(reader io.Reader, template *templateRecord) (n int, err error) {
-	r := &dataRecord{}
-	n, err = r.Unmarshal(reader, template)
-
-	if err != nil {
-		return n, err
-	}
-
-	s.records = append(s.records, r)
-
-	return n, nil
 }
 
 // templateRecord contains any combination of InformationElement-s.
