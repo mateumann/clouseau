@@ -282,9 +282,13 @@ func TestMessage_Unmarshal(t *testing.T) {
 	}{
 		{
 			name: "A valid Message with no sets",
-			arg:  []byte{0x00, 0x0a, 0x00, 0x10, 0x5e, 0xe7, 0x15, 0xb1, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
-			want: Message{0x000a, 16, 0x5ee715b1, 0, 0, nil},
-			err:  nil,
+			arg: []byte{
+				0x00, 0x0a, 0x00, 0x10, 0x5e, 0xe7, 0x15, 0xb1, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+			},
+			want: Message{
+				0x000a, 16, 0x5ee715b1, 0, 0, nil,
+			},
+			err: nil,
 		},
 		{
 			name: "An invalid Message (unexpected EOF inside a template set)",
@@ -292,8 +296,10 @@ func TestMessage_Unmarshal(t *testing.T) {
 				0x00, 0x0a, 0x01, 0x28, 0x5e, 0xe7, 0x15, 0xb1, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 				0x00, 0x02, 0x00, 0x08, 0x02, 0x02, 0x00, 0x05, 0x0f,
 			},
-			want: Message{10, 296, 0x5ee715b1, 0, 0, nil},
-			err:  io.ErrUnexpectedEOF,
+			want: Message{
+				10, 296, 0x5ee715b1, 0, 0, nil,
+			},
+			err: io.ErrUnexpectedEOF,
 		},
 		{
 			name: "An invalid Message (unexpected EOF in message header)",
@@ -455,7 +461,11 @@ func TestSet_String(t *testing.T) {
 		want string
 	}{
 		{"Template Set with 1 record", set{2, 16, make([]record, 1)}, "template set (16 octets) 1 record"},
-		{"Options Template Set with 2 record", set{3, 24, make([]record, 2)}, "options template set (24 octets) 2 records"},
+		{
+			"Options Template Set with 2 record",
+			set{3, 24, make([]record, 2)},
+			"options template set (24 octets) 2 records",
+		},
 		{"Data Set with 1 record", set{258, 16, make([]record, 1)}, "data set (16 octets) 1 record"},
 		{"Invalid Set", set{24, 16, make([]record, 1)}, "invalid set #24"},
 	}
@@ -910,7 +920,13 @@ func TestDataRecord_Unmarshal(t *testing.T) {
 		n        int
 		err      error
 	}{
-		{"single byte (ipVersion)", []byte{0x06}, templates[0], dataRecord{fieldValues: []interface{}{uint8(6)}}, 1, nil},
+		{
+			"single byte (ipVersion)",
+			[]byte{0x06},
+			templates[0],
+			dataRecord{fieldValues: []interface{}{uint8(6)}},
+			1, nil,
+		},
 		{
 			"too much data for a template (ipVersion)",
 			[]byte{0x06, 0x00},
