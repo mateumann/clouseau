@@ -34,7 +34,7 @@ lint:
 .PHONY: analyse
 analyse:
 	gocyclo -over 9 -ignore "_test.go$$" .
-	gocognit -over 11 \
+	gocognit -over 7 \
 		cmd/collector/main.go \
 		encoding/ipfix/decode.go \
 		encoding/ipfix/element.go \
