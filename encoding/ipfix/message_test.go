@@ -282,9 +282,13 @@ func TestMessage_Unmarshal(t *testing.T) {
 	}{
 		{
 			name: "A valid Message with no sets",
-			arg:  []byte{0x00, 0x0a, 0x00, 0x10, 0x5e, 0xe7, 0x15, 0xb1, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
-			want: Message{0x000a, 16, 0x5ee715b1, 0, 0, nil},
-			err:  nil,
+			arg: []byte{
+				0x00, 0x0a, 0x00, 0x10, 0x5e, 0xe7, 0x15, 0xb1, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+			},
+			want: Message{
+				0x000a, 16, 0x5ee715b1, 0, 0, nil,
+			},
+			err: nil,
 		},
 		{
 			name: "An invalid Message (unexpected EOF inside a template set)",
@@ -292,8 +296,10 @@ func TestMessage_Unmarshal(t *testing.T) {
 				0x00, 0x0a, 0x01, 0x28, 0x5e, 0xe7, 0x15, 0xb1, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 				0x00, 0x02, 0x00, 0x08, 0x02, 0x02, 0x00, 0x05, 0x0f,
 			},
-			want: Message{10, 296, 0x5ee715b1, 0, 0, nil},
-			err:  io.ErrUnexpectedEOF,
+			want: Message{
+				10, 296, 0x5ee715b1, 0, 0, nil,
+			},
+			err: io.ErrUnexpectedEOF,
 		},
 		{
 			name: "An invalid Message (unexpected EOF in message header)",
@@ -400,17 +406,17 @@ func TestMessage_UnmarshalDataTemplate(t *testing.T) {
 		[]set{
 			{
 				2, 40, []record{
-					&templateRecord{258, 5, []fieldSpecifier{
+					&templateRecord{templateRecordBase{258, 5, []fieldSpecifier{
 						{60, 1, 0},
 						{22, 4, 0},
 						{21, 4, 0},
 						{2, 4, 0},
 						{1, 4, 0},
-					}},
-					&templateRecord{259, 2, []fieldSpecifier{
+					}}},
+					&templateRecord{templateRecordBase{259, 2, []fieldSpecifier{
 						{6, 1, 0},
 						{80, 6, 0},
-					}},
+					}}},
 				},
 			},
 		},
@@ -455,7 +461,11 @@ func TestSet_String(t *testing.T) {
 		want string
 	}{
 		{"Template Set with 1 record", set{2, 16, make([]record, 1)}, "template set (16 octets) 1 record"},
-		{"Options Template Set with 2 record", set{3, 24, make([]record, 2)}, "options template set (24 octets) 2 records"},
+		{
+			"Options Template Set with 2 record",
+			set{3, 24, make([]record, 2)},
+			"options template set (24 octets) 2 records",
+		},
 		{"Data Set with 1 record", set{258, 16, make([]record, 1)}, "data set (16 octets) 1 record"},
 		{"Invalid Set", set{24, 16, make([]record, 1)}, "invalid set #24"},
 	}
@@ -488,9 +498,9 @@ func TestSet_Unmarshal(t *testing.T) {
 			"Set #3 with one optionTemplateSet",
 			[]byte{0x00, 0x03, 0x00, 0x0e, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x0e, 0x00, 0x01},
 			set{3, 14, []record{
-				&optionsTemplateRecord{1, 1, 1, []fieldSpecifier{{
+				&optionsTemplateRecord{templateRecordBase{1, 1, []fieldSpecifier{{
 					14, 1, 0,
-				}}},
+				}}}, 1},
 			}},
 			14, nil,
 		},
@@ -534,22 +544,22 @@ func TestTemplateRecord_String(t *testing.T) {
 	}{
 		{
 			"Template Record #258 with 1 field specifier",
-			templateRecord{258, 1, make([]fieldSpecifier, 1)},
+			templateRecord{templateRecordBase{258, 1, make([]fieldSpecifier, 1)}},
 			"template record #258 (1 field)",
 		},
 		{
 			"Template Record #259 with 19 field specifiers",
-			templateRecord{259, 19, make([]fieldSpecifier, 19)},
+			templateRecord{templateRecordBase{259, 19, make([]fieldSpecifier, 19)}},
 			"template record #259 (19 fields)",
 		},
 		{
 			"Template Record #260 with 0 field specifiers",
-			templateRecord{260, 0, make([]fieldSpecifier, 0)},
+			templateRecord{templateRecordBase{260, 0, make([]fieldSpecifier, 0)}},
 			"template record #260 (0 fields)",
 		},
 		{
 			"Template Record #24 with 1 field specifier",
-			templateRecord{24, 1, make([]fieldSpecifier, 1)},
+			templateRecord{templateRecordBase{24, 1, make([]fieldSpecifier, 1)}},
 			"invalid template record #24",
 		},
 	}
@@ -571,17 +581,17 @@ func TestTemplateRecord_Size(t *testing.T) {
 	}{
 		{
 			"Template Record #258 with 1 field specifier",
-			templateRecord{258, 1, make([]fieldSpecifier, 1)},
+			templateRecord{templateRecordBase{258, 1, make([]fieldSpecifier, 1)}},
 			4 + 8,
 		},
 		{
 			"Template Record #259 with 19 field specifiers",
-			templateRecord{259, 19, make([]fieldSpecifier, 19)},
+			templateRecord{templateRecordBase{259, 19, make([]fieldSpecifier, 19)}},
 			4 + 19*8,
 		},
 		{
 			"Template Record #260 with 0 field specifiers",
-			templateRecord{260, 0, make([]fieldSpecifier, 0)},
+			templateRecord{templateRecordBase{260, 0, make([]fieldSpecifier, 0)}},
 			4 + 0,
 		},
 	}
@@ -606,13 +616,13 @@ func TestTemplateRecord_Unmarshal(t *testing.T) {
 		{
 			"Template Record #258 with 1 field specifiers",
 			[]byte{0x01, 0x02, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00},
-			templateRecord{258, 1, []fieldSpecifier{{0, 0, 0}}},
+			templateRecord{templateRecordBase{258, 1, []fieldSpecifier{{0, 0, 0}}}},
 			8, nil,
 		},
 		{
 			"An invalid Template Record (EOF)",
 			[]byte{0x01, 0x04},
-			templateRecord{260, 0, nil},
+			templateRecord{templateRecordBase{260, 0, nil}},
 			2, io.EOF,
 		},
 	}
@@ -646,22 +656,22 @@ func TestOptionsTemplateRecord_String(t *testing.T) {
 	}{
 		{
 			"Options Template Record #258 with 3 field specifier",
-			optionsTemplateRecord{258, 3, 2, make([]fieldSpecifier, 3)},
+			optionsTemplateRecord{templateRecordBase{258, 3, make([]fieldSpecifier, 3)}, 2},
 			"options template record #258 (scope 2 fields of 3 fields)",
 		},
 		{
 			"Options Template Record #24 with 1 field specifier",
-			optionsTemplateRecord{24, 1, 1, make([]fieldSpecifier, 1)},
+			optionsTemplateRecord{templateRecordBase{24, 1, make([]fieldSpecifier, 1)}, 1},
 			"invalid options template record #24",
 		},
 		{
 			"Options Template Record #384 with 0 scope fields",
-			optionsTemplateRecord{384, 1, 0, make([]fieldSpecifier, 1)},
+			optionsTemplateRecord{templateRecordBase{384, 1, make([]fieldSpecifier, 1)}, 0},
 			"invalid options template record #384",
 		},
 		{
 			"Options Template Record #385 with 2 field specifier",
-			optionsTemplateRecord{385, 2, 3, make([]fieldSpecifier, 2)},
+			optionsTemplateRecord{templateRecordBase{385, 2, make([]fieldSpecifier, 2)}, 3},
 			"invalid options template record #385",
 		},
 	}
@@ -683,22 +693,22 @@ func TestOptionsTemplateRecord_Size(t *testing.T) {
 	}{
 		{
 			"Options Template Record #258 with 3 field specifier",
-			optionsTemplateRecord{258, 3, 2, make([]fieldSpecifier, 3)},
+			optionsTemplateRecord{templateRecordBase{258, 3, make([]fieldSpecifier, 3)}, 2},
 			6 + 3*8,
 		},
 		{
 			"Options Template Record #24 with 1 field specifier",
-			optionsTemplateRecord{24, 1, 1, make([]fieldSpecifier, 1)},
+			optionsTemplateRecord{templateRecordBase{24, 1, make([]fieldSpecifier, 1)}, 1},
 			6 + 8,
 		},
 		{
 			"Options Template Record #384 with 0 scope fields",
-			optionsTemplateRecord{384, 1, 0, make([]fieldSpecifier, 1)},
+			optionsTemplateRecord{templateRecordBase{384, 1, make([]fieldSpecifier, 1)}, 0},
 			6 + 8,
 		},
 		{
 			"Options Template Record #385 with 2 field specifier",
-			optionsTemplateRecord{385, 2, 3, make([]fieldSpecifier, 2)},
+			optionsTemplateRecord{templateRecordBase{385, 2, make([]fieldSpecifier, 2)}, 3},
 			6 + 2*8,
 		},
 	}
@@ -726,25 +736,25 @@ func TestOptionsTemplateRecord_Unmarshal(t *testing.T) {
 				0x01, 0x05, 0x00, 0x03, 0x00, 0x02, 0xF0, 0xF1, 0x00, 0x01, 0x12, 0x34, 0x56, 0x78, 0xF0, 0xF2,
 				0x00, 0x0F, 0x12, 0x34, 0x56, 0x79, 0xF0, 0xF3, 0x00, 0x40, 0x12, 0x34, 0x56, 0x78,
 			},
-			want: optionsTemplateRecord{261, 3, 2, []fieldSpecifier{
+			want: optionsTemplateRecord{templateRecordBase{261, 3, []fieldSpecifier{
 				{61681, 1, 305419896},
 				{61682, 15, 305419897},
 				{61683, 64, 305419896},
-			}},
+			}}, 2},
 			n:   30,
 			err: nil,
 		},
 		{
 			name: "Template Record #262 with 2 field specifiers and 3 scope fields",
 			arg:  []byte{0x01, 0x06, 0x00, 0x02, 0x00, 0x03},
-			want: optionsTemplateRecord{262, 2, 3, nil},
+			want: optionsTemplateRecord{templateRecordBase{262, 2, nil}, 3},
 			n:    6,
 			err:  io.EOF,
 		},
 		{
 			name: "An invalid Template Record (unexpected EOF)",
 			arg:  []byte{0x01, 0x07, 0x00, 0x00, 0xff},
-			want: optionsTemplateRecord{263, 0, 0, nil},
+			want: optionsTemplateRecord{templateRecordBase{263, 0, nil}, 0},
 			n:    4,
 			err:  io.ErrUnexpectedEOF,
 		},
@@ -839,16 +849,16 @@ func TestDataRecord_Size(t *testing.T) {
 }
 
 func TestGetTemplate(t *testing.T) {
-	template1 := templateRecord{
+	template1 := templateRecord{templateRecordBase{
 		templateID:      258,
 		fieldCount:      1,
 		fieldSpecifiers: []fieldSpecifier{{0, 0, 0}},
-	}
-	template2 := templateRecord{
+	}}
+	template2 := templateRecord{templateRecordBase{
 		templateID:      259,
 		fieldCount:      1,
 		fieldSpecifiers: []fieldSpecifier{{0, 0, 0}},
-	}
+	}}
 	templates := []*templateRecord{&template1, &template2}
 
 	tests := []struct {
@@ -892,14 +902,14 @@ func TestGetTemplate(t *testing.T) {
 
 func TestDataRecord_Unmarshal(t *testing.T) {
 	templates := []*templateRecord{
-		{
+		{templateRecordBase{
 			258, 1,
 			[]fieldSpecifier{{0x3c, 1, 0}},
-		},
-		{
+		}},
+		{templateRecordBase{
 			999, 1,
 			[]fieldSpecifier{{0x00, 1, 0}},
-		},
+		}},
 	}
 
 	tests := []struct {
@@ -910,7 +920,13 @@ func TestDataRecord_Unmarshal(t *testing.T) {
 		n        int
 		err      error
 	}{
-		{"single byte (ipVersion)", []byte{0x06}, templates[0], dataRecord{fieldValues: []interface{}{uint8(6)}}, 1, nil},
+		{
+			"single byte (ipVersion)",
+			[]byte{0x06},
+			templates[0],
+			dataRecord{fieldValues: []interface{}{uint8(6)}},
+			1, nil,
+		},
 		{
 			"too much data for a template (ipVersion)",
 			[]byte{0x06, 0x00},
@@ -940,11 +956,11 @@ func TestDataRecord_Unmarshal(t *testing.T) {
 
 func TestDataRecord_Unmarshal_Mild(t *testing.T) {
 	templates := []*templateRecord{
-		{
+		{templateRecordBase{
 			258, 1,
 			[]fieldSpecifier{{0x3c, 1, 0}},
-		},
-		{
+		}},
+		{templateRecordBase{
 			259, 7,
 			[]fieldSpecifier{
 				{0x003c, 1, 0},
@@ -955,7 +971,7 @@ func TestDataRecord_Unmarshal_Mild(t *testing.T) {
 				{0x0007, 2, 0},
 				{0x000b, 2, 0},
 			},
-		},
+		}},
 	}
 
 	tests := []struct {

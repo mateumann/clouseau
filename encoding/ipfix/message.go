@@ -424,12 +424,33 @@ func getTemplate(templateID uint16, templates []*templateRecord) (*templateRecor
 	return nil, false
 }
 
+// templateRecordBase containse fields definitions common for `templateRecord` and `optionsTemplateRecord`.
+type templateRecordBase struct {
+	templateID      uint16
+	fieldCount      uint16 // number of all fields in this record
+	fieldSpecifiers []fieldSpecifier
+}
+
+func (r *templateRecordBase) unmarshalFieldSpecifiers(reader io.Reader) (n int, err error) {
+	for i := uint16(0); i < r.fieldCount; i++ {
+		var fs fieldSpecifier
+		bytesRead, err := fs.Unmarshal(reader)
+		n += bytesRead
+
+		if err != nil {
+			return n, err
+		}
+
+		r.fieldSpecifiers = append(r.fieldSpecifiers, fs)
+	}
+
+	return n, err
+}
+
 // templateRecord contains any combination of InformationElement-s.
 // https://tools.ietf.org/html/rfc7011#section-3.4.1
 type templateRecord struct {
-	templateID      uint16
-	fieldCount      uint16
-	fieldSpecifiers []fieldSpecifier
+	templateRecordBase
 }
 
 func (r *templateRecord) String() string {
@@ -461,17 +482,8 @@ func (r *templateRecord) Unmarshal(reader io.Reader, _ *templateRecord) (n int, 
 		return n, err
 	}
 
-	for i := uint16(0); i < r.fieldCount; i++ {
-		var fs fieldSpecifier
-		bytesRead, err := fs.Unmarshal(reader)
-		n += bytesRead
-
-		if err != nil {
-			return n, err
-		}
-
-		r.fieldSpecifiers = append(r.fieldSpecifiers, fs)
-	}
+	bytesRead, err := r.unmarshalFieldSpecifiers(reader)
+	n += bytesRead
 
 	return n, err
 }
@@ -479,10 +491,8 @@ func (r *templateRecord) Unmarshal(reader io.Reader, _ *templateRecord) (n int, 
 // optionsTemplateRecord provides additional information about the context of the reported InformationElement-s.
 // https://tools.ietf.org/html/rfc7011#section-3.4.2
 type optionsTemplateRecord struct {
-	templateID      uint16
-	fieldCount      uint16 // number of all fields in this record, including the scope fields
+	templateRecordBase
 	scopeFieldCount uint16 // number of scope fields (those are the first N fields of the record)
-	fieldSpecifiers []fieldSpecifier
 }
 
 func (r *optionsTemplateRecord) String() string {
@@ -518,17 +528,8 @@ func (r *optionsTemplateRecord) Unmarshal(reader io.Reader, _ *templateRecord) (
 		return n, err
 	}
 
-	for i := uint16(0); i < r.fieldCount; i++ {
-		var fs fieldSpecifier
-		bytesRead, err := fs.Unmarshal(reader)
-		n += bytesRead
-
-		if err != nil {
-			return n, err
-		}
-
-		r.fieldSpecifiers = append(r.fieldSpecifiers, fs)
-	}
+	bytesRead, err := r.unmarshalFieldSpecifiers(reader)
+	n += bytesRead
 
 	return n, err
 }
