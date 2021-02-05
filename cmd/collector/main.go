@@ -11,14 +11,27 @@ import (
 	"github.com/mateumann/clouseau/net/collector"
 )
 
-func main() {
-	debug := flag.Bool("debug", false, "Debug mode.")
-	ipfixIP := flag.String("address", "0.0.0.0", "IP address of the interface to listen to.")
-	ipfixPort := flag.Int("port", 4739, "The UDP port to listen to.")
-	bufferSize := flag.Int("buffersize", 8192, "Buffer size for the incoming messages.")
+type collectorArgs struct {
+	debug         bool
+	listenAddress string
+	listenPort    int
+	bufferSize    int
+}
+
+func parseFlags() (a collectorArgs) {
+	flag.BoolVar(&a.debug, "debug", false, "Debug mode.")
+	flag.StringVar(&a.listenAddress, "address", "0.0.0.0", "IP address of the interface to listen to.")
+	flag.IntVar(&a.listenPort, "port", 4739, "The UDP port to listen to.")
+	flag.IntVar(&a.bufferSize, "buffersize", 8192, "Buffer size for the incoming messages.")
 	flag.Parse()
 
-	conn, err := collector.StartCollector(*ipfixIP, *ipfixPort)
+	return a
+}
+
+func main() {
+	args := parseFlags()
+
+	conn, err := collector.StartCollector(args.listenAddress, args.listenPort)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -30,12 +43,12 @@ func main() {
 	var udpAddr *net.UDPAddr
 
 	for {
-		buf := make([]byte, *bufferSize)
+		buf := make([]byte, args.bufferSize)
 		if _, udpAddr, err = conn.ReadFromUDP(buf); err != nil {
 			log.Fatal(err) //nolint:gocritic
 		}
 
-		decoder := ipfix.NewDecoder(udpAddr, *debug)
+		decoder := ipfix.NewDecoder(udpAddr, args.debug)
 
 		// var templates []*templateRecord
 		// var message ipfix.Message
