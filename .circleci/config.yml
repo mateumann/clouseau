@@ -12,9 +12,11 @@ workflows:
     jobs:
       - lint
       - test
+      - analyse
       - build:
           requires:
             - lint
+            - test
 
 jobs:
   test:
