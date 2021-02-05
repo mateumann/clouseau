@@ -18,8 +18,6 @@ func main() {
 	bufferSize := flag.Int("buffersize", 8192, "Buffer size for the incoming messages.")
 	flag.Parse()
 
-	fmt.Println("debug:", *debug)
-
 	conn, err := collector.StartCollector(*ipfixIP, *ipfixPort)
 	if err != nil {
 		log.Fatal(err)
@@ -37,7 +35,7 @@ func main() {
 			log.Fatal(err) //nolint:gocritic
 		}
 
-		decoder := ipfix.NewDecoder(udpAddr)
+		decoder := ipfix.NewDecoder(udpAddr, *debug)
 
 		// var templates []*templateRecord
 		// var message ipfix.Message

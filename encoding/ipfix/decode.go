@@ -35,13 +35,13 @@ func (e CorruptInputError) Unwrap() error {
 type Decoder struct {
 	source              *net.UDPAddr
 	observationDomainID uint32
+	debug               bool
 	err                 error
 	buf                 []byte // leftover decoded output
 	messages            []Message
 	data                []*dataRecord
 	templates           []*templateRecord
 	optionsTemplates    []*optionsTemplateRecord
-	// r                io.Reader
 }
 
 func (d *Decoder) String() string {
@@ -50,7 +50,7 @@ func (d *Decoder) String() string {
 }
 
 // NewDecoder initializes a Decoder with provided source (net.UDPAddr) and default values of other parameters.
-func NewDecoder(s *net.UDPAddr) *Decoder {
+func NewDecoder(s *net.UDPAddr, debug bool) *Decoder {
 	return &Decoder{
 		source:              s,
 		observationDomainID: NoSpecificObservationDomainID,
@@ -60,6 +60,7 @@ func NewDecoder(s *net.UDPAddr) *Decoder {
 		data:                make([]*dataRecord, 0),
 		templates:           make([]*templateRecord, 0),
 		optionsTemplates:    make([]*optionsTemplateRecord, 0),
+		debug:               debug,
 	}
 }
 
