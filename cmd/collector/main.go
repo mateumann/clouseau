@@ -5,18 +5,22 @@ import (
 	"log"
 	"net"
 
+	flag "github.com/spf13/pflag"
+
 	"github.com/mateumann/clouseau/encoding/ipfix"
 	"github.com/mateumann/clouseau/net/collector"
 )
 
-const (
-	ipfixIP    = "0.0.0.0"
-	ipfixPort  = 4739
-	bufferSize = 8192
-)
-
 func main() {
-	conn, err := collector.StartCollector(ipfixIP, ipfixPort)
+	debug := flag.Bool("debug", false, "Debug mode.")
+	ipfixIP := flag.String("address", "0.0.0.0", "IP address of the interface to listen to.")
+	ipfixPort := flag.Int("port", 4739, "The UDP port to listen to.")
+	bufferSize := flag.Int("buffersize", 8192, "Buffer size for the incoming messages.")
+	flag.Parse()
+
+	fmt.Println("debug:", *debug)
+
+	conn, err := collector.StartCollector(*ipfixIP, *ipfixPort)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -28,7 +32,7 @@ func main() {
 	var udpAddr *net.UDPAddr
 
 	for {
-		buf := make([]byte, bufferSize)
+		buf := make([]byte, *bufferSize)
 		if _, udpAddr, err = conn.ReadFromUDP(buf); err != nil {
 			log.Fatal(err) //nolint:gocritic
 		}
