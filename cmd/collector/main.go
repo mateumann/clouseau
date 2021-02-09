@@ -12,18 +12,20 @@ import (
 	"github.com/mateumann/clouseau/net/collector"
 )
 
-type collectorArgs struct {
-	debug         bool
-	listenAddress string
-	listenPort    int
-	bufferSize    int
+type config struct {
+	debug         bool   `yaml:"debug"`
+	listenAddress string `yaml:"address"`
+	listenPort    int    `yaml:"port"`
+	bufferSize    int    `yaml:"buffer-size"`
 }
 
-func parseFlags() *collectorArgs {
+func parseFlags() *config {
+	var c config
+
 	pflag.Bool("debug", false, "Debug mode.")
 	pflag.String("address", "0.0.0.0", "IP address of the interface to listen to.")
 	pflag.Int("port", 4739, "The UDP port to listen to.")
-	pflag.Int("buffersize", 8192, "Buffer size for the incoming messages.")
+	pflag.Int("buffer-size", 8192, "Buffer size for the incoming messages.")
 	pflag.Parse()
 
 	v := viper.New()
@@ -34,23 +36,32 @@ func parseFlags() *collectorArgs {
 		return nil
 	}
 
-	conf := &collectorArgs{}
-	conf.debug = v.GetBool("debug")
-	conf.listenAddress = v.GetString("address")
-	conf.listenPort = v.GetInt("port")
-	conf.bufferSize = v.GetInt("buffersize")
+	v.AddConfigPath(".")
+	v.SetConfigName("config")
+	v.SetConfigType("yaml")
+	v.AutomaticEnv()
 
-	if err := v.Unmarshal(conf); err != nil {
-		fmt.Printf("%v", err)
+	if err := v.ReadInConfig(); err != nil {
+		println("ReadInConfig error %v.", err)
 
 		return nil
 	}
 
-	return conf
+	if err := v.Unmarshal(&c); err != nil {
+		println("Unmarshal error %v.", err)
+
+		return nil
+	}
+
+	return &c
 }
 
 func main() {
 	args := parseFlags()
+
+	if args == nil {
+		log.Fatal("Unable to read configuration")
+	}
 
 	conn, err := collector.StartCollector(args.listenAddress, args.listenPort)
 	if err != nil {
