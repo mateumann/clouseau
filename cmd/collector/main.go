@@ -5,33 +5,47 @@ import (
 	"log"
 	"net"
 
-	flag "github.com/spf13/pflag"
+	"github.com/spf13/pflag"
+	"github.com/spf13/viper"
 
 	"github.com/mateumann/clouseau/encoding/ipfix"
 	"github.com/mateumann/clouseau/net/collector"
 )
 
-type collectorArgs struct {
-	debug         bool
-	listenAddress string
-	listenPort    int
-	bufferSize    int
-}
+func setupViper() *viper.Viper {
+	v := viper.New()
 
-func parseFlags() (a collectorArgs) {
-	flag.BoolVar(&a.debug, "debug", false, "Debug mode.")
-	flag.StringVar(&a.listenAddress, "address", "0.0.0.0", "IP address of the interface to listen to.")
-	flag.IntVar(&a.listenPort, "port", 4739, "The UDP port to listen to.")
-	flag.IntVar(&a.bufferSize, "buffersize", 8192, "Buffer size for the incoming messages.")
-	flag.Parse()
+	v.SetDefault("debug", false)
+	v.SetDefault("address", "0.0.0.0")
+	v.SetDefault("port", 4739)
+	v.SetDefault("buffersize", 8192)
 
-	return a
+	v.SetEnvPrefix("clu_collector")
+	v.AutomaticEnv()
+
+	pflag.Bool("debug", false, "Debug mode.")
+	pflag.String("address", "0.0.0.0", "IP address of the interface to listen to.")
+	pflag.Int("port", 4739, "The UDP port to listen to.")
+	pflag.Int("buffersize", 8192, "Buffer size for the incoming messages.")
+	pflag.Parse()
+
+	if err := v.BindPFlags(pflag.CommandLine); err != nil {
+		fmt.Printf("%v", err)
+
+		return nil
+	}
+
+	return v
 }
 
 func main() {
-	args := parseFlags()
+	v := setupViper()
 
-	conn, err := collector.StartCollector(args.listenAddress, args.listenPort)
+	if v == nil {
+		log.Fatal("Unable to read configuration")
+	}
+
+	conn, err := collector.StartCollector(v.GetString("address"), v.GetInt("port"))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -43,12 +57,12 @@ func main() {
 	var udpAddr *net.UDPAddr
 
 	for {
-		buf := make([]byte, args.bufferSize)
+		buf := make([]byte, v.GetInt("buffersize"))
 		if _, udpAddr, err = conn.ReadFromUDP(buf); err != nil {
 			log.Fatal(err) //nolint:gocritic
 		}
 
-		decoder := ipfix.NewDecoder(udpAddr, args.debug)
+		decoder := ipfix.NewDecoder(udpAddr, v.GetBool("debug"))
 
 		// var templates []*templateRecord
 		// var message ipfix.Message
