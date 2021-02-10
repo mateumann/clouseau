@@ -19,6 +19,7 @@ func setupViper() *viper.Viper {
 	v.SetDefault("address", "0.0.0.0")
 	v.SetDefault("port", 4739)
 	v.SetDefault("buffersize", 8192)
+
 	v.SetEnvPrefix("clu_collector")
 	v.AutomaticEnv()
 
