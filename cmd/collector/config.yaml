@@ -1,4 +1,0 @@
-debug: false
-address: 0.0.0.0
-port: 4739
-buffer-size: 8192

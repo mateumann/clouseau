@@ -12,23 +12,21 @@ import (
 	"github.com/mateumann/clouseau/net/collector"
 )
 
-type config struct {
-	debug         bool   `yaml:"debug"`
-	listenAddress string `yaml:"address"`
-	listenPort    int    `yaml:"port"`
-	bufferSize    int    `yaml:"buffer-size"`
-}
+func setupViper() *viper.Viper {
+	v := viper.New()
 
-func parseFlags() *config {
-	var c config
+	v.SetDefault("debug", false)
+	v.SetDefault("address", "0.0.0.0")
+	v.SetDefault("port", 4739)
+	v.SetDefault("buffersize", 8192)
+	v.SetEnvPrefix("clu_collector")
+	v.AutomaticEnv()
 
 	pflag.Bool("debug", false, "Debug mode.")
 	pflag.String("address", "0.0.0.0", "IP address of the interface to listen to.")
 	pflag.Int("port", 4739, "The UDP port to listen to.")
-	pflag.Int("buffer-size", 8192, "Buffer size for the incoming messages.")
+	pflag.Int("buffersize", 8192, "Buffer size for the incoming messages.")
 	pflag.Parse()
-
-	v := viper.New()
 
 	if err := v.BindPFlags(pflag.CommandLine); err != nil {
 		fmt.Printf("%v", err)
@@ -36,34 +34,17 @@ func parseFlags() *config {
 		return nil
 	}
 
-	v.AddConfigPath(".")
-	v.SetConfigName("config")
-	v.SetConfigType("yaml")
-	v.AutomaticEnv()
-
-	if err := v.ReadInConfig(); err != nil {
-		println("ReadInConfig error %v.", err)
-
-		return nil
-	}
-
-	if err := v.Unmarshal(&c); err != nil {
-		println("Unmarshal error %v.", err)
-
-		return nil
-	}
-
-	return &c
+	return v
 }
 
 func main() {
-	args := parseFlags()
+	v := setupViper()
 
-	if args == nil {
+	if v == nil {
 		log.Fatal("Unable to read configuration")
 	}
 
-	conn, err := collector.StartCollector(args.listenAddress, args.listenPort)
+	conn, err := collector.StartCollector(v.GetString("address"), v.GetInt("port"))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -75,12 +56,12 @@ func main() {
 	var udpAddr *net.UDPAddr
 
 	for {
-		buf := make([]byte, args.bufferSize)
+		buf := make([]byte, v.GetInt("buffersize"))
 		if _, udpAddr, err = conn.ReadFromUDP(buf); err != nil {
 			log.Fatal(err) //nolint:gocritic
 		}
 
-		decoder := ipfix.NewDecoder(udpAddr, args.debug)
+		decoder := ipfix.NewDecoder(udpAddr, v.GetBool("debug"))
 
 		// var templates []*templateRecord
 		// var message ipfix.Message
