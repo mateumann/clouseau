@@ -59,7 +59,9 @@ func main() {
 	for {
 		buf := make([]byte, v.GetInt("buffersize"))
 		if _, udpAddr, err = conn.ReadFromUDP(buf); err != nil {
-			log.Fatal(err) //nolint:gocritic
+			fmt.Printf("Error occurred: %v. Exiting.\n", err)
+
+			return
 		}
 
 		decoder := ipfix.NewDecoder(udpAddr, v.GetBool("debug"))

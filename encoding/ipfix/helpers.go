@@ -2,7 +2,7 @@ package ipfix
 
 import "fmt"
 
-func intDescribed(n int, singular string, plural string) string {
+func intDescribed(n int, singular, plural string) string {
 	if n == 1 {
 		return fmt.Sprintf("1 %v", singular)
 	}
