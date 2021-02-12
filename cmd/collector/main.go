@@ -5,47 +5,43 @@ import (
 	"log"
 	"net"
 
-	"github.com/spf13/pflag"
-	"github.com/spf13/viper"
+	"github.com/codingconcepts/env"
+	flag "github.com/spf13/pflag"
 
 	"github.com/mateumann/clouseau/encoding/ipfix"
 	"github.com/mateumann/clouseau/net/collector"
 )
 
-func setupViper() *viper.Viper {
-	v := viper.New()
+type configuration struct {
+	Debug         bool   `env:"DEBUG" default:"false"`
+	ListenAddress string `env:"LISTEN_ADDRESS" default:"0.0.0.0"`
+	ListenPort    int    `env:"LISTEN_PORT" default:"4739"`
+	BufferSize    int    `env:"BUFFER_SIZE" default:"8192"`
+}
 
-	v.SetDefault("debug", false)
-	v.SetDefault("address", "0.0.0.0")
-	v.SetDefault("port", 4739)
-	v.SetDefault("buffersize", 8192)
+func configure() (*configuration, error) {
+	c := configuration{}
 
-	v.SetEnvPrefix("clu_collector")
-	v.AutomaticEnv()
-
-	pflag.Bool("debug", false, "Debug mode.")
-	pflag.String("address", "0.0.0.0", "IP address of the interface to listen to.")
-	pflag.Int("port", 4739, "The UDP port to listen to.")
-	pflag.Int("buffersize", 8192, "Buffer size for the incoming messages.")
-	pflag.Parse()
-
-	if err := v.BindPFlags(pflag.CommandLine); err != nil {
-		fmt.Printf("%v", err)
-
-		return nil
+	if err := env.Set(&c); err != nil {
+		return nil, fmt.Errorf("error reading configuration from the environment: %w", err)
 	}
 
-	return v
+	flag.BoolVar(&c.Debug, "debug", c.Debug, "Debug mode.")
+	flag.StringVar(&c.ListenAddress, "address", c.ListenAddress, "IP address of the interface to listen to.")
+	flag.IntVar(&c.ListenPort, "port", c.ListenPort, "The UDP port to listen to.")
+	flag.IntVar(&c.BufferSize, "buffersize", c.BufferSize, "Buffer size for the incoming messages.")
+	flag.Parse()
+
+	return &c, nil
 }
 
 func main() {
-	v := setupViper()
-
-	if v == nil {
-		log.Fatal("Unable to read configuration")
+	c, err := configure()
+	if err != nil {
+		log.Fatal(err)
 	}
 
-	conn, err := collector.StartCollector(v.GetString("address"), v.GetInt("port"))
+	conn, err := collector.StartCollector(c.ListenAddress, c.ListenPort)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -57,14 +53,14 @@ func main() {
 	var udpAddr *net.UDPAddr
 
 	for {
-		buf := make([]byte, v.GetInt("buffersize"))
+		buf := make([]byte, c.BufferSize)
 		if _, udpAddr, err = conn.ReadFromUDP(buf); err != nil {
 			fmt.Printf("Error occurred: %v. Exiting.\n", err)
 
 			return
 		}
 
-		decoder := ipfix.NewDecoder(udpAddr, v.GetBool("debug"))
+		decoder := ipfix.NewDecoder(udpAddr, c.Debug)
 
 		// var templates []*templateRecord
 		// var message ipfix.Message
