@@ -1,2 +1,4 @@
+github.com/codingconcepts/env v0.0.0-20200821220118-a8fbf8d84482 h1:5/aEFreBh9hH/0G+33xtczJCvMaulqsm9nDuu2BZUEo=
+github.com/codingconcepts/env v0.0.0-20200821220118-a8fbf8d84482/go.mod h1:TM9ug+H/2cI3EjyIDr5xKCkFGyNE59URgH1wu5NyU8E=
 github.com/spf13/pflag v1.0.5 h1:iy+VFUOCP1a+8yFto/drg2CJ5u0yRoB7fZw3DKv/JXA=
 github.com/spf13/pflag v1.0.5/go.mod h1:McXfInJRrz4CZXVZOBLb0bTZqETkiAhM9Iw0y3An2Bg=

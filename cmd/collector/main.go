@@ -5,6 +5,7 @@ import (
 	"log"
 	"net"
 
+	"github.com/codingconcepts/env"
 	flag "github.com/spf13/pflag"
 
 	"github.com/mateumann/clouseau/encoding/ipfix"
@@ -12,27 +13,35 @@ import (
 )
 
 type configuration struct {
-	debug         bool
-	listenAddress string
-	listenPort    int
-	bufferSize    int
+	Debug         bool   `env:"DEBUG" default:"false"`
+	ListenAddress string `env:"LISTEN_ADDRESS" default:"0.0.0.0"`
+	ListenPort    int    `env:"LISTEN_PORT" default:"4739"`
+	BufferSize    int    `env:"BUFFER_SIZE" default:"8192"`
 }
 
-func configure() *configuration {
+func configure() (*configuration, error) {
 	c := configuration{}
-	flag.BoolVar(&c.debug, "debug", false, "Debug mode.")
-	flag.StringVar(&c.listenAddress, "address", "0.0.0.0", "IP address of the interface to listen to.")
-	flag.IntVar(&c.listenPort, "port", 4739, "The UDP port to listen to.")
-	flag.IntVar(&c.bufferSize, "buffersize", 8192, "Buffer size for the incoming messages.")
+
+	if err := env.Set(&c); err != nil {
+		return nil, fmt.Errorf("error reading configuration from the environment: %w", err)
+	}
+
+	flag.BoolVar(&c.Debug, "debug", c.Debug, "Debug mode.")
+	flag.StringVar(&c.ListenAddress, "address", c.ListenAddress, "IP address of the interface to listen to.")
+	flag.IntVar(&c.ListenPort, "port", c.ListenPort, "The UDP port to listen to.")
+	flag.IntVar(&c.BufferSize, "buffersize", c.BufferSize, "Buffer size for the incoming messages.")
 	flag.Parse()
 
-	return &c
+	return &c, nil
 }
 
 func main() {
-	c := configure()
+	c, err := configure()
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	conn, err := collector.StartCollector(c.listenAddress, c.listenPort)
+	conn, err := collector.StartCollector(c.ListenAddress, c.ListenPort)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -44,14 +53,14 @@ func main() {
 	var udpAddr *net.UDPAddr
 
 	for {
-		buf := make([]byte, c.bufferSize)
+		buf := make([]byte, c.BufferSize)
 		if _, udpAddr, err = conn.ReadFromUDP(buf); err != nil {
 			fmt.Printf("Error occurred: %v. Exiting.\n", err)
 
 			return
 		}
 
-		decoder := ipfix.NewDecoder(udpAddr, c.debug)
+		decoder := ipfix.NewDecoder(udpAddr, c.Debug)
 
 		// var templates []*templateRecord
 		// var message ipfix.Message
