@@ -3,12 +3,10 @@ package main
 import (
 	"fmt"
 	"log"
-	"net"
 
 	"github.com/codingconcepts/env"
 	flag "github.com/spf13/pflag"
 
-	"github.com/mateumann/clouseau/encoding/ipfix"
 	"github.com/mateumann/clouseau/net/collector"
 )
 
@@ -36,41 +34,21 @@ func configure() (*configuration, error) {
 }
 
 func main() {
-	c, err := configure()
+	config, err := configure()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	conn, err := collector.StartCollector(c.ListenAddress, c.ListenPort)
+	c, err := collector.StartCollector(config.ListenAddress, config.ListenPort)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	defer conn.Close()
-
-	fmt.Printf("Server listening %v\n", conn.LocalAddr())
-
-	var udpAddr *net.UDPAddr
-
-	for {
-		buf := make([]byte, c.BufferSize)
-		if _, udpAddr, err = conn.ReadFromUDP(buf); err != nil {
-			fmt.Printf("Error occurred: %v. Exiting.\n", err)
-
-			return
-		}
-
-		decoder := ipfix.NewDecoder(udpAddr, c.Debug)
-
-		// var templates []*templateRecord
-		// var message ipfix.Message
-
-		_, err = decoder.Read(buf)
-		// err = message.UnmarshalBinary(bytes.NewReader(buf), templates)
-		if err != nil {
-			log.Print(fmt.Sprintf("%v\n", err))
-		}
-
-		fmt.Printf("%v\n", decoder)
+	err = c.HandleFunc(func() {}, func([]byte) {}, config.BufferSize, config.Debug)
+	if err != nil {
+		c.Close()
+		log.Fatal(err)
 	}
+
+	c.Close()
 }
