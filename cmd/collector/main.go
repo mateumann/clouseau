@@ -44,7 +44,10 @@ func main() {
 		log.Fatal(err)
 	}
 
-	err = c.HandleFunc(func() {}, func([]byte) {}, config.BufferSize, config.Debug)
+	err = c.HandleFunc(nil, nil,
+		config.BufferSize,
+		config.Debug,
+	)
 	if err != nil {
 		c.Close()
 		log.Fatal(err)

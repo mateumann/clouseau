@@ -3,6 +3,7 @@ package collector
 import (
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"net"
 
@@ -36,7 +37,7 @@ func (c *Collector) Close() error {
 	return c.conn.Close()
 }
 
-func (c *Collector) HandleFunc(writer func(), reader func([]byte), bufferSize int, debug bool) error {
+func (c *Collector) HandleFunc(writer io.Writer, reader io.Reader, bufferSize int, debug bool) error {
 	fmt.Printf("Server listening %v\n", c.conn.LocalAddr())
 
 	var udpAddr *net.UDPAddr
