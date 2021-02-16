@@ -24,8 +24,8 @@ fmt-encoding:
 
 .PHONY: fmt-net
 fmt-net:
-	gofumpt -s -w net/collector/*.go
-	gofumports -w net/collector/*.go
+	gofumpt -s -w net/ipfix/*.go
+	gofumports -w net/ipfix/*.go
 
 .PHONY: lint
 lint:
@@ -40,7 +40,7 @@ analyse:
 		encoding/ipfix/element.go \
 		encoding/ipfix/helpers.go \
 		encoding/ipfix/message.go \
-		net/collector/collector.go
+		net/ipfix/collector.go
 
 .PHONY: test
 test: export TMPDIR=${XDG_RUNTIME_DIR}/tmp
@@ -53,15 +53,15 @@ test-encoding:
 
 .PHONY: test-net
 test-net:
-	echo -n '' > ./net/collector/coverage.txt
-	go test -coverprofile=./net/collector/coverage.txt -covermode=atomic ./net/collector/
+	echo -n '' > ./net/ipfix/coverage.txt
+	go test -coverprofile=./net/ipfix/coverage.txt -covermode=atomic ./net/ipfix/
 
 .PHONY: create-coverage-report
 create-coverage-report:
 	cat encoding/ipfix/coverage.txt >> coverage.txt
-	cat net/collector/coverage.txt >> coverage.txt
+	cat net/ipfix/coverage.txt >> coverage.txt
 	rm encoding/ipfix/coverage.txt
-	rm net/collector/coverage.txt
+	rm net/ipfix/coverage.txt
 
 .PHONY: build
 build: build-collector

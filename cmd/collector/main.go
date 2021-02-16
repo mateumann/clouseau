@@ -7,7 +7,7 @@ import (
 	"github.com/codingconcepts/env"
 	flag "github.com/spf13/pflag"
 
-	"github.com/mateumann/clouseau/net/collector"
+	"github.com/mateumann/clouseau/net/ipfix"
 )
 
 type configuration struct {
@@ -39,7 +39,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	c, err := collector.StartCollector(config.ListenAddress, config.ListenPort)
+	c, err := ipfix.StartCollector(config.ListenAddress, config.ListenPort)
 	if err != nil {
 		log.Fatal(err)
 	}
