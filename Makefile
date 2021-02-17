@@ -38,6 +38,7 @@ analyse:
 		encoding/ipfix/helpers.go \
 		encoding/ipfix/message.go \
 		net/ipfix/collector.go
+	go list -json -m all | nancy sleuth
 
 .PHONY: test
 test: export TMPDIR=${XDG_RUNTIME_DIR}/tmp
