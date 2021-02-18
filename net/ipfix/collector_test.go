@@ -5,7 +5,7 @@ import (
 )
 
 func TestCollector_Start_Close(t *testing.T) {
-	c, err := StartCollector("127.0.0.1", 20000)
+	c, err := NewUDPCollector("127.0.0.1", 20000, 0, false)
 	if err != nil {
 		t.Errorf("unable to start collector: %v", err)
 	}

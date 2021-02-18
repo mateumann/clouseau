@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"log"
 
 	"github.com/codingconcepts/env"
@@ -39,19 +40,24 @@ func main() {
 		log.Fatal(err)
 	}
 
-	c, err := ipfix.StartCollector(config.ListenAddress, config.ListenPort)
+	c, err := ipfix.NewUDPCollector(config.ListenAddress, config.ListenPort, config.BufferSize, config.Debug)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	err = c.HandleFunc(nil, nil,
-		config.BufferSize,
-		config.Debug,
-	)
-	if err != nil {
-		c.Close()
-		log.Fatal(err)
-	}
+	c.HandleFunc(ipfixHandler)
+	// err = c.HandleFunc_OLD(nil, nil,
+	// 	config.BufferSize,
+	// 	config.Debug,
+	// )
+	// if err != nil {
+	// 	c.Close()
+	// 	log.Fatal(err)
+	// }
 
 	c.Close()
+}
+
+func ipfixHandler(w io.Writer) {
+	fmt.Fprintf(w, "ipfixHandler here\n")
 }
