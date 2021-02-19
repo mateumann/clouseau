@@ -45,6 +45,14 @@ func main() {
 		log.Fatal(err)
 	}
 
+	// NOTE mateumann, 2021-02-19
+	// Now the idea is to have Decoder.Read injected as a reader function and YetToBeWrittenDatabaseAdapter.Write
+	// as a writer function.  Each time collector receives a message (net.UDPConn.ReadFromUDP) it passes it to the
+	// reader function and then calls the writer function.  Must also handle partial messages - should not always
+	// call the reader but only if a whole message (or a few messages) are read/decoded.  Probably need to rewrite
+	// Decoder.Read to return number of read messages instead of number of read bytes.
+	// Might be worth calling the writer function (and the reader as well?) in a separate goroutine.
+
 	c.HandleFunc(ipfixHandler)
 	// err = c.HandleFunc_OLD(nil, nil,
 	// 	config.BufferSize,
