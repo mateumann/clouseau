@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"os"
 
 	"github.com/codingconcepts/env"
 	flag "github.com/spf13/pflag"
@@ -45,6 +46,15 @@ func main() {
 		log.Fatal(err)
 	}
 
+	f, err := os.OpenFile("/tmp/collector.log", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0o600)
+	if err != nil {
+		c.Close()
+		log.Fatal(err)
+	}
+
+	defer c.Close()
+	defer f.Close()
+
 	// NOTE mateumann, 2021-02-19
 	// Now the idea is to have Decoder.Read injected as a reader function and YetToBeWrittenDatabaseAdapter.Write
 	// as a writer function.  Each time collector receives a message (net.UDPConn.ReadFromUDP) it passes it to the
@@ -53,7 +63,6 @@ func main() {
 	// Decoder.Read to return number of read messages instead of number of read bytes.
 	// Might be worth calling the writer function (and the reader as well?) in a separate goroutine.
 
-	c.HandleFunc(ipfixHandler)
 	// err = c.HandleFunc_OLD(nil, nil,
 	// 	config.BufferSize,
 	// 	config.Debug,
@@ -63,9 +72,11 @@ func main() {
 	// 	log.Fatal(err)
 	// }
 
-	c.Close()
+	c.Serve(ipfixHandler(f))
 }
 
-func ipfixHandler(w io.Writer) {
+func ipfixHandler(w io.Writer) io.Writer {
 	fmt.Fprintf(w, "ipfixHandler here\n")
+
+	return w
 }

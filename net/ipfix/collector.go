@@ -43,17 +43,19 @@ func (c *Collector) Close() error {
 	return c.conn.Close()
 }
 
-// HandleFunc registers a io.Writer interface which will store received ipfix messages.
+// Serve registers a io.Writer interface which will store received ipfix messages.
 // It also acts as kind of server function (for time being probably).
-func (c *Collector) HandleFunc(f func(io.Writer)) {
+func (c *Collector) Serve(w io.Writer) {
+	defer c.Close()
+
+	decoder := ipfix.NewDecoder(&c.address, c.debug) // TODO mateumann: is `&` needed?
+
 	for {
 		buf := make([]byte, c.bufferSize)
 		if _, _, err := c.conn.ReadFromUDP(buf); err != nil {
 			// TODO mateumann: use logger
 			fmt.Printf("Error occurred: %v\n", err)
 		}
-
-		decoder := ipfix.NewDecoder(&c.address, c.debug) // TODO mateumann: is `&` needed?
 
 		// var templates []*templateRecord
 		// var message ipfix.Message
