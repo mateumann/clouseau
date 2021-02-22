@@ -23,7 +23,7 @@ type Collector struct {
 }
 
 // NewUDPCollector starts a UDP server listening on a given IP:port address.
-func NewUDPCollector(ip string, port int, bufferSize int, debug bool) (*Collector, error) {
+func NewUDPCollector(ip string, port, bufferSize int, debug bool) (*Collector, error) {
 	addr := net.UDPAddr{IP: net.ParseIP(ip), Port: port, Zone: ""}
 
 	conn, err := net.ListenUDP(collectorNetwork, &addr)
@@ -39,6 +39,7 @@ func NewUDPCollector(ip string, port int, bufferSize int, debug bool) (*Collecto
 	return &Collector{addr, conn, bufferSize, debug}, nil
 }
 
+// Close closes conn connection.
 func (c *Collector) Close() error {
 	return c.conn.Close()
 }
@@ -72,28 +73,28 @@ func (c *Collector) Serve(w io.Writer) {
 	}
 }
 
-func (c *Collector) HandleFuncDeprecated(writer io.Writer, reader io.Reader, bufferSize int, debug bool) error {
-	var udpAddr *net.UDPAddr
+// func (c *Collector) HandleFuncDeprecated(writer io.Writer, reader io.Reader, bufferSize int, debug bool) error {
+// 	var udpAddr *net.UDPAddr
 
-	for {
-		buf := make([]byte, bufferSize)
-		if _, _, err := c.conn.ReadFromUDP(buf); err != nil {
-			fmt.Printf("Error occurred: %v. Exiting.\n", err)
+// 	for {
+// 		buf := make([]byte, bufferSize)
+// 		if _, _, err := c.conn.ReadFromUDP(buf); err != nil {
+// 			fmt.Printf("Error occurred: %v. Exiting.\n", err)
 
-			return errors.Unwrap(err)
-		}
+// 			return errors.Unwrap(err)
+// 		}
 
-		decoder := ipfix.NewDecoder(udpAddr, debug)
+// 		decoder := ipfix.NewDecoder(udpAddr, debug)
 
-		// var templates []*templateRecord
-		// var message ipfix.Message
+// 		// var templates []*templateRecord
+// 		// var message ipfix.Message
 
-		_, err := decoder.Read(buf)
-		// err = message.UnmarshalBinary(bytes.NewReader(buf), templates)
-		if err != nil {
-			log.Print(fmt.Sprintf("%v\n", err))
-		}
+// 		_, err := decoder.Read(buf)
+// 		// err = message.UnmarshalBinary(bytes.NewReader(buf), templates)
+// 		if err != nil {
+// 			log.Print(fmt.Sprintf("%v\n", err))
+// 		}
 
-		fmt.Printf("%v\n", decoder)
-	}
-}
+// 		fmt.Printf("%v\n", decoder)
+// 	}
+// }
