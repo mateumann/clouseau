@@ -17,7 +17,9 @@ type MessageWriter interface{}
 
 // Collector is an interface defining a collector which reads data from io.Reader and uses io.Writer to store them.
 type Collector interface {
-	Collect(*io.Writer, *io.Reader)
+	Listen(*net.UDPAddr)
+	Collect(p []byte)
+	Write(*Message)
 }
 
 // ListenAndCollect listens on the UDP network address addr and calls collector to receive incoming IPFIX Messages.
@@ -52,6 +54,10 @@ type collector struct {
 	logger     *log.Logger
 	BufferSize int
 	Debug      bool
+}
+
+func (c *collector) Listen(addre *net.UDPAddr) {
+	// TODO
 }
 
 // Collect if IPFIX implementation of Collector interface.
