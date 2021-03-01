@@ -2,14 +2,12 @@ package main
 
 import (
 	"fmt"
-	"log"
-	"net"
 	"os"
 
 	"github.com/codingconcepts/env"
 	flag "github.com/spf13/pflag"
 
-	"github.com/mateumann/clouseau/pkg/collecting"
+	"github.com/mateumann/clouseau/pkg/collector"
 )
 
 /*
@@ -29,47 +27,42 @@ func main() {
 */
 
 type configuration struct {
-	Debug         bool   `env:"DEBUG" default:"false"`
-	ListenAddress string `env:"LISTEN_ADDRESS" default:"0.0.0.0"`
-	ListenPort    int    `env:"LISTEN_PORT" default:"4739"`
-	BufferSize    int    `env:"BUFFER_SIZE" default:"8192"`
+	Debug          bool   `env:"DEBUG" default:"false"`
+	ListenProtocol string `env:"LISTEN_PROTOCOL" default:"udp"`
+	ListenAddress  string `env:"LISTEN_ADDRESS" default:"0.0.0.0"`
+	ListenPort     int    `env:"LISTEN_PORT" default:"4739"`
+	BufferSize     int    `env:"BUFFER_SIZE" default:"8192"`
 }
 
-func configure() (*configuration, error) {
+func configure() *configuration {
 	c := configuration{}
 
 	if err := env.Set(&c); err != nil {
-		return nil, fmt.Errorf("error reading configuration from the environment: %w", err)
+		fmt.Fprintf(os.Stderr, "error has occurred during parsing env: %v\n", err)
+
+		return &c
 	}
 
 	flag.BoolVar(&c.Debug, "debug", c.Debug, "Debug mode.")
+	flag.StringVar(&c.ListenProtocol, "protocol", c.ListenProtocol, "Protocol to use (only UDP is available).")
 	flag.StringVar(&c.ListenAddress, "address", c.ListenAddress, "IP address of the interface to listen to.")
 	flag.IntVar(&c.ListenPort, "port", c.ListenPort, "The UDP port to listen to.")
 	flag.IntVar(&c.BufferSize, "buffersize", c.BufferSize, "Buffer size for the incoming messages.")
 	flag.Parse()
 
-	return &c, nil
+	return &c
 }
 
 func main() {
-	config, err := configure()
+	config := configure()
+
+	c, err := collector.NewUDPCollector(config.ListenAddress, config.ListenPort, config.BufferSize, config.Debug)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Fprintf(os.Stderr, "%v\n", err)
+		os.Exit(1)
 	}
 
-	f, err := os.OpenFile("/tmp/collector.log", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0o600)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	defer f.Close()
-
-	addr := net.UDPAddr{IP: net.ParseIP(config.ListenAddress), Port: config.ListenPort, Zone: ""}
-
-	err = collecting.ListenAndCollect(addr, f, config.BufferSize, config.Debug)
-	if err != nil {
-		log.Printf("Error occurred: %v\n", err)
-	}
+	c.Collect()
 }
 
 // 	c, err := ipfix.NewUDPCollector(config.ListenAddress, config.ListenPort, config.BufferSize, config.Debug)

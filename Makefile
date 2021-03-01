@@ -17,13 +17,9 @@ fmt-cmd:
 
 .PHONY: fmt-pkg
 fmt-pkg:
-	gofumpt -s -w pkg/collecting/*.go
+	gofumpt -s -w pkg/collector/*.go
 	gofumpt -s -w pkg/encoding/*.go
-#	gofumpt -s -w pkg/storage/*.go
-
-#.PHONY: fmt-net
-#fmt-net:
-#	gofumpt -s -w net/ipfix/*.go
+	gofumpt -s -w pkg/storage/*.go
 
 .PHONY: lint
 lint:
@@ -34,7 +30,7 @@ analyse:
 	gocyclo -over 9 -ignore "_test.go$$" .
 	gocognit -over 7 \
 		cmd/collector/main.go \
-		pkg/collecting/collector.go
+		pkg/collector/collector.go
 		pkg/encoding/decode.go \
 		pkg/encoding/element.go \
 		pkg/encoding/helpers.go \
@@ -43,34 +39,33 @@ analyse:
 
 .PHONY: test
 test: export TMPDIR=${XDG_RUNTIME_DIR}/tmp
-#test: make-tmp-dir test-collecting test-encoding test-storage create-coverage-report
-test: make-tmp-dir test-collecting test-encoding create-coverage-report
+test: make-tmp-dir test-collector test-encoding test-storage create-coverage-report
 test: make-tmp-dir create-coverage-report
 
-.PHONY: test-collecting
-test-collecting:
-	echo -n '' > ./pkg/collecting/coverage.txt
-	go test -coverprofile=./pkg/collecting/coverage.txt -covermode=atomic ./pkg/collecting/
+.PHONY: test-collector
+test-collector:
+	echo -n '' > ./pkg/collector/coverage.txt
+	go test -coverprofile=./pkg/collector/coverage.txt -covermode=atomic ./pkg/collector/
 
 .PHONY: test-encoding
 test-encoding:
 	echo -n '' > ./pkg/encoding/coverage.txt
 	go test -coverprofile=./pkg/encoding/coverage.txt -covermode=atomic ./pkg/encoding/
 
-#.PHONY: test-storage
-#test-storage:
-#	echo -n '' > ./pkg/storage/coverage.txt
-#	go test -coverprofile=./pkg/storage/coverage.txt -covermode=atomic ./pkg/storage/
+.PHONY: test-storage
+test-storage:
+	echo -n '' > ./pkg/storage/coverage.txt
+	go test -coverprofile=./pkg/storage/coverage.txt -covermode=atomic ./pkg/storage/
 
 
 .PHONY: create-coverage-report
 create-coverage-report:
-	cat pkg/collecting/coverage.txt >> coverage.txt
+	cat pkg/collector/coverage.txt >> coverage.txt
 	cat pkg/encoding/coverage.txt >> coverage.txt
-#	cat pkg/storage/coverage.txt >> coverage.txt
-	rm pkg/collecting/coverage.txt
+	cat pkg/storage/coverage.txt >> coverage.txt
+	rm pkg/collector/coverage.txt
 	rm pkg/encoding/coverage.txt
-#	rm pkg/storage/coverage.txt
+	rm pkg/storage/coverage.txt
 
 .PHONY: build
 build: build-collector
