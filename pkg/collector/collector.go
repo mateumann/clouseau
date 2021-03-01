@@ -1,82 +1,63 @@
-package collecting
+package collector
 
-import (
-	"errors"
-	"fmt"
-	"io"
-	"log"
-	"net"
-
-	"github.com/mateumann/clouseau/pkg/encoding"
-)
-
-const (
-	collectorNetwork = "udp"
-)
-
-// MessageWriter is an interface which is used to write (down) IPFIX Messages.
-type MessageWriter interface{}
-
-// Collector is an interface defining a collector which reads data from io.Reader and uses io.Writer to store them.
+// Collector is an interface defining a IPFIX collector which collects incoming messages.
 type Collector interface {
-	Listen(*net.UDPAddr)
-	Collect(p []byte)
-	Write(*encoding.Message)
+	Collect()
 }
 
-// ListenAndCollect listens on the UDP network address addr and calls collector to receive incoming IPFIX Messages.
-func ListenAndCollect(addr net.UDPAddr, w io.Writer, bufferSize int, debug bool) error {
-	c, err := net.ListenUDP(collectorNetwork, &addr)
-	if err != nil {
-		return errors.Unwrap(err)
-	}
+// // ListenAndCollect listens on the UDP network address addr and calls collector to receive incoming IPFIX Messages.
+// func ListenAndCollect(addr net.UDPAddr, w io.Writer, bufferSize int, debug bool) error {
+// 	c, err := net.ListenUDP(udpNetwork, &addr)
+// 	if err != nil {
+// 		return errors.Unwrap(err)
+// 	}
 
-	defer c.Close()
+// 	defer c.Close()
 
-	collector := collector{BufferSize: bufferSize, Debug: debug, writer: w}
+// 	collector := collector{BufferSize: bufferSize, Debug: debug, writer: w}
 
-	// decoder := ipfix.NewDecoder(&addr, collector.Debug)
-	collector.decoder.Source = &addr
+// 	// decoder := ipfix.NewDecoder(&addr, collector.Debug)
+// 	collector.decoder.Source = &addr
 
-	for {
-		buf := make([]byte, collector.BufferSize)
-		if _, _, err = c.ReadFromUDP(buf); err != nil {
-			// TODO mateumann: use logger
-			fmt.Printf("Error occurred: %v\n", err)
-		}
+// 	for {
+// 		buf := make([]byte, collector.BufferSize)
+// 		if _, _, err = c.ReadFromUDP(buf); err != nil {
+// 			// TODO mateumann: use logger
+// 			fmt.Printf("Error occurred: %v\n", err)
+// 		}
 
-		collector.Collect(buf)
-	}
-}
+// 		collector.Collect(buf)
+// 	}
+// }
 
-// collector configures IPFIX collection parameters.
-type collector struct {
-	decoder    *encoding.Decoder
-	writer     io.Writer // TODO mateumann: replace with ipfix Writer
-	logger     *log.Logger
-	BufferSize int
-	Debug      bool
-}
+// // collector configures IPFIX collection parameters.
+// type collector struct {
+// 	decoder    *encoding.Decoder
+// 	writer     io.Writer // TODO mateumann: replace with ipfix Writer
+// 	logger     *log.Logger
+// 	BufferSize int
+// 	Debug      bool
+// }
 
-func (c *collector) Listen(a *net.UDPAddr) {
-	// TODO
-}
+// func (c *collector) Listen(a *net.UDPAddr) {
+// 	// TODO
+// }
 
-// Collect if IPFIX implementation of Collector interface.
-func (c *collector) Collect(p []byte) {
-	n, err := c.decoder.Read(p)
-	if err != nil {
-		c.logger.Printf("Error occurred: %v\n", err)
-	}
+// // Collect if IPFIX implementation of Collector interface.
+// func (c *collector) Collect(p []byte) {
+// 	n, err := c.decoder.Read(p)
+// 	if err != nil {
+// 		c.logger.Printf("Error occurred: %v\n", err)
+// 	}
 
-	if n > 0 {
-		// TODO mateumann: replace with ipfix Writer
-		_, err := c.writer.Write([]byte(c.decoder.String()))
-		if err != nil {
-			fmt.Printf("Error occurred: %v\n", err)
-		}
-	}
-}
+// 	if n > 0 {
+// 		// TODO mateumann: replace with ipfix Writer
+// 		_, err := c.writer.Write([]byte(c.decoder.String()))
+// 		if err != nil {
+// 			fmt.Printf("Error occurred: %v\n", err)
+// 		}
+// 	}
+// }
 
 // Collector describes a UDP listener service which listens to the incoming data flow and calls handler function.
 // type Collector struct {
