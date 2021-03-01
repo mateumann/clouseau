@@ -43,7 +43,8 @@ analyse:
 
 .PHONY: test
 test: export TMPDIR=${XDG_RUNTIME_DIR}/tmp
-test: make-tmp-dir test-collecting test-encoding test-storage create-coverage-report
+#test: make-tmp-dir test-collecting test-encoding test-storage create-coverage-report
+test: make-tmp-dir test-collecting test-encoding create-coverage-report
 test: make-tmp-dir create-coverage-report
 
 .PHONY: test-collecting
@@ -56,22 +57,20 @@ test-encoding:
 	echo -n '' > ./pkg/encoding/coverage.txt
 	go test -coverprofile=./pkg/encoding/coverage.txt -covermode=atomic ./pkg/encoding/
 
-.PHONY: test-storage
-test-storage:
-	echo -n '' > ./pkg/storage/coverage.txt
-	go test -coverprofile=./pkg/storage/coverage.txt -covermode=atomic ./pkg/storage/
+#.PHONY: test-storage
+#test-storage:
+#	echo -n '' > ./pkg/storage/coverage.txt
+#	go test -coverprofile=./pkg/storage/coverage.txt -covermode=atomic ./pkg/storage/
 
 
 .PHONY: create-coverage-report
 create-coverage-report:
 	cat pkg/collecting/coverage.txt >> coverage.txt
 	cat pkg/encoding/coverage.txt >> coverage.txt
-	cat pkg/storage/coverage.txt >> coverage.txt
-#	cat ipfix/coverage.txt >> coverage.txt
+#	cat pkg/storage/coverage.txt >> coverage.txt
 	rm pkg/collecting/coverage.txt
 	rm pkg/encoding/coverage.txt
-	rm pkg/storage/coverage.txt
-#	rm ipfix/coverage.txt
+#	rm pkg/storage/coverage.txt
 
 .PHONY: build
 build: build-collector
