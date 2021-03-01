@@ -1,4 +1,4 @@
-package ipfix
+package collecting
 
 import (
 	"errors"
@@ -6,6 +6,8 @@ import (
 	"io"
 	"log"
 	"net"
+
+	"github.com/mateumann/clouseau/pkg/encoding"
 )
 
 const (
@@ -19,7 +21,7 @@ type MessageWriter interface{}
 type Collector interface {
 	Listen(*net.UDPAddr)
 	Collect(p []byte)
-	Write(*Message)
+	Write(*encoding.Message)
 }
 
 // ListenAndCollect listens on the UDP network address addr and calls collector to receive incoming IPFIX Messages.
@@ -49,14 +51,14 @@ func ListenAndCollect(addr net.UDPAddr, w io.Writer, bufferSize int, debug bool)
 
 // collector configures IPFIX collection parameters.
 type collector struct {
-	decoder    *Decoder
+	decoder    *encoding.Decoder
 	writer     io.Writer // TODO mateumann: replace with ipfix Writer
 	logger     *log.Logger
 	BufferSize int
 	Debug      bool
 }
 
-func (c *collector) Listen(addre *net.UDPAddr) {
+func (c *collector) Listen(a *net.UDPAddr) {
 	// TODO
 }
 

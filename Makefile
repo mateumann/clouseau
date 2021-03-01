@@ -9,16 +9,17 @@ clean-bin:
 	rm -f collector
 
 .PHONY: fmt
-fmt: fmt-cmd
-	gofumpt -s -w ipfix/*.go
+fmt: fmt-cmd fmt-pkg
 
 .PHONY: fmt-cmd
 fmt-cmd:
 	gofumpt -s -w cmd/collector/*.go
 
-#.PHONY: fmt-encoding
-#fmt-encoding:
-#	gofumpt -s -w encoding/ipfix/*.go
+.PHONY: fmt-pkg
+fmt-pkg:
+	gofumpt -s -w pkg/collecting/*.go
+	gofumpt -s -w pkg/encoding/*.go
+#	gofumpt -s -w pkg/storage/*.go
 
 #.PHONY: fmt-net
 #fmt-net:
@@ -33,41 +34,44 @@ analyse:
 	gocyclo -over 9 -ignore "_test.go$$" .
 	gocognit -over 7 \
 		cmd/collector/main.go \
-		ipfix/decode.go \
-		ipfix/element.go \
-		ipfix/helpers.go \
-		ipfix/message.go \
-		ipfix/collector.go
+		pkg/collecting/collector.go
+		pkg/encoding/decode.go \
+		pkg/encoding/element.go \
+		pkg/encoding/helpers.go \
+		pkg/encoding/message.go \
 	go list -json -m all | nancy sleuth
 
 .PHONY: test
 test: export TMPDIR=${XDG_RUNTIME_DIR}/tmp
-#test: make-tmp-dir test-encoding test-net create-coverage-report
-test: make-tmp-dir test-ipfix create-coverage-report
+test: make-tmp-dir test-collecting test-encoding test-storage create-coverage-report
+test: make-tmp-dir create-coverage-report
 
-#.PHONY: test-encoding
-#test-encoding:
-#	echo -n '' > ./encoding/ipfix/coverage.txt
-#	go test -coverprofile=./encoding/ipfix/coverage.txt -covermode=atomic ./encoding/ipfix/
+.PHONY: test-collecting
+test-collecting:
+	echo -n '' > ./pkg/collecting/coverage.txt
+	go test -coverprofile=./pkg/collecting/coverage.txt -covermode=atomic ./pkg/collecting/
 
-#.PHONY: test-net
-#test-net:
-#	echo -n '' > ./net/ipfix/coverage.txt
-#	go test -coverprofile=./net/ipfix/coverage.txt -covermode=atomic ./net/ipfix/
+.PHONY: test-encoding
+test-encoding:
+	echo -n '' > ./pkg/encoding/coverage.txt
+	go test -coverprofile=./pkg/encoding/coverage.txt -covermode=atomic ./pkg/encoding/
 
-.PHONY: test-ipfix
-test-ipfix:
-	echo -n '' > ./ipfix/coverage.txt
-	go test -coverprofile=./ipfix/coverage.txt -covermode=atomic ./ipfix/
+.PHONY: test-storage
+test-storage:
+	echo -n '' > ./pkg/storage/coverage.txt
+	go test -coverprofile=./pkg/storage/coverage.txt -covermode=atomic ./pkg/storage/
+
 
 .PHONY: create-coverage-report
 create-coverage-report:
-#	cat encoding/ipfix/coverage.txt >> coverage.txt
-#	cat net/ipfix/coverage.txt >> coverage.txt
-	cat ipfix/coverage.txt >> coverage.txt
-#	rm encoding/ipfix/coverage.txt
-#	rm net/ipfix/coverage.txt
-	rm ipfix/coverage.txt
+	cat pkg/collecting/coverage.txt >> coverage.txt
+	cat pkg/encoding/coverage.txt >> coverage.txt
+	cat pkg/storage/coverage.txt >> coverage.txt
+#	cat ipfix/coverage.txt >> coverage.txt
+	rm pkg/collecting/coverage.txt
+	rm pkg/encoding/coverage.txt
+	rm pkg/storage/coverage.txt
+#	rm ipfix/coverage.txt
 
 .PHONY: build
 build: build-collector

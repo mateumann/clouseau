@@ -1,4 +1,4 @@
-package ipfix
+package encoding
 
 import (
 	"bytes"

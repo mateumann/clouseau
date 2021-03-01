@@ -9,8 +9,24 @@ import (
 	"github.com/codingconcepts/env"
 	flag "github.com/spf13/pflag"
 
-	"github.com/mateumann/clouseau/ipfix"
+	"github.com/mateumann/clouseau/pkg/collecting"
 )
+
+/*
+ideally that file should consist of something like:
+
+func configure() *configuration {
+	...
+}
+
+func main() {
+	c := configure()
+	if err := run(c); err != nil {
+		fmt.Fprintf(os.Stderr, "v", err)
+		os.Exit(1)
+	}
+}
+*/
 
 type configuration struct {
 	Debug         bool   `env:"DEBUG" default:"false"`
@@ -50,7 +66,7 @@ func main() {
 
 	addr := net.UDPAddr{IP: net.ParseIP(config.ListenAddress), Port: config.ListenPort, Zone: ""}
 
-	err = ipfix.ListenAndCollect(addr, f, config.BufferSize, config.Debug)
+	err = collecting.ListenAndCollect(addr, f, config.BufferSize, config.Debug)
 	if err != nil {
 		log.Printf("Error occurred: %v\n", err)
 	}
