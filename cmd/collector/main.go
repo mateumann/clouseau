@@ -4,13 +4,29 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"os"
 
 	"github.com/codingconcepts/env"
 	flag "github.com/spf13/pflag"
 
-	"github.com/mateumann/clouseau/encoding/ipfix"
-	"github.com/mateumann/clouseau/net/collector"
+	"github.com/mateumann/clouseau/pkg/collecting"
 )
+
+/*
+ideally that file should consist of something like:
+
+func configure() *configuration {
+	...
+}
+
+func main() {
+	c := configure()
+	if err := run(c); err != nil {
+		fmt.Fprintf(os.Stderr, "v", err)
+		os.Exit(1)
+	}
+}
+*/
 
 type configuration struct {
 	Debug         bool   `env:"DEBUG" default:"false"`
@@ -36,41 +52,62 @@ func configure() (*configuration, error) {
 }
 
 func main() {
-	c, err := configure()
+	config, err := configure()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	conn, err := collector.StartCollector(c.ListenAddress, c.ListenPort)
+	f, err := os.OpenFile("/tmp/collector.log", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0o600)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	defer conn.Close()
+	defer f.Close()
 
-	fmt.Printf("Server listening %v\n", conn.LocalAddr())
+	addr := net.UDPAddr{IP: net.ParseIP(config.ListenAddress), Port: config.ListenPort, Zone: ""}
 
-	var udpAddr *net.UDPAddr
-
-	for {
-		buf := make([]byte, c.BufferSize)
-		if _, udpAddr, err = conn.ReadFromUDP(buf); err != nil {
-			fmt.Printf("Error occurred: %v. Exiting.\n", err)
-
-			return
-		}
-
-		decoder := ipfix.NewDecoder(udpAddr, c.Debug)
-
-		// var templates []*templateRecord
-		// var message ipfix.Message
-
-		_, err = decoder.Read(buf)
-		// err = message.UnmarshalBinary(bytes.NewReader(buf), templates)
-		if err != nil {
-			log.Print(fmt.Sprintf("%v\n", err))
-		}
-
-		fmt.Printf("%v\n", decoder)
+	err = collecting.ListenAndCollect(addr, f, config.BufferSize, config.Debug)
+	if err != nil {
+		log.Printf("Error occurred: %v\n", err)
 	}
 }
+
+// 	c, err := ipfix.NewUDPCollector(config.ListenAddress, config.ListenPort, config.BufferSize, config.Debug)
+// 	if err != nil {
+// 		log.Fatal(err)
+// 	}
+
+// 	f, err := os.OpenFile("/tmp/collector.log", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0o600)
+// 	if err != nil {
+// 		c.Close()
+// 		log.Fatal(err)
+// 	}
+
+// 	defer c.Close()
+// 	defer f.Close()
+
+// 	// NOTE mateumann, 2021-02-19
+// 	// Now the idea is to have Decoder.Read injected as a reader function and YetToBeWrittenDatabaseAdapter.Write
+// 	// as a writer function.  Each time collector receives a message (net.UDPConn.ReadFromUDP) it passes it to the
+// 	// reader function and then calls the writer function.  Must also handle partial messages - should not always
+// 	// call the reader but only if a whole message (or a few messages) are read/decoded.  Probably need to rewrite
+// 	// Decoder.Read to return number of read messages instead of number of read bytes.
+// 	// Might be worth calling the writer function (and the reader as well?) in a separate goroutine.
+
+// 	// err = c.HandleFunc_OLD(nil, nil,
+// 	// 	config.BufferSize,
+// 	// 	config.Debug,
+// 	// )
+// 	// if err != nil {
+// 	// 	c.Close()
+// 	// 	log.Fatal(err)
+// 	// }
+
+// 	c.Serve(ipfixHandler(f))
+// }
+
+// func ipfixHandler(w io.Writer) io.Writer {
+// 	fmt.Fprintf(w, "ipfixHandler here\n")
+
+// 	return w
+// }

@@ -15,4 +15,3 @@ Project (will be) built from components, each of them performing one task.
 The first one is collector which listenes for incomming
 [IP Flow Information Export (IPFIX)](https://tools.ietf.org/html/rfc7011)
 packets.
-
