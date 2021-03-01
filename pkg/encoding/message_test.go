@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"math/big"
+	mbits "math/bits"
 	"reflect"
 	"testing"
 	"time"
@@ -835,7 +836,7 @@ func TestDataRecord_Size(t *testing.T) {
 		{
 			"Data Record with 3 integers",
 			dataRecord{[]interface{}{1, 2, 3}},
-			3 * 8,
+			3 * mbits.UintSize / 8,
 		},
 	}
 	for _, tt := range tests {
