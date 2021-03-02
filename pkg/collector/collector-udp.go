@@ -36,8 +36,6 @@ func NewUDPCollector(address string, port, bufferSize int, debug bool) (*UDPColl
 func (c *UDPCollector) Collect() {
 	defer c.conn.Close()
 
-	log.Printf("UDPCollector collecting\n")
-
 	decoder := encoding.NewDecoder(c.addr, c.debug)
 
 	for {
@@ -50,7 +48,7 @@ func (c *UDPCollector) Collect() {
 
 		messagesCount, err := decoder.Read(buf)
 		if err != nil {
-			log.Printf("error while decoding ipfix message: %v\n", err)
+			log.Printf("error while decoding IPFIX message: %v\n", err)
 		} else {
 			log.Printf("%d messages decoded\n", messagesCount)
 		}

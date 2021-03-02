@@ -249,7 +249,8 @@ func (m *Message) String() string {
 		m.sequenceNumber, m.observationDomainID, intDescribed(len(m.sets), "set", "sets"))
 }
 
-// Unmarshal unmarshal a IPFIX Message.
+// Unmarshal reads byte stream from the reader and parses it into a IPFIX Message. `templates` are used to store IPFIX
+// (Options) Template Records used to decode raw data into a IPFIX Data Records.
 func (m *Message) Unmarshal(reader io.Reader, templates []*templateRecord) (n int, err error) {
 	if n, err = unmarshalFields(reader,
 		&m.version, &m.length, &m.exportTime, &m.sequenceNumber, &m.observationDomainID); err != nil {
@@ -362,7 +363,7 @@ func (s *set) Unmarshal(reader io.Reader, templates []*templateRecord) (n int, e
 		n += bytesRead
 
 		if err != nil {
-			return n, UnmarshalError{err}
+			return n, err
 		}
 	}
 
@@ -374,7 +375,7 @@ func (s *set) unmarshalTemplateRecord(reader io.Reader, templates *[]*templateRe
 	n, err = r.Unmarshal(reader, nil)
 
 	if err != nil {
-		return n, err
+		return n, UnmarshalError{err}
 	}
 
 	s.records = append(s.records, r)
@@ -389,7 +390,7 @@ func (s *set) unmarshalOptionsTemplateRecord(reader io.Reader) (n int, err error
 	n, err = r.Unmarshal(reader, nil)
 
 	if err != nil {
-		return n, err
+		return n, UnmarshalError{err}
 	}
 
 	s.records = append(s.records, r)
