@@ -128,27 +128,8 @@ type TemplateNotDefinedError struct {
 }
 
 func (e TemplateNotDefinedError) Error() string {
-	return fmt.Sprintf("ipfix: template not defined %v", e.templateID)
+	return fmt.Sprintf("template not defined %v", e.templateID)
 }
-
-// var errUnmarshalError = errors.New("unmarshal error")
-
-// type errUnhandledKind struct {
-// 	kind reflect.Kind
-// }
-//
-// func (e errUnhandledKind) Error() string {
-// 	return fmt.Sprintf("ipfix: unhandled kind %s", e.kind)
-// }
-
-// type errIncompatibleData struct {
-// 	informationElement InformationElement
-// 	data               []byte
-// }
-//
-// func (e errIncompatibleData) Error() string {
-// 	return fmt.Sprintf("ipfix: data %v incompatible with Information Element %v", e.data, e.informationElement)
-// }
 
 // UnmarshalError describes an error while unmarshalling data.
 // It wraps an error returned by the binary.Read function.
@@ -258,7 +239,7 @@ func (m *Message) String() string {
 
 // Unmarshal reads byte stream from the reader and parses it into a IPFIX Message. `templates` are used to store IPFIX
 // (Options) Template Records used to decode raw data into a IPFIX Data Records.
-func (m *Message) Unmarshal(reader io.Reader, templates []*templateRecord) (n int, err error) {
+func (m *Message) Unmarshal(reader io.Reader, templates *[]*templateRecord) (n int, err error) {
 	if n, err = unmarshalFields(reader,
 		&m.version, &m.length, &m.exportTime, &m.sequenceNumber, &m.observationDomainID); err != nil {
 		return n, err
@@ -276,7 +257,7 @@ func (m *Message) Unmarshal(reader io.Reader, templates []*templateRecord) (n in
 	return n, err
 }
 
-func (m *Message) unmarshalSet(reader io.Reader, templates []*templateRecord) (int, error) {
+func (m *Message) unmarshalSet(reader io.Reader, templates *[]*templateRecord) (int, error) {
 	var s set
 	n, err := s.Unmarshal(reader, templates)
 
@@ -345,7 +326,7 @@ func (s *set) valid() bool {
 }
 
 // Unmarshal unmarshal a IPFIX Message.
-func (s *set) Unmarshal(reader io.Reader, templates []*templateRecord) (n int, err error) {
+func (s *set) Unmarshal(reader io.Reader, templates *[]*templateRecord) (n int, err error) {
 	if n, err = unmarshalFields(reader, &s.setID, &s.length); err != nil {
 		return n, err
 	}
@@ -355,13 +336,13 @@ func (s *set) Unmarshal(reader io.Reader, templates []*templateRecord) (n int, e
 	for n < int(s.length) {
 		switch {
 		case s.setID == TemplateSetID:
-			bytesRead, err = s.unmarshalTemplateRecord(reader, &templates)
+			bytesRead, err = s.unmarshalTemplateRecord(reader, templates)
 
 		case s.setID == OptionsTemplateSetID:
 			bytesRead, err = s.unmarshalOptionsTemplateRecord(reader)
 
 		case s.setID >= MinimumDataSetID:
-			bytesRead, err = s.unmarshalDataRecord(reader, templates)
+			bytesRead, err = s.unmarshalDataRecord(reader, *templates)
 
 		default:
 			return n, UnmarshalError{errInvalidSetType}

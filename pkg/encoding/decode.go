@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net"
 )
 
@@ -81,7 +82,7 @@ func (d *Decoder) Read(p []byte) (n int, err error) {
 
 	var m Message
 
-	nn, err := m.Unmarshal(r, d.templates)
+	nn, err := m.Unmarshal(r, &d.templates)
 	d.buf = d.buf[nn:]
 	n += nn
 
@@ -113,6 +114,7 @@ func (d *Decoder) appendMessage(m Message) {
 func (d *Decoder) updateTemplates(records []record) {
 	for _, r := range records {
 		if template, ok := r.(*templateRecord); ok {
+			log.Printf("DEBUG appending template %v", template)
 			d.templates = append(d.templates, template)
 		}
 	}
@@ -121,6 +123,7 @@ func (d *Decoder) updateTemplates(records []record) {
 func (d *Decoder) updateOptionsTemplates(records []record) {
 	for _, r := range records {
 		if template, ok := r.(*optionsTemplateRecord); ok {
+			log.Printf("DEBUG appending options template %v", template)
 			d.optionsTemplates = append(d.optionsTemplates, template)
 		}
 	}
