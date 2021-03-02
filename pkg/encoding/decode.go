@@ -118,6 +118,8 @@ func (d *Decoder) updateTemplates(records []record) {
 			d.templates = append(d.templates, template)
 		}
 	}
+
+	log.Printf("DEBUG template length %v", len(d.templates))
 }
 
 func (d *Decoder) updateOptionsTemplates(records []record) {
@@ -127,4 +129,6 @@ func (d *Decoder) updateOptionsTemplates(records []record) {
 			d.optionsTemplates = append(d.optionsTemplates, template)
 		}
 	}
+
+	log.Printf("DEBUG options template length %v", len(d.optionsTemplates))
 }
