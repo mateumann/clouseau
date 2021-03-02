@@ -122,7 +122,14 @@ import (
 
 var errInvalidSetType = errors.New("invalid set type")
 
-var errTemplateNotDefined = errors.New("template not defined")
+// CorruptInputError describes an error in input data.
+type TemplateNotDefinedError struct {
+	templateID uint16
+}
+
+func (e TemplateNotDefinedError) Error() string {
+	return fmt.Sprintf("ipfix: template not defined %v", e.templateID)
+}
 
 // var errUnmarshalError = errors.New("unmarshal error")
 
@@ -363,7 +370,7 @@ func (s *set) Unmarshal(reader io.Reader, templates []*templateRecord) (n int, e
 		n += bytesRead
 
 		if err != nil {
-			return n, err
+			return n, UnmarshalError{err}
 		}
 	}
 
@@ -375,7 +382,7 @@ func (s *set) unmarshalTemplateRecord(reader io.Reader, templates *[]*templateRe
 	n, err = r.Unmarshal(reader, nil)
 
 	if err != nil {
-		return n, UnmarshalError{err}
+		return n, err
 	}
 
 	s.records = append(s.records, r)
@@ -390,7 +397,7 @@ func (s *set) unmarshalOptionsTemplateRecord(reader io.Reader) (n int, err error
 	n, err = r.Unmarshal(reader, nil)
 
 	if err != nil {
-		return n, UnmarshalError{err}
+		return n, err
 	}
 
 	s.records = append(s.records, r)
@@ -412,7 +419,7 @@ func (s *set) unmarshalDataRecord(reader io.Reader, templates []*templateRecord)
 		return n, nil
 	}
 
-	return 0, UnmarshalError{errTemplateNotDefined}
+	return 0, TemplateNotDefinedError{templateID: s.setID}
 }
 
 func getTemplate(templateID uint16, templates []*templateRecord) (*templateRecord, bool) {
@@ -558,7 +565,7 @@ func (r dataRecord) Size() int {
 // Unmarshal unmarshal a IPFIX dataRecord.
 func (r *dataRecord) Unmarshal(reader io.Reader, template *templateRecord) (n int, err error) {
 	if template == nil {
-		return 0, errTemplateNotDefined
+		return 0, TemplateNotDefinedError{0}
 	}
 
 	n = 0

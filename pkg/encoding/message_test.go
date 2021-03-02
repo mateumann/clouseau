@@ -935,7 +935,7 @@ func TestDataRecord_Unmarshal(t *testing.T) {
 			dataRecord{fieldValues: []interface{}{uint8(6)}},
 			1, nil,
 		},
-		{"nil template", []byte{0x06, 0x00}, nil, dataRecord{}, 0, errTemplateNotDefined},
+		{"nil template", []byte{0x06, 0x00}, nil, dataRecord{}, 0, TemplateNotDefinedError{}},
 		// {"invalid template", []byte{0x01}, templates[1], dataRecord{}, 1, errUnmarshalError},
 	}
 	for _, tt := range tests {
