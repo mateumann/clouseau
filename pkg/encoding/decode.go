@@ -109,6 +109,8 @@ func (d *Decoder) appendMessage(m Message) {
 			d.updateOptionsTemplates(s.records)
 		}
 	}
+
+	log.Printf("DEBUG messages length %v", len(d.messages))
 }
 
 func (d *Decoder) updateTemplates(records []record) {
