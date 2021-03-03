@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"math"
 	"reflect"
 	"time"
@@ -260,6 +261,8 @@ func (m *Message) Unmarshal(reader io.Reader, templates *[]*templateRecord) (n i
 func (m *Message) unmarshalSet(reader io.Reader, templates *[]*templateRecord) (int, error) {
 	var s set
 	n, err := s.Unmarshal(reader, templates)
+
+	log.Printf("DEBUG unmarshalSet: set = %v", s)
 
 	if err != nil && errors.Is(errors.Unwrap(err), io.ErrUnexpectedEOF) && (int(s.length) > n) {
 		// assume s.Unmarshal failed to read a record which was actually a padding
