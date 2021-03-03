@@ -165,6 +165,7 @@ func unmarshalFields(reader io.Reader, data ...interface{}) (n int, err error) {
 		// }
 
 		n += elemSize
+		log.Printf("DEBUG unmarshalFields: %v (%d bytes)", elem, elemSize)
 	}
 
 	return n, nil
