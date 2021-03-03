@@ -100,7 +100,7 @@ func (d *Decoder) Read(p []byte) (n int, err error) {
 func (d *Decoder) appendMessage(m Message) {
 	d.messages = append(d.messages, m)
 
-	log.Printf("DEBUG appending message %v", len(m))
+	log.Printf("DEBUG appending message %v", m)
 
 	// Update decoder's templates in case there are template sets in the message.
 	for _, s := range m.sets {
