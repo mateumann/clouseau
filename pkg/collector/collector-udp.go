@@ -43,7 +43,7 @@ func (c *UDPCollector) Collect() {
 		if bytesCount, fromAddr, err := c.conn.ReadFromUDP(buf); err != nil {
 			log.Printf("error while reading from UDP occurred: %v\n", err)
 		} else {
-			log.Printf("%d bytes read from %v\n", bytesCount, fromAddr)
+			log.Printf("%d bytes read from %v: %v\n", bytesCount, fromAddr, buf)
 		}
 
 		messagesCount, err := decoder.Read(buf)

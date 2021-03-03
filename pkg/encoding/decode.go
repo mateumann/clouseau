@@ -71,8 +71,6 @@ func (d *Decoder) Read(p []byte) (n int, err error) {
 		return 0, d.err
 	}
 
-	log.Printf("DEBUG decoder read from: %v", p)
-
 	if d.buf == nil {
 		d.buf = make([]byte, len(p))
 		copy(d.buf, p)
