@@ -246,6 +246,8 @@ func (m *Message) Unmarshal(reader io.Reader, templates *[]*templateRecord) (n i
 		return n, err
 	}
 
+	log.Printf("DEBUG unmarshalMessage: message = %v", m)
+
 	for n < int(m.length) {
 		bytesRead, err := m.unmarshalSet(reader, templates)
 		n += bytesRead
