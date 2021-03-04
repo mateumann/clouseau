@@ -123,12 +123,12 @@ import (
 
 var errInvalidSetType = errors.New("invalid set type")
 
-// CorruptInputError describes an error in input data.
-type TemplateNotDefinedError struct {
+// templateNotDefinedError is returned when no template for input data is found.
+type templateNotDefinedError struct {
 	templateID uint16
 }
 
-func (e TemplateNotDefinedError) Error() string {
+func (e templateNotDefinedError) Error() string {
 	return fmt.Sprintf("template not defined %v", e.templateID)
 }
 
@@ -405,7 +405,7 @@ func (s *set) unmarshalDataRecord(reader io.Reader, templates []*templateRecord)
 		return n, nil
 	}
 
-	return 0, TemplateNotDefinedError{templateID: s.setID}
+	return 0, templateNotDefinedError{templateID: s.setID}
 }
 
 func getTemplate(templateID uint16, templates []*templateRecord) (*templateRecord, bool) {
@@ -551,7 +551,7 @@ func (r dataRecord) Size() int {
 // Unmarshal unmarshal a IPFIX dataRecord.
 func (r *dataRecord) Unmarshal(reader io.Reader, template *templateRecord) (n int, err error) {
 	if template == nil {
-		return 0, TemplateNotDefinedError{0}
+		return 0, templateNotDefinedError{0}
 	}
 
 	n = 0

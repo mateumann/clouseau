@@ -14,6 +14,34 @@ import (
 	"time"
 )
 
+func TestTemplateNotDefinedError_Error(t *testing.T) {
+	tests := []struct {
+		name string
+		arg  templateNotDefinedError
+		want string
+	}{
+		{
+			name: "TemplateNotDefinedError 0",
+			arg:  templateNotDefinedError{0},
+			want: "template not defined 0",
+		},
+		{
+			name: "TemplateNotDefinedError 234",
+			arg:  templateNotDefinedError{234},
+			want: "template not defined 234",
+		},
+	}
+	for _, tt := range tests {
+		tt := tt // pin
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.arg.Error()
+			if got != tt.want {
+				t.Errorf("%v got %v, want %v", tt.name, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestUnmarshalError_Error(t *testing.T) {
 	tests := []struct {
 		name string
@@ -935,7 +963,7 @@ func TestDataRecord_Unmarshal(t *testing.T) {
 			dataRecord{fieldValues: []interface{}{uint8(6)}},
 			1, nil,
 		},
-		{"nil template", []byte{0x06, 0x00}, nil, dataRecord{}, 0, TemplateNotDefinedError{}},
+		{"nil template", []byte{0x06, 0x00}, nil, dataRecord{}, 0, templateNotDefinedError{}},
 		// {"invalid template", []byte{0x01}, templates[1], dataRecord{}, 1, errUnmarshalError},
 	}
 	for _, tt := range tests {
