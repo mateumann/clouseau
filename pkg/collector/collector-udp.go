@@ -2,6 +2,7 @@ package collector
 
 import (
 	"errors"
+	"io"
 	"log"
 	"net"
 
@@ -43,14 +44,17 @@ func (c *UDPCollector) Collect() {
 		if bytesCount, fromAddr, err := c.conn.ReadFromUDP(buf); err != nil {
 			log.Printf("error while reading from UDP occurred: %v\n", err)
 		} else {
-			log.Printf("%d bytes read from %v: %v\n", bytesCount, fromAddr, buf)
+			log.Printf("%d bytes read from %v\n", bytesCount, fromAddr)
+			c.decode(decoder, buf[:bytesCount])
 		}
+	}
+}
 
-		messagesCount, err := decoder.Read(buf)
-		if err != nil {
-			log.Printf("error while decoding IPFIX message: %v\n", err)
-		} else {
-			log.Printf("%d messages decoded\n", messagesCount)
-		}
+func (c *UDPCollector) decode(decoder io.Reader, p []byte) {
+	messagesCount, err := decoder.Read(p)
+	if err != nil {
+		log.Printf("error while decoding IPFIX message: %v\n", err)
+	} else {
+		log.Printf("%d messages decoded\n", messagesCount)
 	}
 }

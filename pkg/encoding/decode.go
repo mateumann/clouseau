@@ -14,7 +14,6 @@ const (
 	// e.g. when exporting the Exporting Process Statistics, or in the case of a hierarchy of Collectors when
 	// aggregated Data Records are exported.
 	NoSpecificObservationDomainID = 0
-	initialDecoderBufSize         = 2048
 )
 
 // CorruptInputError describes an error in input data.
@@ -56,7 +55,7 @@ func NewDecoder(s *net.UDPAddr, debug bool) *Decoder {
 		source:              s,
 		observationDomainID: NoSpecificObservationDomainID,
 		err:                 nil,
-		buf:                 make([]byte, initialDecoderBufSize),
+		buf:                 make([]byte, 0),
 		messages:            make([]Message, 0),
 		data:                make([]*dataRecord, 0),
 		templates:           make([]*templateRecord, 0),

@@ -30,11 +30,12 @@ analyse:
 	gocyclo -over 9 -ignore "_test.go$$" .
 	gocognit -over 7 \
 		cmd/collector/main.go \
-		pkg/collector/collector.go
+		pkg/collector/collector.go \
+		pkg/collector/collector-udp.go \
 		pkg/encoding/decode.go \
 		pkg/encoding/element.go \
 		pkg/encoding/helpers.go \
-		pkg/encoding/message.go \
+		pkg/encoding/message.go
 	go list -json -m all | nancy sleuth
 
 .PHONY: test
