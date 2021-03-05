@@ -14,6 +14,34 @@ import (
 	"time"
 )
 
+func TestTemplateNotDefinedError_Error(t *testing.T) {
+	tests := []struct {
+		name string
+		arg  templateNotDefinedError
+		want string
+	}{
+		{
+			name: "TemplateNotDefinedError 0",
+			arg:  templateNotDefinedError{0},
+			want: "template not defined 0",
+		},
+		{
+			name: "TemplateNotDefinedError 234",
+			arg:  templateNotDefinedError{234},
+			want: "template not defined 234",
+		},
+	}
+	for _, tt := range tests {
+		tt := tt // pin
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.arg.Error()
+			if got != tt.want {
+				t.Errorf("%v got %v, want %v", tt.name, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestUnmarshalError_Error(t *testing.T) {
 	tests := []struct {
 		name string
@@ -318,7 +346,7 @@ func TestMessage_Unmarshal(t *testing.T) {
 		var m Message
 
 		t.Run(tt.name, func(t *testing.T) {
-			if _, err := m.Unmarshal(bytes.NewReader(tt.arg), templates); !errors.Is(errors.Unwrap(err), tt.err) {
+			if _, err := m.Unmarshal(bytes.NewReader(tt.arg), &templates); !errors.Is(errors.Unwrap(err), tt.err) {
 				t.Errorf("%v got error %v (%T), want %v", tt.name, err, err, tt.err)
 			}
 			if m.version != tt.want.version ||
@@ -377,7 +405,7 @@ func TestMessage_Unmarshal_OneSet(t *testing.T) {
 		var m Message
 
 		t.Run(tt.name, func(t *testing.T) {
-			n, err := m.Unmarshal(bytes.NewReader(tt.arg), templates)
+			n, err := m.Unmarshal(bytes.NewReader(tt.arg), &templates)
 			if !errors.Is(errors.Unwrap(err), tt.err) {
 				t.Errorf("%v got error %v, want %v", tt.name, err, tt.err)
 			}
@@ -427,7 +455,7 @@ func TestMessage_UnmarshalDataTemplate(t *testing.T) {
 
 	var templates []*templateRecord
 
-	n, err := m.Unmarshal(bytes.NewReader(arg), templates)
+	n, err := m.Unmarshal(bytes.NewReader(arg), &templates)
 
 	if !errors.Is(err, nil) {
 		t.Errorf("Unmarshal data template got error %v, want %v", err, nil)
@@ -521,7 +549,7 @@ func TestSet_Unmarshal(t *testing.T) {
 		var s set
 
 		t.Run(tt.name, func(t *testing.T) {
-			n, err := s.Unmarshal(bytes.NewReader(tt.arg), templates)
+			n, err := s.Unmarshal(bytes.NewReader(tt.arg), &templates)
 			if !errors.Is(err, tt.err) {
 				t.Errorf("%v got error %v, want %v", tt.name, err, tt.err)
 			}
@@ -935,7 +963,7 @@ func TestDataRecord_Unmarshal(t *testing.T) {
 			dataRecord{fieldValues: []interface{}{uint8(6)}},
 			1, nil,
 		},
-		{"nil template", []byte{0x06, 0x00}, nil, dataRecord{}, 0, errTemplateNotDefined},
+		{"nil template", []byte{0x06, 0x00}, nil, dataRecord{}, 0, templateNotDefinedError{}},
 		// {"invalid template", []byte{0x01}, templates[1], dataRecord{}, 1, errUnmarshalError},
 	}
 	for _, tt := range tests {

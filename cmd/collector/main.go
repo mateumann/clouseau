@@ -5,26 +5,10 @@ import (
 	"os"
 
 	"github.com/codingconcepts/env"
-	flag "github.com/spf13/pflag"
+	"github.com/spf13/pflag"
 
 	"github.com/mateumann/clouseau/pkg/collector"
 )
-
-/*
-ideally that file should consist of something like:
-
-func configure() *configuration {
-	...
-}
-
-func main() {
-	c := configure()
-	if err := run(c); err != nil {
-		fmt.Fprintf(os.Stderr, "v", err)
-		os.Exit(1)
-	}
-}
-*/
 
 type configuration struct {
 	Debug          bool   `env:"DEBUG" default:"false"`
@@ -43,12 +27,12 @@ func configure() *configuration {
 		return &c
 	}
 
-	flag.BoolVar(&c.Debug, "debug", c.Debug, "Debug mode.")
-	flag.StringVar(&c.ListenProtocol, "protocol", c.ListenProtocol, "Protocol to use (only UDP is available).")
-	flag.StringVar(&c.ListenAddress, "address", c.ListenAddress, "IP address of the interface to listen to.")
-	flag.IntVar(&c.ListenPort, "port", c.ListenPort, "The UDP port to listen to.")
-	flag.IntVar(&c.BufferSize, "buffersize", c.BufferSize, "Buffer size for the incoming messages.")
-	flag.Parse()
+	pflag.BoolVar(&c.Debug, "debug", c.Debug, "Debug mode.")
+	pflag.StringVar(&c.ListenProtocol, "protocol", c.ListenProtocol, "Protocol to use (only UDP is available).")
+	pflag.StringVar(&c.ListenAddress, "address", c.ListenAddress, "IP address of the interface to listen to.")
+	pflag.IntVar(&c.ListenPort, "port", c.ListenPort, "The UDP port to listen to.")
+	pflag.IntVar(&c.BufferSize, "buffersize", c.BufferSize, "Buffer size for the incoming messages.")
+	pflag.Parse()
 
 	return &c
 }
@@ -56,51 +40,14 @@ func configure() *configuration {
 func main() {
 	config := configure()
 
-	c, err := collector.NewUDPCollector(config.ListenAddress, config.ListenPort, config.BufferSize, config.Debug)
+	c, err := collector.StartAndListen(
+		config.ListenProtocol, config.ListenAddress, config.ListenPort, config.BufferSize, config.Debug)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		os.Exit(1)
 	}
 
+	fmt.Printf("UDPCollector collecting on %s:%d\n", config.ListenAddress, config.ListenPort)
+
 	c.Collect()
 }
-
-// 	c, err := ipfix.NewUDPCollector(config.ListenAddress, config.ListenPort, config.BufferSize, config.Debug)
-// 	if err != nil {
-// 		log.Fatal(err)
-// 	}
-
-// 	f, err := os.OpenFile("/tmp/collector.log", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0o600)
-// 	if err != nil {
-// 		c.Close()
-// 		log.Fatal(err)
-// 	}
-
-// 	defer c.Close()
-// 	defer f.Close()
-
-// 	// NOTE mateumann, 2021-02-19
-// 	// Now the idea is to have Decoder.Read injected as a reader function and YetToBeWrittenDatabaseAdapter.Write
-// 	// as a writer function.  Each time collector receives a message (net.UDPConn.ReadFromUDP) it passes it to the
-// 	// reader function and then calls the writer function.  Must also handle partial messages - should not always
-// 	// call the reader but only if a whole message (or a few messages) are read/decoded.  Probably need to rewrite
-// 	// Decoder.Read to return number of read messages instead of number of read bytes.
-// 	// Might be worth calling the writer function (and the reader as well?) in a separate goroutine.
-
-// 	// err = c.HandleFunc_OLD(nil, nil,
-// 	// 	config.BufferSize,
-// 	// 	config.Debug,
-// 	// )
-// 	// if err != nil {
-// 	// 	c.Close()
-// 	// 	log.Fatal(err)
-// 	// }
-
-// 	c.Serve(ipfixHandler(f))
-// }
-
-// func ipfixHandler(w io.Writer) io.Writer {
-// 	fmt.Fprintf(w, "ipfixHandler here\n")
-
-// 	return w
-// }

@@ -75,7 +75,7 @@ func TestNewDecoder(t *testing.T) {
 			name: "Decoder on localhost:4739",
 			arg:  net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 4739, Zone: ""},
 			want: Decoder{
-				Source:              &net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 4739, Zone: ""},
+				source:              &net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 4739, Zone: ""},
 				debug:               true,
 				observationDomainID: 0,
 				err:                 nil,
@@ -88,9 +88,9 @@ func TestNewDecoder(t *testing.T) {
 
 		t.Run(tt.name, func(t *testing.T) {
 			got := NewDecoder(&tt.arg, true)
-			if !got.Source.IP.Equal(tt.want.Source.IP) ||
-				got.Source.Port != tt.want.Source.Port ||
-				got.Source.Zone != tt.want.Source.Zone ||
+			if !got.source.IP.Equal(tt.want.source.IP) ||
+				got.source.Port != tt.want.source.Port ||
+				got.source.Zone != tt.want.source.Zone ||
 				got.debug != tt.want.debug ||
 				got.observationDomainID != tt.want.observationDomainID {
 				t.Errorf("%v = %v, want %v", tt.name, got, tt.want)
@@ -215,7 +215,7 @@ func TestDecoder_Read_Buffer(t *testing.T) {
 	}
 	for _, tt := range tests {
 		tt := tt // pin
-		decoder := Decoder{Source: nil, buf: tt.decoderBufBefore}
+		decoder := Decoder{source: nil, buf: tt.decoderBufBefore}
 
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := decoder.Read(tt.arg)
@@ -257,7 +257,7 @@ func TestDecoder_Read_WithError(t *testing.T) {
 	}
 	for _, tt := range tests {
 		tt := tt // pin
-		decoder := Decoder{Source: nil, err: tt.decoderErr}
+		decoder := Decoder{source: nil, err: tt.decoderErr}
 
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := decoder.Read(tt.arg)
@@ -454,7 +454,7 @@ func TestDecoder_Read_Length(t *testing.T) {
 				0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x2e, 0x4c,
 				0x52, 0xb5, 0x52, 0x22, 0x84, 0x9a, 0x0f, 0x46, 0x93, 0x28, 0x1b,
 			},
-			errTemplateNotDefined,
+			templateNotDefinedError{259},
 		},
 		{
 			"read a options template",

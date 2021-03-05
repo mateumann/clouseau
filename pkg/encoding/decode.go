@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net"
 )
 
@@ -13,7 +14,6 @@ const (
 	// e.g. when exporting the Exporting Process Statistics, or in the case of a hierarchy of Collectors when
 	// aggregated Data Records are exported.
 	NoSpecificObservationDomainID = 0
-	initialDecoderBufSize         = 2048
 )
 
 // CorruptInputError describes an error in input data.
@@ -33,7 +33,7 @@ func (e CorruptInputError) Unwrap() error {
 
 // Decoder represents IPFIX flow already received by the collecting process.
 type Decoder struct {
-	Source              *net.UDPAddr
+	source              *net.UDPAddr
 	observationDomainID uint32
 	debug               bool
 	err                 error
@@ -45,17 +45,17 @@ type Decoder struct {
 }
 
 func (d *Decoder) String() string {
-	return fmt.Sprintf("Decoder (%s, %d): %s", d.Source, d.observationDomainID,
+	return fmt.Sprintf("Decoder (%s, %d): %s", d.source, d.observationDomainID,
 		intDescribed(len(d.messages), "message", "messages"))
 }
 
 // NewDecoder initializes a Decoder with provided source (net.UDPAddr) and default values of other parameters.
 func NewDecoder(s *net.UDPAddr, debug bool) *Decoder {
 	return &Decoder{
-		Source:              s,
+		source:              s,
 		observationDomainID: NoSpecificObservationDomainID,
 		err:                 nil,
-		buf:                 make([]byte, initialDecoderBufSize),
+		buf:                 make([]byte, 0),
 		messages:            make([]Message, 0),
 		data:                make([]*dataRecord, 0),
 		templates:           make([]*templateRecord, 0),
@@ -81,7 +81,7 @@ func (d *Decoder) Read(p []byte) (n int, err error) {
 
 	var m Message
 
-	nn, err := m.Unmarshal(r, d.templates)
+	nn, err := m.Unmarshal(r, &d.templates)
 	d.buf = d.buf[nn:]
 	n += nn
 
@@ -99,7 +99,9 @@ func (d *Decoder) Read(p []byte) (n int, err error) {
 func (d *Decoder) appendMessage(m Message) {
 	d.messages = append(d.messages, m)
 
-	// update decoder's templates (which mill be used to decode new messages)
+	log.Printf("DEBUG appending message %v", m)
+
+	// Update decoder's templates in case there are template sets in the message.
 	for _, s := range m.sets {
 		switch s.setID {
 		case TemplateSetID:
@@ -108,20 +110,28 @@ func (d *Decoder) appendMessage(m Message) {
 			d.updateOptionsTemplates(s.records)
 		}
 	}
+
+	log.Printf("DEBUG messages length %v", len(d.messages))
 }
 
 func (d *Decoder) updateTemplates(records []record) {
 	for _, r := range records {
 		if template, ok := r.(*templateRecord); ok {
+			log.Printf("DEBUG appending template %v", template)
 			d.templates = append(d.templates, template)
 		}
 	}
+
+	log.Printf("DEBUG template length %v", len(d.templates))
 }
 
 func (d *Decoder) updateOptionsTemplates(records []record) {
 	for _, r := range records {
 		if template, ok := r.(*optionsTemplateRecord); ok {
+			log.Printf("DEBUG appending options template %v", template)
 			d.optionsTemplates = append(d.optionsTemplates, template)
 		}
 	}
+
+	log.Printf("DEBUG options template length %v", len(d.optionsTemplates))
 }
