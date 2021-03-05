@@ -31,7 +31,7 @@ analyse:
 	gocognit -over 7 \
 		cmd/collector/main.go \
 		pkg/collector/collector.go \
-		pkg/collector/collector-udp.go \
+		pkg/collector/collector_udp.go \
 		pkg/encoding/decode.go \
 		pkg/encoding/element.go \
 		pkg/encoding/helpers.go \

@@ -40,7 +40,8 @@ func configure() *configuration {
 func main() {
 	config := configure()
 
-	c, err := collector.NewUDPCollector(config.ListenAddress, config.ListenPort, config.BufferSize, config.Debug)
+	c, err := collector.StartAndListen(
+		config.ListenProtocol, config.ListenAddress, config.ListenPort, config.BufferSize, config.Debug)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		os.Exit(1)

@@ -246,7 +246,7 @@ func (m *Message) Unmarshal(reader io.Reader, templates *[]*templateRecord) (n i
 		return n, err
 	}
 
-	log.Printf("DEBUG unmarshalMessage: message = %v", m)
+	log.Printf("DEBUG Message.Unmarshal: message = %v", m)
 
 	for n < int(m.length) {
 		bytesRead, err := m.unmarshalSet(reader, templates)
@@ -264,7 +264,7 @@ func (m *Message) unmarshalSet(reader io.Reader, templates *[]*templateRecord) (
 	var s set
 	n, err := s.Unmarshal(reader, templates)
 
-	log.Printf("DEBUG unmarshalSet: set = %v", s)
+	log.Printf("DEBUG Message.unmarshalSet: set = %v", s)
 
 	if err != nil && errors.Is(errors.Unwrap(err), io.ErrUnexpectedEOF) && (int(s.length) > n) {
 		// assume s.Unmarshal failed to read a record which was actually a padding
