@@ -1,46 +1,58 @@
 codecov:
   require_ci_to_pass: yes
-  max_report_age: 72
+  #max_report_age: 72
 
 coverage:
   round: down
-  range: "70...100"
+  range: [70, 100]
   precision: 2
 
   status:
+    default_rules:
+      target: auto
+      threshold: 10%
     project:
       default:
         # basic
-        target: auto
-        threshold: 5%
-        flags:
-          - unit
-        paths:
-          - encoding
+        #target: auto
+        #threshold: 20%
+        #flags:
+        #  - unit
+        #paths:
+        #  - encoding
         # advanced
-        branches:
-          - master
-        if_not_found: success
+        #branches:
+        #  - master
         if_ci_failed: error
-        informational: false
         only_pulls: true
     patch:
       default:
         # basic
-        target: auto
-        threshold: 10%
-        base: auto
+        #target: auto
+        #threshold: 20%
         # advanced
-        branches:
-          - master
-        if_no_upload: error
-        if_not_found: success
+        #branches:
+        #  - master
+        #flags:
+        #  - unit
+        #paths:
+        #  - encoding
         if_ci_failed: error
         only_pulls: false
-        flags:
-          - unit
-        paths:
-          - encoding
+    changes:
+      default:
+        # basic
+        #target: auto
+        #threshold: 20%
+        # advanced
+        #branches:
+        #  - master
+        #flags:
+        #  - unit
+        #paths:
+        #  - encoding
+        if_ci_failed: error
+        only_pulls: false
 
 parsers:
   gcov:
