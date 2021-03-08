@@ -9,7 +9,7 @@ clean-bin:
 	rm -f collector
 
 .PHONY: fmt
-fmt: fmt-cmd fmt-pkg
+fmt: fmt-cmd fmt-pkg fmt-test
 
 .PHONY: fmt-cmd
 fmt-cmd:
@@ -20,6 +20,10 @@ fmt-pkg:
 	gofumpt -s -w pkg/collector/*.go
 	gofumpt -s -w pkg/encoding/*.go
 	gofumpt -s -w pkg/storage/*.go
+
+.PHONY: fmt-test
+fmt-cmd:
+	gofumpt -s -w test/*.go
 
 .PHONY: lint
 lint:
@@ -40,7 +44,7 @@ analyse:
 
 .PHONY: test
 test: export TMPDIR=${XDG_RUNTIME_DIR}/tmp
-test: make-tmp-dir test-collector test-encoding test-storage create-coverage-report
+test: make-tmp-dir test-collector test-encoding test-storage test-integration create-coverage-report
 test: make-tmp-dir create-coverage-report
 
 .PHONY: test-collector
@@ -58,15 +62,22 @@ test-storage:
 	echo -n '' > ./pkg/storage/coverage.txt
 	go test -coverprofile=./pkg/storage/coverage.txt -covermode=atomic ./pkg/storage/
 
+.PHONY: test-integration
+test-integration:
+	echo -n '' > ./test/coverage.txt
+	go test -coverprofile=./test/coverage.txt -covermode=atomic ./test/
+
 
 .PHONY: create-coverage-report
 create-coverage-report:
 	cat pkg/collector/coverage.txt >> coverage.txt
 	cat pkg/encoding/coverage.txt >> coverage.txt
 	cat pkg/storage/coverage.txt >> coverage.txt
+	cat test/coverage.txt >> coverage.txt
 	rm pkg/collector/coverage.txt
 	rm pkg/encoding/coverage.txt
 	rm pkg/storage/coverage.txt
+	rm test/coverage.txt
 
 .PHONY: build
 build: build-collector
