@@ -88,50 +88,71 @@ func (d *Decoder) Read(p []byte) (n int, err error) {
 	if err != nil && !errors.Is(errors.Unwrap(err), io.EOF) {
 		d.err = err
 
-		return n, CorruptInputError{n, errors.Unwrap(err)}
+		return 0, CorruptInputError{n, errors.Unwrap(err)}
 	}
 
-	d.appendMessage(m)
+	if m.valid() {
+		d.appendMessage(m)
 
-	return n, nil
+		return 1, nil
+	}
+
+	return 0, nil
 }
 
 func (d *Decoder) appendMessage(m Message) {
-	d.messages = append(d.messages, m)
-
-	log.Printf("DEBUG appending message %v", m)
-
-	// Update decoder's templates in case there are template sets in the message.
-	for _, s := range m.sets {
-		switch s.setID {
-		case TemplateSetID:
-			d.updateTemplates(s.records)
-		case OptionsTemplateSetID:
-			d.updateOptionsTemplates(s.records)
-		}
+	if d.debug {
+		log.Printf("appending message %v", m)
 	}
 
-	log.Printf("DEBUG messages length %v", len(d.messages))
+	d.messages = append(d.messages, m)
+
+	// Update decoder's templates in case there are template sets in the message.
+	// No longer required: happens somewhere else
+	// for _, s := range m.sets {
+	// 	switch s.setID {
+	// 	case TemplateSetID:
+	// 		d.updateTemplates(s.records)
+	// 	case OptionsTemplateSetID:
+	// 		d.updateOptionsTemplates(s.records)
+	// 	}
+	// }
+
+	if d.debug {
+		log.Printf("messages length %v", len(d.messages))
+	}
 }
 
+/*
 func (d *Decoder) updateTemplates(records []record) {
 	for _, r := range records {
 		if template, ok := r.(*templateRecord); ok {
-			log.Printf("DEBUG appending template %v", template)
+			if d.debug {
+				log.Printf("appending %v", template)
+			}
+
 			d.templates = append(d.templates, template)
 		}
 	}
 
-	log.Printf("DEBUG template length %v", len(d.templates))
+	if d.debug {
+		log.Printf("template length %v", len(d.templates))
+	}
 }
 
 func (d *Decoder) updateOptionsTemplates(records []record) {
 	for _, r := range records {
 		if template, ok := r.(*optionsTemplateRecord); ok {
-			log.Printf("DEBUG appending options template %v", template)
+			if d.debug {
+				log.Printf("appending %v", template)
+			}
+
 			d.optionsTemplates = append(d.optionsTemplates, template)
 		}
 	}
 
-	log.Printf("DEBUG options template length %v", len(d.optionsTemplates))
+	if d.debug {
+		log.Printf("options template length %v", len(d.optionsTemplates))
+	}
 }
+*/

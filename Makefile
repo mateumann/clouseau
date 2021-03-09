@@ -22,7 +22,7 @@ fmt-pkg:
 	gofumpt -s -w pkg/storage/*.go
 
 .PHONY: fmt-test
-fmt-cmd:
+fmt-test:
 	gofumpt -s -w test/*.go
 
 .PHONY: lint
@@ -64,8 +64,7 @@ test-storage:
 
 .PHONY: test-integration
 test-integration:
-	echo -n '' > ./test/coverage.txt
-	go test -coverprofile=./test/coverage.txt -covermode=atomic ./test/
+	go test ./test/
 
 
 .PHONY: create-coverage-report
@@ -73,11 +72,9 @@ create-coverage-report:
 	cat pkg/collector/coverage.txt >> coverage.txt
 	cat pkg/encoding/coverage.txt >> coverage.txt
 	cat pkg/storage/coverage.txt >> coverage.txt
-	cat test/coverage.txt >> coverage.txt
 	rm pkg/collector/coverage.txt
 	rm pkg/encoding/coverage.txt
 	rm pkg/storage/coverage.txt
-	rm test/coverage.txt
 
 .PHONY: build
 build: build-collector

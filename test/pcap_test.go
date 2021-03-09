@@ -14,28 +14,28 @@ import (
 func TestDecoder_MessagesLen(t *testing.T) {
 	tests := []struct {
 		name         string
-		want         int
 		pcapFilename string
+		want         int
 	}{
-		// {
-		// 	"read one data templates",
-		// 	1,
-		// 	"data_258.pcap",
-		// },
 		{
 			"read two templates",
-			2,
 			"templates_258_259.pcap",
+			1,
+		},
+		{
+			"templates and data ",
+			"templates_and_data_258_259.pcap",
+			3,
 		},
 	}
 
-	addr := net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 4739, Zone: ""}
+	addr := net.UDPAddr{IP: net.ParseIP(""), Port: 0, Zone: ""}
 
 	for _, tt := range tests {
 		tt := tt // pin
 
 		t.Run(tt.name, func(t *testing.T) {
-			decoder := encoding.NewDecoder(&addr, false)
+			decoder := encoding.NewDecoder(&addr, true)
 			messagesRead := 0
 
 			handle, err := pcap.OpenOffline("./testdata/pcap/" + tt.pcapFilename)
@@ -43,7 +43,6 @@ func TestDecoder_MessagesLen(t *testing.T) {
 				t.Errorf("error reading pcap file %v: %v", tt.pcapFilename, err)
 			}
 
-			// Loop through packets in file
 			packetSource := gopacket.NewPacketSource(handle, handle.LinkType())
 			for packet := range packetSource.Packets() {
 				pcapData := packet.ApplicationLayer()
@@ -62,17 +61,3 @@ func TestDecoder_MessagesLen(t *testing.T) {
 		})
 	}
 }
-
-/*
-	decoder := encoding.NewDecoder(&addr, true)
-
-	for {
-		buf := make([]byte, c.bufferSize)
-		if bytesCount, fromAddr, err := c.conn.ReadFromUDP(buf); err != nil {
-			log.Printf("error while reading from UDP occurred: %v\n", err)
-		} else {
-			log.Printf("%d bytes read from %v\n", bytesCount, fromAddr)
-			c.decode(decoder, buf[:bytesCount])
-		}
-	}
-*/
