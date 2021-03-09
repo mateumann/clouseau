@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"math"
 	"reflect"
 	"time"
@@ -238,6 +237,10 @@ func (m *Message) String() string {
 		m.sequenceNumber, m.observationDomainID, intDescribed(len(m.sets), "set", "sets"))
 }
 
+func (m Message) valid() bool {
+	return m.version == 0x000a && m.length > 0
+}
+
 // Unmarshal reads byte stream from the reader and parses it into a IPFIX Message. `templates` are used to store IPFIX
 // (Options) Template Records used to decode raw data into a IPFIX Data Records.
 func (m *Message) Unmarshal(reader io.Reader, templates *[]*templateRecord) (n int, err error) {
@@ -245,8 +248,6 @@ func (m *Message) Unmarshal(reader io.Reader, templates *[]*templateRecord) (n i
 		&m.version, &m.length, &m.exportTime, &m.sequenceNumber, &m.observationDomainID); err != nil {
 		return n, err
 	}
-
-	log.Printf("DEBUG Message.Unmarshal: message = %v", m)
 
 	for n < int(m.length) {
 		bytesRead, err := m.unmarshalSet(reader, templates)
@@ -263,8 +264,6 @@ func (m *Message) Unmarshal(reader io.Reader, templates *[]*templateRecord) (n i
 func (m *Message) unmarshalSet(reader io.Reader, templates *[]*templateRecord) (int, error) {
 	var s set
 	n, err := s.Unmarshal(reader, templates)
-
-	log.Printf("DEBUG Message.unmarshalSet: set = %v", s)
 
 	if err != nil && errors.Is(errors.Unwrap(err), io.ErrUnexpectedEOF) && (int(s.length) > n) {
 		// assume s.Unmarshal failed to read a record which was actually a padding

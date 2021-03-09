@@ -9,7 +9,7 @@ clean-bin:
 	rm -f collector
 
 .PHONY: fmt
-fmt: fmt-cmd fmt-pkg
+fmt: fmt-cmd fmt-pkg fmt-test
 
 .PHONY: fmt-cmd
 fmt-cmd:
@@ -20,6 +20,10 @@ fmt-pkg:
 	gofumpt -s -w pkg/collector/*.go
 	gofumpt -s -w pkg/encoding/*.go
 	gofumpt -s -w pkg/storage/*.go
+
+.PHONY: fmt-test
+fmt-test:
+	gofumpt -s -w test/*.go
 
 .PHONY: lint
 lint:
@@ -40,7 +44,7 @@ analyse:
 
 .PHONY: test
 test: export TMPDIR=${XDG_RUNTIME_DIR}/tmp
-test: make-tmp-dir test-collector test-encoding test-storage create-coverage-report
+test: make-tmp-dir test-collector test-encoding test-storage test-integration create-coverage-report
 test: make-tmp-dir create-coverage-report
 
 .PHONY: test-collector
@@ -57,6 +61,10 @@ test-encoding:
 test-storage:
 	echo -n '' > ./pkg/storage/coverage.txt
 	go test -coverprofile=./pkg/storage/coverage.txt -covermode=atomic ./pkg/storage/
+
+.PHONY: test-integration
+test-integration:
+	go test ./test/
 
 
 .PHONY: create-coverage-report
