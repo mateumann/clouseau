@@ -266,29 +266,12 @@ func (m *Message) unmarshalSet(reader io.Reader, templates *[]*templateRecord) (
 	n, err = s.Unmarshal(reader, templates)
 
 	if err != nil {
-		switch {
-		case errors.Is(errors.Unwrap(err), templateNotDefinedError{templateID: s.setID}):
-			// template for the data set not known, store raw data instead
-			buf := make([]byte, int(s.length)-n)
-			if e := binary.Read(reader, binary.BigEndian, &buf); e != nil {
-				return int(s.length), UnmarshalError{e}
-			}
-
-			s.rawData = buf
-
-			n += len(buf)
-		case errors.Is(errors.Unwrap(err), io.ErrUnexpectedEOF) && (int(s.length) > n):
-			// assume s.Unmarshal failed to read a record which was actually a padding
-			buf := make([]byte, int(s.length)-n)
-
-			if e := binary.Read(reader, binary.BigEndian, &buf); e != nil {
-				return int(s.length), UnmarshalError{e}
-			}
-
-			n += len(buf)
-		default:
-			return n, err
+		_n, _err := s.handleUnmarshalError(reader, n, err)
+		if _err != nil {
+			return n + _n, UnmarshalError{_err}
 		}
+
+		n += _n
 	}
 
 	m.sets = append(m.sets, s)
@@ -420,6 +403,32 @@ func (s *set) unmarshalDataRecord(reader io.Reader, templates []*templateRecord)
 	}
 
 	return 0, templateNotDefinedError{templateID: s.setID}
+}
+
+func (s *set) handleUnmarshalError(reader io.Reader, n int, err error) (int, error) {
+	switch {
+	case errors.Is(err, templateNotDefinedError{templateID: s.setID}):
+		// template for the data set not known, store raw data instead
+		buf := make([]byte, int(s.length)-n)
+		if e := binary.Read(reader, binary.BigEndian, &buf); e != nil {
+			return len(buf), UnmarshalError{e}
+		}
+
+		s.rawData = buf
+
+		return len(buf), nil
+	case errors.Is(errors.Unwrap(err), io.ErrUnexpectedEOF) && (int(s.length) > n):
+		// assume s.Unmarshal failed to read a record which was actually a padding
+		buf := make([]byte, int(s.length)-n)
+
+		if e := binary.Read(reader, binary.BigEndian, &buf); e != nil {
+			return len(buf), UnmarshalError{e}
+		}
+
+		return len(buf), nil
+	default:
+		return 0, err
+	}
 }
 
 func getTemplate(templateID uint16, templates []*templateRecord) (*templateRecord, bool) {
