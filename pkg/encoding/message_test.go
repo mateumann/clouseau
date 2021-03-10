@@ -252,7 +252,7 @@ func TestMessage_String(t *testing.T) {
 			name: "A Message with one template set",
 			arg: Message{
 				0x000a, 296, 0x5ee715b1, 0, 0,
-				[]set{{2, 280, make([]record, 2)}},
+				[]set{{2, 280, make([]record, 2), make([]byte, 10)}},
 			},
 			want: "Message 10 (296 octets, 2020-06-15T06:31:13Z, 0, 0) 1 set",
 		},
@@ -260,7 +260,7 @@ func TestMessage_String(t *testing.T) {
 			name: "A Message with one data set",
 			arg: Message{
 				0x000a, 412, 0x5ee7163d, 195, 0,
-				[]set{{259, 396, make([]record, 1)}},
+				[]set{{259, 396, make([]record, 1), make([]byte, 10)}},
 			},
 			want: "Message 10 (412 octets, 2020-06-15T06:33:33Z, 195, 0) 1 set",
 		},
@@ -377,7 +377,7 @@ func TestMessage_Unmarshal_OneSet(t *testing.T) {
 			},
 			want: Message{
 				0x000a, 20, 0x5ee715b1, 0, 0,
-				[]set{{2, 4, nil}},
+				[]set{{2, 4, nil, nil}},
 			},
 			n:   20,
 			err: nil,
@@ -390,7 +390,7 @@ func TestMessage_Unmarshal_OneSet(t *testing.T) {
 			},
 			want: Message{
 				0x000a, 296, 0x5ee715b1, 0, 0,
-				[]set{{2, 0, nil}},
+				[]set{{2, 0, nil, nil}},
 			},
 			n:   18,
 			err: io.ErrUnexpectedEOF,
@@ -423,6 +423,7 @@ func TestMessage_Unmarshal_OneSet(t *testing.T) {
 	}
 }
 
+//nolint: funlen
 func TestMessage_UnmarshalDataTemplate(t *testing.T) {
 	arg := []byte{
 		0x00, 0x0a, 0x00, 0x38, 0x5e, 0xe7, 0x16, 0x26, 0x00, 0x00, 0x00, 0xa8, 0x00, 0x00, 0x00, 0x00,
@@ -446,6 +447,10 @@ func TestMessage_UnmarshalDataTemplate(t *testing.T) {
 						{6, 1, 0},
 						{80, 6, 0},
 					}}},
+				}, []byte{
+					0x3c, 0x00, 0x01, 0x00, 0x16, 0x00, 0x04,
+					0x00, 0x15, 0x00, 0x04, 0x00, 0x02, 0x00, 0x04, 0x00, 0x01, 0x00, 0x04, 0x01, 0x03, 0x00, 0x02,
+					0x00, 0x06, 0x00, 0x01, 0x00, 0x50, 0x00, 0x06,
 				},
 			},
 		},
@@ -489,14 +494,18 @@ func TestSet_String(t *testing.T) {
 		arg  set
 		want string
 	}{
-		{"Template Set with 1 record", set{2, 16, make([]record, 1)}, "template set (16 octets) 1 record"},
+		{
+			"Template Set with 1 record",
+			set{2, 16, make([]record, 1), make([]byte, 16)},
+			"template set (16 octets) 1 record",
+		},
 		{
 			"Options Template Set with 2 record",
-			set{3, 24, make([]record, 2)},
+			set{3, 24, make([]record, 2), make([]byte, 16)},
 			"options template set (24 octets) 2 records",
 		},
-		{"Data Set with 1 record", set{258, 16, make([]record, 1)}, "data set (16 octets) 1 record"},
-		{"Invalid Set", set{24, 16, make([]record, 1)}, "invalid set #24"},
+		{"Data Set with 1 record", set{258, 16, make([]record, 1), make([]byte, 16)}, "data set (16 octets) 1 record"},
+		{"Invalid Set", set{24, 16, make([]record, 1), make([]byte, 16)}, "invalid set #24"},
 	}
 	for _, tt := range tests {
 		tt := tt // pin
@@ -519,7 +528,7 @@ func TestSet_Unmarshal(t *testing.T) {
 		{
 			"Set #2 with invalid optionTemplateSet",
 			[]byte{0x00, 0x03, 0x00, 0x0e, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x0e},
-			set{3, 14, []record{}},
+			set{3, 14, []record{}, make([]byte, 12)},
 			12,
 			io.EOF,
 		},
@@ -530,13 +539,13 @@ func TestSet_Unmarshal(t *testing.T) {
 				&optionsTemplateRecord{templateRecordBase{1, 1, []fieldSpecifier{{
 					14, 1, 0,
 				}}}, 1},
-			}},
+			}, make([]byte, 14)},
 			14, nil,
 		},
 		{
 			"Set #4 (invalid set type)",
 			[]byte{0x00, 0x04, 0x00, 0x0e, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x0e, 0x00, 0x01},
-			set{4, 14, nil},
+			set{4, 14, nil, nil},
 			4, errInvalidSetType,
 		},
 	}

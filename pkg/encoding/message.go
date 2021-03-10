@@ -261,20 +261,34 @@ func (m *Message) Unmarshal(reader io.Reader, templates *[]*templateRecord) (n i
 	return n, err
 }
 
-func (m *Message) unmarshalSet(reader io.Reader, templates *[]*templateRecord) (int, error) {
+func (m *Message) unmarshalSet(reader io.Reader, templates *[]*templateRecord) (n int, err error) {
 	var s set
-	n, err := s.Unmarshal(reader, templates)
-
-	if err != nil && errors.Is(errors.Unwrap(err), io.ErrUnexpectedEOF) && (int(s.length) > n) {
-		// assume s.Unmarshal failed to read a record which was actually a padding
-		buf := make([]byte, int(s.length)-n)
-		if err := binary.Read(reader, binary.BigEndian, &buf); err != nil {
-			return n + len(buf), UnmarshalError{err}
-		}
-	}
+	n, err = s.Unmarshal(reader, templates)
 
 	if err != nil {
-		return n, err
+		switch {
+		case errors.Is(errors.Unwrap(err), templateNotDefinedError{templateID: s.setID}):
+			// template for the data set not known, store raw data instead
+			buf := make([]byte, int(s.length)-n)
+			if e := binary.Read(reader, binary.BigEndian, &buf); e != nil {
+				return int(s.length), UnmarshalError{e}
+			}
+
+			s.rawData = buf
+
+			n += len(buf)
+		case errors.Is(errors.Unwrap(err), io.ErrUnexpectedEOF) && (int(s.length) > n):
+			// assume s.Unmarshal failed to read a record which was actually a padding
+			buf := make([]byte, int(s.length)-n)
+
+			if e := binary.Read(reader, binary.BigEndian, &buf); e != nil {
+				return int(s.length), UnmarshalError{e}
+			}
+
+			n += len(buf)
+		default:
+			return n, err
+		}
 	}
 
 	m.sets = append(m.sets, s)
@@ -297,6 +311,7 @@ type set struct {
 	setID   uint16
 	length  uint16 // total length of the set, including set header, all records, and the optional padding; in octets
 	records []record
+	rawData []byte
 }
 
 // Set ID constants defining valid IPFIX set identifiers (or a minimum valid set id in case of MinimumDataSetID).
