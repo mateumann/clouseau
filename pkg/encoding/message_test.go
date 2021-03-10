@@ -51,12 +51,12 @@ func TestUnmarshalError_Error(t *testing.T) {
 		{
 			name: "UnmarshalError: EOF",
 			arg:  UnmarshalError{io.EOF},
-			want: "ipfix: unmarshalling error: EOF",
+			want: "ipfix: unmarshal error: EOF",
 		},
 		{
 			name: "UnmarshalError: unexpected EOF",
 			arg:  UnmarshalError{io.ErrUnexpectedEOF},
-			want: "ipfix: unmarshalling error: unexpected EOF",
+			want: "ipfix: unmarshal error: unexpected EOF",
 		},
 	}
 	for _, tt := range tests {

@@ -131,14 +131,14 @@ func (e templateNotDefinedError) Error() string {
 	return fmt.Sprintf("template not defined %v", e.templateID)
 }
 
-// UnmarshalError describes an error while unmarshalling data.
+// UnmarshalError describes an error that occurred when data are unmarshalled.
 // It wraps an error returned by the binary.Read function.
 type UnmarshalError struct {
 	err error
 }
 
 func (e UnmarshalError) Error() string {
-	return fmt.Sprintf("ipfix: unmarshalling error: %v", e.err)
+	return fmt.Sprintf("ipfix: unmarshal error: %v", e.err)
 }
 
 // Unwrap returns the underlying error.
@@ -220,7 +220,7 @@ func (s *fieldSpecifier) Unmarshal(reader io.Reader) (n int, err error) {
 	return n, err
 }
 
-// Message describes a IPFIX Message constaing of a header and zero or more sets.
+// Message describes a IPFIX Message containing of a header and zero or more sets.
 // https://tools.ietf.org/html/rfc7011#section-3.1
 type Message struct {
 	version             uint16 // version of the IPFIX, currently 0x000a
@@ -441,7 +441,7 @@ func getTemplate(templateID uint16, templates []*templateRecord) (*templateRecor
 	return nil, false
 }
 
-// templateRecordBase containse fields definitions common for `templateRecord` and `optionsTemplateRecord`.
+// templateRecordBase contains fields definitions common for `templateRecord` and `optionsTemplateRecord`.
 type templateRecordBase struct {
 	templateID      uint16
 	fieldCount      uint16 // number of all fields in this record
