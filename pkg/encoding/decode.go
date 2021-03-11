@@ -107,52 +107,7 @@ func (d *Decoder) appendMessage(m Message) {
 
 	d.messages = append(d.messages, m)
 
-	// Update decoder's templates in case there are template sets in the message.
-	// No longer required: happens somewhere else
-	// for _, s := range m.sets {
-	// 	switch s.setID {
-	// 	case TemplateSetID:
-	// 		d.updateTemplates(s.records)
-	// 	case OptionsTemplateSetID:
-	// 		d.updateOptionsTemplates(s.records)
-	// 	}
-	// }
-
 	if d.debug {
 		log.Printf("messages length %v", len(d.messages))
 	}
 }
-
-/*
-func (d *Decoder) updateTemplates(records []record) {
-	for _, r := range records {
-		if template, ok := r.(*templateRecord); ok {
-			if d.debug {
-				log.Printf("appending %v", template)
-			}
-
-			d.templates = append(d.templates, template)
-		}
-	}
-
-	if d.debug {
-		log.Printf("template length %v", len(d.templates))
-	}
-}
-
-func (d *Decoder) updateOptionsTemplates(records []record) {
-	for _, r := range records {
-		if template, ok := r.(*optionsTemplateRecord); ok {
-			if d.debug {
-				log.Printf("appending %v", template)
-			}
-
-			d.optionsTemplates = append(d.optionsTemplates, template)
-		}
-	}
-
-	if d.debug {
-		log.Printf("options template length %v", len(d.optionsTemplates))
-	}
-}
-*/
