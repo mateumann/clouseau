@@ -266,12 +266,12 @@ func (m *Message) unmarshalSet(reader io.Reader, templates *[]*templateRecord) (
 	n, err = s.Unmarshal(reader, templates)
 
 	if err != nil {
-		_n, _err := s.handleUnmarshalError(reader, n, err)
-		if _err != nil {
-			return n + _n, UnmarshalError{_err}
+		nFromHandler, errFromHandler := s.handleUnmarshalError(reader, n, err)
+		if errFromHandler != nil {
+			return n + nFromHandler, UnmarshalError{errFromHandler}
 		}
 
-		n += _n
+		n += nFromHandler
 	}
 
 	m.sets = append(m.sets, s)
