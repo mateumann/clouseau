@@ -23,6 +23,16 @@ func TestDecoder_MessagesLen(t *testing.T) {
 			1,
 		},
 		{
+			"read one data record",
+			"data_258.pcap",
+			1,
+		},
+		{
+			"read six data record",
+			"six_data_258.pcap",
+			6,
+		},
+		{
 			"templates and data ",
 			"templates_and_data_258_259.pcap",
 			3,

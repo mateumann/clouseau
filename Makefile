@@ -50,31 +50,35 @@ test: make-tmp-dir create-coverage-report
 .PHONY: test-collector
 test-collector:
 	echo -n '' > ./pkg/collector/coverage.txt
-	go test -coverprofile=./pkg/collector/coverage.txt -covermode=atomic ./pkg/collector/
+	go test -coverprofile=./pkg/collector/coverage.txt ./pkg/collector/
 
 .PHONY: test-encoding
 test-encoding:
 	echo -n '' > ./pkg/encoding/coverage.txt
-	go test -coverprofile=./pkg/encoding/coverage.txt -covermode=atomic ./pkg/encoding/
+	go test -coverprofile=./pkg/encoding/coverage.txt ./pkg/encoding/
 
 .PHONY: test-storage
 test-storage:
 	echo -n '' > ./pkg/storage/coverage.txt
-	go test -coverprofile=./pkg/storage/coverage.txt -covermode=atomic ./pkg/storage/
+	go test -coverprofile=./pkg/storage/coverage.txt ./pkg/storage/
 
 .PHONY: test-integration
 test-integration:
-	go test ./test/
+	echo -n '' > ./test/coverage.txt
+	go test -covermode=atomic -coverprofile=./test/coverage.txt -coverpkg $$(go list github.com/mateumann/clouseau/pkg/...) ./test/
 
 
 .PHONY: create-coverage-report
 create-coverage-report:
+	rm coverage.txt || true
 	cat pkg/collector/coverage.txt >> coverage.txt
 	cat pkg/encoding/coverage.txt >> coverage.txt
 	cat pkg/storage/coverage.txt >> coverage.txt
+	cat test/coverage.txt >> coverage.txt
 	rm pkg/collector/coverage.txt
 	rm pkg/encoding/coverage.txt
 	rm pkg/storage/coverage.txt
+	rm test/coverage.txt
 
 .PHONY: build
 build: build-collector

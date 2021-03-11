@@ -131,14 +131,14 @@ func (e templateNotDefinedError) Error() string {
 	return fmt.Sprintf("template not defined %v", e.templateID)
 }
 
-// UnmarshalError describes an error while unmarshalling data.
+// UnmarshalError describes an error that occurred when data are unmarshalled.
 // It wraps an error returned by the binary.Read function.
 type UnmarshalError struct {
 	err error
 }
 
 func (e UnmarshalError) Error() string {
-	return fmt.Sprintf("ipfix: unmarshalling error: %v", e.err)
+	return fmt.Sprintf("ipfix: unmarshal error: %v", e.err)
 }
 
 // Unwrap returns the underlying error.
@@ -220,7 +220,7 @@ func (s *fieldSpecifier) Unmarshal(reader io.Reader) (n int, err error) {
 	return n, err
 }
 
-// Message describes a IPFIX Message constaing of a header and zero or more sets.
+// Message describes a IPFIX Message containing of a header and zero or more sets.
 // https://tools.ietf.org/html/rfc7011#section-3.1
 type Message struct {
 	version             uint16 // version of the IPFIX, currently 0x000a
@@ -261,20 +261,17 @@ func (m *Message) Unmarshal(reader io.Reader, templates *[]*templateRecord) (n i
 	return n, err
 }
 
-func (m *Message) unmarshalSet(reader io.Reader, templates *[]*templateRecord) (int, error) {
+func (m *Message) unmarshalSet(reader io.Reader, templates *[]*templateRecord) (n int, err error) {
 	var s set
-	n, err := s.Unmarshal(reader, templates)
-
-	if err != nil && errors.Is(errors.Unwrap(err), io.ErrUnexpectedEOF) && (int(s.length) > n) {
-		// assume s.Unmarshal failed to read a record which was actually a padding
-		buf := make([]byte, int(s.length)-n)
-		if err := binary.Read(reader, binary.BigEndian, &buf); err != nil {
-			return n + len(buf), UnmarshalError{err}
-		}
-	}
+	n, err = s.Unmarshal(reader, templates)
 
 	if err != nil {
-		return n, err
+		nFromHandler, errFromHandler := s.handleUnmarshalError(reader, n, err)
+		if errFromHandler != nil {
+			return n + nFromHandler, UnmarshalError{errFromHandler}
+		}
+
+		n += nFromHandler
 	}
 
 	m.sets = append(m.sets, s)
@@ -297,6 +294,7 @@ type set struct {
 	setID   uint16
 	length  uint16 // total length of the set, including set header, all records, and the optional padding; in octets
 	records []record
+	rawData []byte
 }
 
 // Set ID constants defining valid IPFIX set identifiers (or a minimum valid set id in case of MinimumDataSetID).
@@ -407,6 +405,32 @@ func (s *set) unmarshalDataRecord(reader io.Reader, templates []*templateRecord)
 	return 0, templateNotDefinedError{templateID: s.setID}
 }
 
+func (s *set) handleUnmarshalError(reader io.Reader, n int, err error) (int, error) {
+	switch {
+	case errors.Is(err, templateNotDefinedError{templateID: s.setID}):
+		// template for the data set not known, store raw data instead
+		buf := make([]byte, int(s.length)-n)
+		if e := binary.Read(reader, binary.BigEndian, &buf); e != nil {
+			return len(buf), UnmarshalError{e}
+		}
+
+		s.rawData = buf
+
+		return len(buf), nil
+	case errors.Is(err, io.ErrUnexpectedEOF) && (int(s.length) > n):
+		// assume s.Unmarshal failed to read a record which was actually a padding
+		buf := make([]byte, int(s.length)-n)
+
+		if e := binary.Read(reader, binary.BigEndian, &buf); e != nil {
+			return len(buf), UnmarshalError{e}
+		}
+
+		return len(buf), nil
+	default:
+		return 0, err
+	}
+}
+
 func getTemplate(templateID uint16, templates []*templateRecord) (*templateRecord, bool) {
 	for _, template := range templates {
 		if template.templateID == templateID {
@@ -417,7 +441,7 @@ func getTemplate(templateID uint16, templates []*templateRecord) (*templateRecor
 	return nil, false
 }
 
-// templateRecordBase containse fields definitions common for `templateRecord` and `optionsTemplateRecord`.
+// templateRecordBase contains fields definitions common for `templateRecord` and `optionsTemplateRecord`.
 type templateRecordBase struct {
 	templateID      uint16
 	fieldCount      uint16 // number of all fields in this record
