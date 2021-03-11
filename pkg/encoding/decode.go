@@ -85,7 +85,7 @@ func (d *Decoder) Read(p []byte) (n int, err error) {
 	d.buf = d.buf[nn:]
 	n += nn
 
-	if err != nil && !errors.Is(errors.Unwrap(err), io.EOF) {
+	if err != nil && !errors.Is(err, io.EOF) {
 		d.err = err
 
 		return 0, CorruptInputError{n, errors.Unwrap(err)}

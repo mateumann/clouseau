@@ -70,7 +70,7 @@ test-integration:
 
 .PHONY: create-coverage-report
 create-coverage-report:
-	rm coverage.txt
+	rm coverage.txt || true
 	cat pkg/collector/coverage.txt >> coverage.txt
 	cat pkg/encoding/coverage.txt >> coverage.txt
 	cat pkg/storage/coverage.txt >> coverage.txt

@@ -417,7 +417,7 @@ func (s *set) handleUnmarshalError(reader io.Reader, n int, err error) (int, err
 		s.rawData = buf
 
 		return len(buf), nil
-	case errors.Is(errors.Unwrap(err), io.ErrUnexpectedEOF) && (int(s.length) > n):
+	case errors.Is(err, io.ErrUnexpectedEOF) && (int(s.length) > n):
 		// assume s.Unmarshal failed to read a record which was actually a padding
 		buf := make([]byte, int(s.length)-n)
 

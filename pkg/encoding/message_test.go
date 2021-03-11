@@ -346,7 +346,7 @@ func TestMessage_Unmarshal(t *testing.T) {
 		var m Message
 
 		t.Run(tt.name, func(t *testing.T) {
-			if _, err := m.Unmarshal(bytes.NewReader(tt.arg), &templates); !errors.Is(errors.Unwrap(err), tt.err) {
+			if _, err := m.Unmarshal(bytes.NewReader(tt.arg), &templates); !errors.Is(err, tt.err) {
 				t.Errorf("%v got error %v (%T), want %v", tt.name, err, err, tt.err)
 			}
 			if m.version != tt.want.version ||
