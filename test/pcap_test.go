@@ -10,7 +10,7 @@ import (
 	"github.com/mateumann/clouseau/pkg/encoding"
 )
 
-//_nolint:funlen.
+//nolint:funlen
 func TestDecoder_MessagesLen(t *testing.T) {
 	tests := []struct {
 		name         string
@@ -33,7 +33,12 @@ func TestDecoder_MessagesLen(t *testing.T) {
 			6,
 		},
 		{
-			"templates and data ",
+			"single data record only",
+			"data_258.pcap",
+			1,
+		},
+		{
+			"templates_and_data_258_259",
 			"templates_and_data_258_259.pcap",
 			3,
 		},

@@ -12,28 +12,15 @@ jobs:
     name: Lint
     runs-on: ubuntu-latest
     steps:
-      # - name: Install gopacket/pcap dependencies
-      #   run: sudo apt-get install -y libpcap-dev
-
       - name: Check out code into the Go module directory
         uses: actions/checkout@v2
 
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v2
         with:
-          # Required: the version of golangci-lint is required and must be specified without patch version: we always use the latest patch version.
           version: v1.36
-
-          # Optional: working directory, useful for monorepos
-          # working-directory: somedir
-
-          # Optional: golangci-lint command line arguments.
-          # args: --issues-exit-code=0
           args: --enable asciicheck --enable bodyclose --enable deadcode --enable depguard --enable dogsled --enable dupl --enable errcheck --enable exhaustive --enable exportloopref --enable funlen --enable gochecknoglobals --enable gochecknoinits --enable gocognit --enable goconst --enable gocritic --enable gocyclo --enable godot --enable goerr113 --enable gofmt --enable goimports --enable golint --enable gomnd --enable gomodguard --enable goprintffuncname --enable gosec --enable gosimple --enable govet --enable ineffassign --enable interfacer --enable lll --enable maligned --enable misspell --enable nakedret --enable nestif --enable nlreturn --enable nolintlint --enable prealloc --enable rowserrcheck --enable scopelint --enable staticcheck --enable structcheck --enable stylecheck --enable typecheck --enable unconvert --enable unparam --enable unused --enable varcheck --enable whitespace
-          #     --enable wsl
 
-          # Optional: show only new issues if it's a pull request. The default value is `false`.
-          # only-new-issues: true
 
   test:
     name: Test
@@ -49,16 +36,19 @@ jobs:
       - name: Install gopacket/pcap dependencies
         run: sudo apt-get install -y libpcap-dev
 
+      - name: Install go-app tool for reporting accurate Code Coverage
+        run: go get github.com/ory/go-acc
+
       - name: Check out code into the Go module directory
         uses: actions/checkout@v2
 
-      - name: Get dependencies
-        run: |
-          go get -v -t -d ./...
-          if [ -f Gopkg.toml ]; then
-              curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
-              dep ensure
-          fi
+      # - name: Get dependencies
+      #   run: |
+      #     go get -v -t -d ./...
+      #     if [ -f Gopkg.toml ]; then
+      #         curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
+      #         dep ensure
+      #     fi
 
       - name: Test
         run: make test
@@ -74,23 +64,19 @@ jobs:
       - name: Set up Go 1.x
         uses: actions/setup-go@v2
         with:
-          go-version: ^1.14
+          go-version: 1.13
         id: go
-
-      # - name: Install gopacket/pcap dependencies
-      #   run: sudo apt-get install -y libpcap-dev
 
       - name: Check out code into the Go module directory
         uses: actions/checkout@v2
 
-      - name: Get dependencies
-        run: |
-          go get -v -t -d ./...
-          if [ -f Gopkg.toml ]; then
-              curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
-              dep ensure
-          fi
+      # - name: Get dependencies
+      #   run: |
+      #     go get -v -t -d ./...
+      #     if [ -f Gopkg.toml ]; then
+      #         curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
+      #         dep ensure
+      #     fi
 
       - name: Build
         run: make build
-
