@@ -56,6 +56,11 @@ func (c *UDPCollector) LocalAddr() net.Addr {
 
 // Collect listens on the UDP connection for the incoming IPFIX Messages and stores them.
 func (c *UDPCollector) Collect() {
+	if c.conn == nil {
+		log.Println("uninitialized UDP connection")
+
+		return
+	}
 	defer c.conn.Close()
 
 	decoder := encoding.NewDecoder(c.addr, c.debug)
@@ -75,7 +80,7 @@ func (c *UDPCollector) decode(decoder io.Reader, p []byte) {
 	messagesCount, err := decoder.Read(p)
 	if err != nil {
 		log.Printf("error while decoding IPFIX message: %v\n", err)
-	} else {
+	} else if c.debug {
 		log.Printf("%d messages decoded\n", messagesCount)
 	}
 }
