@@ -40,3 +40,13 @@ func TestUDPCollector_decode(t *testing.T) {
 	d := encoding.NewDecoder(&net.UDPAddr{IP: net.IPv4zero, Port: 20000, Zone: ""}, false)
 	c.decode(d, []byte{1, 2, 3, 4, 5})
 }
+
+
+func TestUDPCollector_decode(t *testing.T) {
+	c := UDPCollector{}
+	d := encoding.NewDecoder(&net.UDPAddr{IP: net.IPv4zero, Port: 20000, Zone: ""}, false)
+	c.decode(d, []byte{1, 2, 3, 4, 5})
+}
+
+
+184,50
