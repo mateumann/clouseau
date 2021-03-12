@@ -33,6 +33,7 @@ func (e CorruptInputError) Unwrap() error {
 
 // Decoder represents IPFIX flow already received by the collecting process.
 type Decoder struct {
+	// TODO: remove source or replace it with more generic type (just a string?)
 	source              *net.UDPAddr
 	observationDomainID uint32
 	debug               bool
