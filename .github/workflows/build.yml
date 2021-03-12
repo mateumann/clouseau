@@ -41,6 +41,9 @@ jobs:
 
       - name: Check out code into the Go module directory
         uses: actions/checkout@v2
+        with:
+          # because of "Issue detecting commit SHA. Please run actions/checkout with fetch-depth > 1 or set to 0"
+          fetch-depth: 0
 
       # - name: Get dependencies
       #   run: |
