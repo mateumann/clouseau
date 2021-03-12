@@ -58,6 +58,7 @@ func (c *UDPCollector) LocalAddr() net.Addr {
 func (c *UDPCollector) Collect() {
 	if c.conn == nil {
 		log.Println("uninitialized UDP connection")
+
 		return
 	}
 	defer c.conn.Close()
