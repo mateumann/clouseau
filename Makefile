@@ -39,7 +39,9 @@ analyse:
 		pkg/encoding/decode.go \
 		pkg/encoding/element.go \
 		pkg/encoding/helpers.go \
-		pkg/encoding/message.go
+		pkg/encoding/message.go \
+		pkg/storage/storage.go \
+		pkg/storage/rethinkdb.go
 	go list -json -m all | nancy sleuth
 
 .PHONY: test
