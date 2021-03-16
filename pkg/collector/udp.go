@@ -7,6 +7,7 @@ import (
 	"net"
 
 	"github.com/mateumann/clouseau/pkg/encoding"
+	"github.com/mateumann/clouseau/pkg/storage"
 )
 
 const (
@@ -55,7 +56,7 @@ func (c *UDPCollector) LocalAddr() net.Addr {
 }
 
 // Collect listens on the UDP connection for the incoming IPFIX Messages and stores them.
-func (c *UDPCollector) Collect() {
+func (c *UDPCollector) Collect(s storage.Storage) {
 	if c.conn == nil {
 		log.Println("uninitialized UDP connection")
 
@@ -69,9 +70,16 @@ func (c *UDPCollector) Collect() {
 		buf := make([]byte, c.bufferSize)
 		if bytesCount, fromAddr, err := c.conn.ReadFromUDP(buf); err != nil {
 			log.Printf("error while reading from UDP occurred: %v\n", err)
+
+			continue
 		} else {
-			log.Printf("%d bytes read from %v\n", bytesCount, fromAddr)
+			if c.debug {
+				log.Printf("%d bytes read from %v\n", bytesCount, fromAddr)
+			}
 			c.decode(decoder, buf[:bytesCount])
+			if err := s.Write(decoder.LastMessage()); err != nil {
+				log.Printf("storage error: %v", err)
+			}
 		}
 	}
 }

@@ -46,7 +46,7 @@ func main() {
 	config := configure()
 
 	// db, err := storage.NewRethinkDB(config.RethinkDBUrl, config.RethinkDBDatabase)
-	_, err := storage.NewRethinkDB(config.RethinkDBUrl, config.RethinkDBDatabase)
+	db, err := storage.NewRethinkDB(config.RethinkDBUrl, config.RethinkDBDatabase)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		os.Exit(1)
@@ -61,5 +61,5 @@ func main() {
 
 	fmt.Printf("UDPCollector collecting on %s:%d\n", config.ListenAddress, config.ListenPort)
 
-	c.Collect()
+	c.Collect(db)
 }

@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"net"
+
+	"github.com/mateumann/clouseau/pkg/storage"
 )
 
 // InvalidAddressError is the error type usually returned by functions in the collector
@@ -32,7 +34,7 @@ var errCollectorNotInitialized = errors.New("connector not initialized")
 type Collector interface {
 	Close() error
 	LocalAddr() net.Addr
-	Collect()
+	Collect(s storage.Storage)
 }
 
 // StartAndListen starts listening on [network]://[address]:[port] (e.g. udp://localhost:4739) for the incoming

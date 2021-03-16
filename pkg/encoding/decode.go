@@ -38,8 +38,8 @@ type Decoder struct {
 	observationDomainID uint32
 	debug               bool
 	err                 error
-	buf                 []byte // leftover decoded output
-	messages            []Message
+	buf                 []byte    // leftover decoded output
+	messages            []Message // TODO make it a slice of pointers to Message
 	data                []*dataRecord
 	templates           []*templateRecord
 	optionsTemplates    []*optionsTemplateRecord
@@ -111,4 +111,8 @@ func (d *Decoder) appendMessage(m Message) {
 	if d.debug {
 		log.Printf("messages length %v", len(d.messages))
 	}
+}
+
+func (d *Decoder) LastMessage() *Message {
+	return &d.messages[len(d.messages)-1]
 }
