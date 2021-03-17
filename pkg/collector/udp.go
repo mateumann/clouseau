@@ -66,20 +66,22 @@ func (c *UDPCollector) Collect(s storage.Storage) {
 
 	decoder := encoding.NewDecoder(c.addr, c.debug)
 
+	var bytesCount int
+
+	var err error
+
 	for {
 		buf := make([]byte, c.bufferSize)
-		if bytesCount, fromAddr, err := c.conn.ReadFromUDP(buf); err != nil {
+		if bytesCount, _, err = c.conn.ReadFromUDP(buf); err != nil {
 			log.Printf("error while reading from UDP occurred: %v\n", err)
 
 			continue
-		} else {
-			if c.debug {
-				log.Printf("%d bytes read from %v\n", bytesCount, fromAddr)
-			}
-			c.decode(decoder, buf[:bytesCount])
-			if err := s.Write(decoder.LastMessage()); err != nil {
-				log.Printf("storage error: %v", err)
-			}
+		}
+
+		c.decode(decoder, buf[:bytesCount])
+
+		if err := s.Write(decoder.LastMessage()); err != nil {
+			log.Printf("storage error: %v", err)
 		}
 	}
 }

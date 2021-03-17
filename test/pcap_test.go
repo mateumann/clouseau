@@ -1,3 +1,5 @@
+// +build integration
+
 package collector_test
 
 import (
