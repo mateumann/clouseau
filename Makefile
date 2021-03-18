@@ -48,6 +48,10 @@ analyse:
 test:
 	go-acc ./...
 
+.PHONY: integration-test
+integration-test:
+	go test -tags=integration ./test
+
 .PHONY: build
 build: build-collector
 

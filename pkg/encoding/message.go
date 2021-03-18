@@ -237,6 +237,31 @@ func (m *Message) String() string {
 		m.sequenceNumber, m.observationDomainID, intDescribed(len(m.sets), "set", "sets"))
 }
 
+type MessageWriteable struct {
+	Version             uint16         `rethinkdb:"version"`
+	Length              uint16         `rethinkdb:"length"`
+	ExportTime          uint32         `rethinkdb:"time"`
+	SequenceNumber      uint32         `rethinkdb:"seq"`
+	ObservationDomainID uint32         `rethinkdb:"domain_id"`
+	Sets                []SetWriteable `rethinkdb:"sets"`
+}
+
+func (m Message) Marshal() MessageWriteable {
+	sets := make([]SetWriteable, 0)
+	for _, s := range m.sets {
+		sets = append(sets, s.Marshal())
+	}
+
+	return MessageWriteable{
+		Version:             m.version,
+		Length:              m.length,
+		ExportTime:          m.exportTime,
+		SequenceNumber:      m.sequenceNumber,
+		ObservationDomainID: m.observationDomainID,
+		Sets:                sets,
+	}
+}
+
 func (m Message) valid() bool {
 	return m.version == 0x000a && m.length > 0
 }
@@ -321,6 +346,19 @@ func (s *set) String() string {
 	}
 
 	return fmt.Sprintf("%v (%v octets) %v", setGenre, s.length, intDescribed(len(s.records), "record", "records"))
+}
+
+type SetWriteable struct {
+	SetID  uint16 `rethinkdb:"set_id"`
+	Length uint16 `rethinkdb:"length"`
+	// Records []recordWriteable `rethinkdb:"records"`
+}
+
+func (s set) Marshal() SetWriteable {
+	return SetWriteable{
+		SetID:  s.setID,
+		Length: s.length,
+	}
 }
 
 func (s *set) valid() bool {

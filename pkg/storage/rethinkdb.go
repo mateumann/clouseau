@@ -2,6 +2,7 @@ package storage
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/mateumann/clouseau/pkg/encoding"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
@@ -41,10 +42,14 @@ func NewRethinkDB(url string, database string) (db *RethinkDB, err error) {
 	return db, nil
 }
 
-func (db *RethinkDB) Write(m *encoding.Message) error {
-	if _, err := r.Table("messages").Insert(m).RunWrite(db.session); err != nil {
+func (db *RethinkDB) Write(m *encoding.Message) (err error) {
+	var result r.WriteResponse
+
+	if result, err = r.Table("messages").Insert(m.Marshal()).RunWrite(db.session); err != nil {
 		return RethinkDBError{err}
 	}
+
+	log.Printf("RethinkDB.Write(%v): inserted %v\n", *m, result.Inserted)
 
 	return nil
 }
