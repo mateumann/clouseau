@@ -226,6 +226,7 @@ type Message struct {
 	Version             uint16 `rethinkdb:"version"`   // version of the IPFIX, currently 0x000a
 	Length              uint16 `rethinkdb:"length"`    // total length of IPFIX Message, including the header and Set(s)
 	ExportTime          uint32 `rethinkdb:"export_at"` // time at witch the Message left the exporter, Unix Epoch, UTC
+	ExportedAt	time.Time  `rethinkdb:"export_at_go" // time at witch the Message left the exporter, Unix Epoch, UTC
 	SequenceNumber      uint32 `rethinkdb:"seq"`       // incremental sequence counter modulo 2^32
 	ObservationDomainID uint32 `rethinkdb:"domain_id"` // a 32-bit identifier of the observation domain
 	Sets                []Set  `rethinkdb:"sets"`
