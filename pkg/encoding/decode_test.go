@@ -285,13 +285,13 @@ func TestDecoder_Read_WholeMessageHeaders(t *testing.T) {
 				0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 			},
 			want: Message{
-				version: 10,
-				length:  296,
-				exportTime: uint32(time.Date(2020, 6, 15,
+				Version: 10,
+				Length:  296,
+				ExportTime: uint32(time.Date(2020, 6, 15,
 					6, 31, 13, 0, time.UTC).Unix()),
-				sequenceNumber:      0,
-				observationDomainID: 0,
-				sets:                nil,
+				SequenceNumber:      0,
+				ObservationDomainID: 0,
+				Sets:                nil,
 			},
 			err: nil,
 		},
@@ -492,7 +492,7 @@ func TestDecoder_Read_Table(t *testing.T) {
 		name string
 		len  int
 		arg  []byte
-		want *set
+		want *Set
 		err  error
 	}{
 		{

@@ -52,6 +52,17 @@ func main() {
 		os.Exit(1)
 	}
 
+	err = db.DropTables()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%v\n", err)
+	}
+
+	err = db.CreateTables()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%v\n", err)
+		os.Exit(1)
+	}
+
 	c, err := collector.StartAndListen(
 		config.ListenProtocol, config.ListenAddress, config.ListenPort, config.BufferSize, config.Debug)
 	if err != nil {

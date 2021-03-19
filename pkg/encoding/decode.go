@@ -40,9 +40,9 @@ type Decoder struct {
 	err                 error
 	buf                 []byte    // leftover decoded output
 	messages            []Message // TODO make it a slice of pointers to Message
-	data                []*dataRecord
-	templates           []*templateRecord
-	optionsTemplates    []*optionsTemplateRecord
+	data                []*DataRecord
+	templates           []*TemplateRecord
+	optionsTemplates    []*OptionsTemplateRecord
 }
 
 func (d *Decoder) String() string {
@@ -58,9 +58,9 @@ func NewDecoder(s *net.UDPAddr, debug bool) *Decoder {
 		err:                 nil,
 		buf:                 make([]byte, 0),
 		messages:            make([]Message, 0),
-		data:                make([]*dataRecord, 0),
-		templates:           make([]*templateRecord, 0),
-		optionsTemplates:    make([]*optionsTemplateRecord, 0),
+		data:                make([]*DataRecord, 0),
+		templates:           make([]*TemplateRecord, 0),
+		optionsTemplates:    make([]*OptionsTemplateRecord, 0),
 		debug:               debug,
 	}
 }
