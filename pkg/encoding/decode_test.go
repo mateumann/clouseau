@@ -287,7 +287,7 @@ func TestDecoder_Read_WholeMessageHeaders(t *testing.T) {
 			want: Message{
 				Version: 10,
 				Length:  296,
-				ExportTime: uint32(time.Date(2020, 6, 15,
+				exportTime: uint32(time.Date(2020, 6, 15,
 					6, 31, 13, 0, time.UTC).Unix()),
 				SequenceNumber:      0,
 				ObservationDomainID: 0,

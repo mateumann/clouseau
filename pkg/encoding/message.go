@@ -223,18 +223,18 @@ func (s *FieldSpecifier) Unmarshal(reader io.Reader) (n int, err error) {
 // Message describes a IPFIX Message containing of a header and zero or more sets.
 // https://tools.ietf.org/html/rfc7011#section-3.1
 type Message struct {
-	Version             uint16 `rethinkdb:"version"`   // version of the IPFIX, currently 0x000a
-	Length              uint16 `rethinkdb:"length"`    // total length of IPFIX Message, including the header and Set(s)
-	ExportTime          uint32 `rethinkdb:"export_at"` // time at witch the Message left the exporter, Unix Epoch, UTC
-	ExportedAt	time.Time  `rethinkdb:"export_at_go" // time at witch the Message left the exporter, Unix Epoch, UTC
-	SequenceNumber      uint32 `rethinkdb:"seq"`       // incremental sequence counter modulo 2^32
-	ObservationDomainID uint32 `rethinkdb:"domain_id"` // a 32-bit identifier of the observation domain
-	Sets                []Set  `rethinkdb:"sets"`
+	Version             uint16    `rethinkdb:"version"`   // version of the IPFIX, currently 0x000a
+	Length              uint16    `rethinkdb:"length"`    // total length of Message, including the header and Set(s)
+	exportTime          uint32    `rethinkdb:"-"`         // time at witch Message left the exporter, Unix Epoch, UTC
+	ExportTime          time.Time `rethinkdb:"export_at"` // time at witch Message left the exporter, UTC
+	SequenceNumber      uint32    `rethinkdb:"seq"`       // incremental sequence counter modulo 2^32
+	ObservationDomainID uint32    `rethinkdb:"domain_id"` // a 32-bit identifier of the observation domain
+	Sets                []Set     `rethinkdb:"sets"`
 }
 
 func (m *Message) String() string {
 	return fmt.Sprintf("Message %v (%v octets, %v, %v, %v) %v",
-		m.Version, m.Length, time.Unix(int64(m.ExportTime), 0).UTC().Format(time.RFC3339),
+		m.Version, m.Length, m.ExportTime.Format(time.RFC3339),
 		m.SequenceNumber, m.ObservationDomainID, intDescribed(len(m.Sets), "set", "sets"))
 }
 
@@ -246,9 +246,13 @@ func (m Message) valid() bool {
 // (Options) Template Records used to decode raw data into a IPFIX Data Records.
 func (m *Message) Unmarshal(reader io.Reader, templates *[]*TemplateRecord) (n int, err error) {
 	if n, err = unmarshalFields(reader,
-		&m.Version, &m.Length, &m.ExportTime, &m.SequenceNumber, &m.ObservationDomainID); err != nil {
+		&m.Version, &m.Length, &m.exportTime, &m.SequenceNumber, &m.ObservationDomainID); err != nil {
+		m.ExportTime = time.Unix(int64(m.exportTime), 0).UTC()
+
 		return n, err
 	}
+
+	m.ExportTime = time.Unix(int64(m.exportTime), 0).UTC()
 
 	for n < int(m.Length) {
 		bytesRead, err := m.unmarshalSet(reader, templates)
