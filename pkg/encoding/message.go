@@ -294,7 +294,7 @@ type Set struct {
 	SetID   uint16   `rethinkdb:"set_id"`
 	Length  uint16   `rethinkdb:"length"` // the length, including set header, all records, and the optional padding
 	Records []Record `rethinkdb:"records"`
-	RawData []byte   `rethinkdb:"data"`
+	RawData []byte   `rethinkdb:"data,omitempty"`
 }
 
 // Set ID constants defining valid IPFIX set identifiers (or a minimum valid set id in case of MinimumDataSetID).
