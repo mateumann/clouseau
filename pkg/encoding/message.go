@@ -172,9 +172,9 @@ func unmarshalFields(reader io.Reader, data ...interface{}) (n int, err error) {
 // FieldSpecifier describes a single data element in a IPFIX record.
 // https://tools.ietf.org/html/rfc7011#section-3.2
 type FieldSpecifier struct {
-	InformationElementID uint16
-	FieldLength          uint16
-	EnterpriseNumber     uint32
+	InformationElementID uint16 `rethinkdb:"element_id"`
+	FieldLength          uint16 `rethinkdb:"length"`
+	EnterpriseNumber     uint32 `rethinkdb:"enterprise_number"`
 }
 
 func (s *FieldSpecifier) String() string {
@@ -223,12 +223,12 @@ func (s *FieldSpecifier) Unmarshal(reader io.Reader) (n int, err error) {
 // Message describes a IPFIX Message containing of a header and zero or more sets.
 // https://tools.ietf.org/html/rfc7011#section-3.1
 type Message struct {
-	Version             uint16 // version of the IPFIX, currently 0x000a
-	Length              uint16 // total length of IPFIX Message, measured in octets, including the header and Set(s)
-	ExportTime          uint32 // time at witch the Message left the exporter, in seconds since the UNIX epoch, UTC
-	SequenceNumber      uint32 // incremental sequence counter modulo 2^32
-	ObservationDomainID uint32 // a 32-bit identifier of the observation domain, locally unique to the exporting proc.
-	Sets                []Set
+	Version             uint16 `rethinkdb:"version"`   // version of the IPFIX, currently 0x000a
+	Length              uint16 `rethinkdb:"length"`    // total length of IPFIX Message, including the header and Set(s)
+	ExportTime          uint32 `rethinkdb:"export_at"` // time at witch the Message left the exporter, Unix Epoch, UTC
+	SequenceNumber      uint32 `rethinkdb:"seq"`       // incremental sequence counter modulo 2^32
+	ObservationDomainID uint32 `rethinkdb:"domain_id"` // a 32-bit identifier of the observation domain
+	Sets                []Set  `rethinkdb:"sets"`
 }
 
 func (m *Message) String() string {
@@ -291,10 +291,10 @@ type Record interface {
 // aligned boundary.
 // https://tools.ietf.org/html/rfc7011#section-3.3.1, https://tools.ietf.org/html/rfc7011#section-3.3.2
 type Set struct {
-	SetID   uint16
-	Length  uint16 // total length of the set, including set header, all records, and the optional padding; in octets
-	Records []Record
-	RawData []byte
+	SetID   uint16   `rethinkdb:"set_id"`
+	Length  uint16   `rethinkdb:"length"` // the length, including set header, all records, and the optional padding
+	Records []Record `rethinkdb:"records"`
+	RawData []byte   `rethinkdb:"data"`
 }
 
 // Set ID constants defining valid IPFIX set identifiers (or a minimum valid set id in case of MinimumDataSetID).
@@ -456,9 +456,9 @@ func getTemplate(templateID uint16, templates []*TemplateRecord) (*TemplateRecor
 
 // TemplateRecordBase contains fields definitions common for `templateRecord` and `optionsTemplateRecord`.
 type TemplateRecordBase struct {
-	TemplateID      uint16
-	FieldCount      uint16 // number of all fields in this record
-	FieldSpecifiers []FieldSpecifier
+	TemplateID      uint16           `rethinkdb:"template_id"`
+	FieldCount      uint16           `rethinkdb:"field_count"` // number of all fields in this record
+	FieldSpecifiers []FieldSpecifier `rethinkdb:"field_specifiers"`
 }
 
 func (r *TemplateRecordBase) unmarshalFieldSpecifiers(reader io.Reader) (n int, err error) {
@@ -522,7 +522,7 @@ func (r *TemplateRecord) Unmarshal(reader io.Reader, _ *TemplateRecord) (n int, 
 // https://tools.ietf.org/html/rfc7011#section-3.4.2
 type OptionsTemplateRecord struct {
 	TemplateRecordBase
-	ScopeFieldCount uint16 // number of scope fields (those are the first N fields of the record)
+	ScopeFieldCount uint16 `rethinkdb:"scope_field_count"` // number of scope fields
 }
 
 func (r *OptionsTemplateRecord) String() string {
@@ -567,7 +567,7 @@ func (r *OptionsTemplateRecord) Unmarshal(reader io.Reader, _ *TemplateRecord) (
 // DataRecord consist only of one or more fieldValues.
 // https://tools.ietf.org/html/rfc7011#section-3.4.3
 type DataRecord struct {
-	FieldValues []interface{}
+	FieldValues []interface{} `rethinkdb:"field_values"`
 }
 
 func (r *DataRecord) String() string {

@@ -55,13 +55,9 @@ func (db *RethinkDB) CreateTables() (err error) {
 		return RethinkDBError{err}
 	}
 
-	// function(var61) { return r.row("Sets")("SetID");
-	// function(var1) { return r.expr([var1.getField("Sets").getField("SetID")]); },
 	if err = r.Table("messages").IndexCreateFunc(
-		"SetID",
-		// func(row r.Term) interface{} { return interface{}{row.row("Sets").Field("SetID")} },
-		// func(row r.Term) interface{} { return []interface{}{row.Field("Sets").Field("SetID")} },
-		func(row r.Term) interface{} { return row.Field("Sets").Field("SetID") },
+		"set_id",
+		func(row r.Term) interface{} { return row.Field("sets").Field("set_id") },
 		r.IndexCreateOpts{Multi: true},
 	).Exec(db.session); err != nil {
 		return RethinkDBError{err}
