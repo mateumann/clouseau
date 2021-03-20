@@ -1,7 +1,8 @@
+// +build integration
+
 package collector_test
 
 import (
-	"net"
 	"testing"
 
 	"github.com/google/gopacket"
@@ -32,13 +33,13 @@ func TestDecoder_MessagesLen(t *testing.T) {
 		},
 	}
 
-	addr := net.UDPAddr{IP: net.ParseIP(""), Port: 0, Zone: ""}
+	// addr := net.UDPAddr{IP: net.ParseIP(""), Port: 0, Zone: ""}
 
 	for _, tt := range tests {
 		tt := tt // pin
 
 		t.Run(tt.name, func(t *testing.T) {
-			decoder := encoding.NewDecoder(&addr, true)
+			decoder := encoding.NewDecoder(true)
 			messagesRead := 0
 
 			handle, err := pcap.OpenOffline("./testdata/pcap/" + tt.pcapFilename)

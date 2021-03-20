@@ -5,16 +5,14 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
-	"net"
 )
 
-const (
+/*const (
 	// NoSpecificObservationDomainID represents no specific observation domain id relevant for the entire IPFIX Message
 	// e.g. when exporting the Exporting Process Statistics, or in the case of a hierarchy of Collectors when
 	// aggregated Data Records are exported.
 	NoSpecificObservationDomainID = 0
-)
+)*/
 
 // CorruptInputError describes an error in input data.
 type CorruptInputError struct {
@@ -34,34 +32,31 @@ func (e CorruptInputError) Unwrap() error {
 // Decoder represents IPFIX flow already received by the collecting process.
 type Decoder struct {
 	// TODO: remove source or replace it with more generic type (just a string?)
-	source              *net.UDPAddr
-	observationDomainID uint32
-	debug               bool
-	err                 error
-	buf                 []byte // leftover decoded output
-	messages            []Message
-	data                []*dataRecord
-	templates           []*templateRecord
-	optionsTemplates    []*optionsTemplateRecord
+	SourceAddr       string
+	debug            bool
+	err              error
+	buf              []byte    // leftover decoded output
+	messages         []Message // TODO make it a slice of pointers to Message
+	data             []*DataRecord
+	templates        []*TemplateRecord
+	optionsTemplates []*OptionsTemplateRecord
 }
 
 func (d *Decoder) String() string {
-	return fmt.Sprintf("Decoder (%s, %d): %s", d.source, d.observationDomainID,
-		intDescribed(len(d.messages), "message", "messages"))
+	return fmt.Sprintf("decoder (%s): %s", d.SourceAddr, intDescribed(len(d.messages), "message", "messages"))
 }
 
 // NewDecoder initializes a Decoder with provided source (net.UDPAddr) and default values of other parameters.
-func NewDecoder(s *net.UDPAddr, debug bool) *Decoder {
+func NewDecoder(debug bool) *Decoder {
 	return &Decoder{
-		source:              s,
-		observationDomainID: NoSpecificObservationDomainID,
-		err:                 nil,
-		buf:                 make([]byte, 0),
-		messages:            make([]Message, 0),
-		data:                make([]*dataRecord, 0),
-		templates:           make([]*templateRecord, 0),
-		optionsTemplates:    make([]*optionsTemplateRecord, 0),
-		debug:               debug,
+		SourceAddr:       "",
+		err:              nil,
+		buf:              make([]byte, 0),
+		messages:         make([]Message, 0),
+		data:             make([]*DataRecord, 0),
+		templates:        make([]*TemplateRecord, 0),
+		optionsTemplates: make([]*OptionsTemplateRecord, 0),
+		debug:            debug,
 	}
 }
 
@@ -82,7 +77,7 @@ func (d *Decoder) Read(p []byte) (n int, err error) {
 
 	var m Message
 
-	nn, err := m.Unmarshal(r, &d.templates)
+	nn, err := m.Unmarshal(r, d.SourceAddr, &d.templates)
 	d.buf = d.buf[nn:]
 	n += nn
 
@@ -102,13 +97,10 @@ func (d *Decoder) Read(p []byte) (n int, err error) {
 }
 
 func (d *Decoder) appendMessage(m Message) {
-	if d.debug {
-		log.Printf("appending message %v", m)
-	}
-
 	d.messages = append(d.messages, m)
+}
 
-	if d.debug {
-		log.Printf("messages length %v", len(d.messages))
-	}
+// LastMessage returns the last decoded Message.
+func (d *Decoder) LastMessage() *Message {
+	return &d.messages[len(d.messages)-1]
 }

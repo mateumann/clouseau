@@ -2,20 +2,25 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/codingconcepts/env"
 	"github.com/spf13/pflag"
 
 	"github.com/mateumann/clouseau/pkg/collector"
+	"github.com/mateumann/clouseau/pkg/storage"
 )
 
 type configuration struct {
-	Debug          bool   `env:"DEBUG" default:"false"`
-	ListenProtocol string `env:"LISTEN_PROTOCOL" default:"udp"`
-	ListenAddress  string `env:"LISTEN_ADDRESS" default:"0.0.0.0"`
-	ListenPort     int    `env:"LISTEN_PORT" default:"4739"`
-	BufferSize     int    `env:"BUFFER_SIZE" default:"8192"`
+	Debug             bool   `env:"DEBUG" default:"false"`
+	ListenProtocol    string `env:"LISTEN_PROTOCOL" default:"udp"`
+	ListenAddress     string `env:"LISTEN_ADDRESS" default:"0.0.0.0"`
+	ListenPort        int    `env:"LISTEN_PORT" default:"4739"`
+	BufferSize        int    `env:"BUFFER_SIZE" default:"8192"`
+	RethinkDBUrl      string `env:"RETHINKDB_URL" default:"localhost:28015"`
+	RethinkDBDatabase string `env:"RETHINKDB_DATABASE" default:"clouseau"`
+	DropDB            bool   `env:"DROP_DATABASE" default:"false"`
 }
 
 func configure() *configuration {
@@ -32,6 +37,9 @@ func configure() *configuration {
 	pflag.StringVar(&c.ListenAddress, "address", c.ListenAddress, "IP address of the interface to listen to.")
 	pflag.IntVar(&c.ListenPort, "port", c.ListenPort, "The UDP port to listen to.")
 	pflag.IntVar(&c.BufferSize, "buffersize", c.BufferSize, "Buffer size for the incoming messages.")
+	pflag.StringVar(&c.RethinkDBUrl, "rethinkdb-url", c.RethinkDBUrl, "RethinkDB endpoint.")
+	pflag.StringVar(&c.RethinkDBDatabase, "rethinkdb-db", c.RethinkDBDatabase, "RethinkDB database.")
+	pflag.BoolVar(&c.DropDB, "drop-database", c.DropDB, "Recreate database.")
 	pflag.Parse()
 
 	return &c
@@ -40,14 +48,19 @@ func configure() *configuration {
 func main() {
 	config := configure()
 
+	// db, err := storage.NewRethinkDB(config.RethinkDBUrl, config.RethinkDBDatabase)
+	db, err := storage.NewRethinkDB(config.RethinkDBUrl, config.RethinkDBDatabase, config.DropDB)
+	if err != nil {
+		log.Fatalf("%v\n", err)
+	}
+
 	c, err := collector.StartAndListen(
 		config.ListenProtocol, config.ListenAddress, config.ListenPort, config.BufferSize, config.Debug)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%v\n", err)
-		os.Exit(1)
+		log.Fatalf("%v\n", err)
 	}
 
 	fmt.Printf("UDPCollector collecting on %s:%d\n", config.ListenAddress, config.ListenPort)
 
-	c.Collect()
+	c.Collect(db)
 }

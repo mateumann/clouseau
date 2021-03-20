@@ -20,6 +20,7 @@ fmt-pkg:
 	gofumpt -s -w pkg/collector/*.go
 	gofumpt -s -w pkg/encoding/*.go
 	gofumpt -s -w pkg/storage/*.go
+	gofumpt -s -w cmd/collector/*.go
 
 .PHONY: fmt-test
 fmt-test:
@@ -33,18 +34,24 @@ lint:
 analyse:
 	gocyclo -over 9 -ignore "_test.go$$" .
 	gocognit -over 7 \
-		cmd/collector/main.go \
 		pkg/collector/collector.go \
-		pkg/collector/collector_udp.go \
+		pkg/collector/udp.go \
 		pkg/encoding/decode.go \
 		pkg/encoding/element.go \
 		pkg/encoding/helpers.go \
-		pkg/encoding/message.go
+		pkg/encoding/message.go \
+		pkg/storage/storage.go \
+		pkg/storage/rethinkdb.go \
+		cmd/collector/main.go
 	go list -json -m all | nancy sleuth
 
 .PHONY: test
 test:
 	go-acc ./...
+
+.PHONY: integration-test
+integration-test:
+	go test -tags=integration ./test
 
 .PHONY: build
 build: build-collector
