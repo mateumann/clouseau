@@ -68,17 +68,15 @@ func TestCorruptInputError_Unwrap(t *testing.T) {
 func TestNewDecoder(t *testing.T) {
 	tests := []struct {
 		name string
-		arg  net.UDPAddr
 		want Decoder
 	}{
 		{
 			name: "Decoder on localhost:4739",
-			arg:  net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 4739, Zone: ""},
 			want: Decoder{
-				source: &net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 4739, Zone: ""},
-				debug:  true,
-				err:    nil,
-				buf:    make([]byte, 2048),
+				SourceAddr: nil,
+				debug:      true,
+				err:        nil,
+				buf:        make([]byte, 2048),
 			},
 		},
 	}
@@ -86,11 +84,8 @@ func TestNewDecoder(t *testing.T) {
 		tt := tt // pin
 
 		t.Run(tt.name, func(t *testing.T) {
-			got := NewDecoder(&tt.arg, true)
-			if !got.source.IP.Equal(tt.want.source.IP) ||
-				got.source.Port != tt.want.source.Port ||
-				got.source.Zone != tt.want.source.Zone ||
-				got.debug != tt.want.debug {
+			got := NewDecoder(true)
+			if got.SourceAddr != nil || got.debug != tt.want.debug {
 				t.Errorf("%v = %v, want %v", tt.name, got, tt.want)
 			}
 		})
@@ -100,12 +95,12 @@ func TestNewDecoder(t *testing.T) {
 func TestDecoder_String(t *testing.T) {
 	tests := []struct {
 		name string
-		arg  net.UDPAddr
+		arg  *net.UDPAddr
 		want string
 	}{
 		{
 			name: "Decoder on localhost:4739",
-			arg:  net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 4739, Zone: ""},
+			arg:  &net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 4739, Zone: ""},
 			want: "decoder (127.0.0.1:4739): 0 messages",
 		},
 	}
@@ -113,7 +108,8 @@ func TestDecoder_String(t *testing.T) {
 		tt := tt // pin
 
 		t.Run(tt.name, func(t *testing.T) {
-			got := NewDecoder(&tt.arg, false)
+			got := NewDecoder(false)
+			got.SourceAddr = tt.arg
 			if got.String() != tt.want {
 				t.Errorf("%v = %v, want %v", tt.name, got, tt.want)
 			}
@@ -215,7 +211,7 @@ func TestDecoder_Read_Buffer(t *testing.T) {
 		tt := tt // pin
 
 		t.Run(tt.name, func(t *testing.T) {
-			decoder := Decoder{source: nil, buf: tt.decoderBufBefore}
+			decoder := Decoder{SourceAddr: nil, buf: tt.decoderBufBefore}
 			got, err := decoder.Read(tt.arg)
 			if got != tt.want {
 				t.Errorf("%v = %v, want %v", tt.name, got, tt.want)
@@ -255,7 +251,7 @@ func TestDecoder_Read_WithError(t *testing.T) {
 	}
 	for _, tt := range tests {
 		tt := tt // pin
-		decoder := Decoder{source: nil, err: tt.decoderErr}
+		decoder := Decoder{SourceAddr: nil, err: tt.decoderErr}
 
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := decoder.Read(tt.arg)

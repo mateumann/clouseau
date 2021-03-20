@@ -33,7 +33,7 @@ func (e CorruptInputError) Unwrap() error {
 // Decoder represents IPFIX flow already received by the collecting process.
 type Decoder struct {
 	// TODO: remove source or replace it with more generic type (just a string?)
-	source           *net.UDPAddr
+	SourceAddr       *net.UDPAddr
 	debug            bool
 	err              error
 	buf              []byte    // leftover decoded output
@@ -44,13 +44,13 @@ type Decoder struct {
 }
 
 func (d *Decoder) String() string {
-	return fmt.Sprintf("decoder (%s): %s", d.source, intDescribed(len(d.messages), "message", "messages"))
+	return fmt.Sprintf("decoder (%s): %s", d.SourceAddr, intDescribed(len(d.messages), "message", "messages"))
 }
 
 // NewDecoder initializes a Decoder with provided source (net.UDPAddr) and default values of other parameters.
-func NewDecoder(s *net.UDPAddr, debug bool) *Decoder {
+func NewDecoder(debug bool) *Decoder {
 	return &Decoder{
-		source:           s,
+		SourceAddr:       nil,
 		err:              nil,
 		buf:              make([]byte, 0),
 		messages:         make([]Message, 0),
@@ -78,7 +78,7 @@ func (d *Decoder) Read(p []byte) (n int, err error) {
 
 	var m Message
 
-	nn, err := m.Unmarshal(r, &d.templates)
+	nn, err := m.Unmarshal(r, d.SourceAddr, &d.templates)
 	d.buf = d.buf[nn:]
 	n += nn
 
