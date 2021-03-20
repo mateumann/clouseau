@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/codingconcepts/env"
@@ -19,6 +20,7 @@ type configuration struct {
 	BufferSize        int    `env:"BUFFER_SIZE" default:"8192"`
 	RethinkDBUrl      string `env:"RETHINKDB_URL" default:"localhost:28015"`
 	RethinkDBDatabase string `env:"RETHINKDB_DATABASE" default:"clouseau"`
+	DropDB            bool   `env:"DROP_DATABASE" default:"false"`
 }
 
 func configure() *configuration {
@@ -37,6 +39,7 @@ func configure() *configuration {
 	pflag.IntVar(&c.BufferSize, "buffersize", c.BufferSize, "Buffer size for the incoming messages.")
 	pflag.StringVar(&c.RethinkDBUrl, "rethinkdb-url", c.RethinkDBUrl, "RethinkDB endpoint.")
 	pflag.StringVar(&c.RethinkDBDatabase, "rethinkdb-db", c.RethinkDBDatabase, "RethinkDB database.")
+	pflag.BoolVar(&c.DropDB, "drop-database", c.DropDB, "Recreate database.")
 	pflag.Parse()
 
 	return &c
@@ -46,28 +49,15 @@ func main() {
 	config := configure()
 
 	// db, err := storage.NewRethinkDB(config.RethinkDBUrl, config.RethinkDBDatabase)
-	db, err := storage.NewRethinkDB(config.RethinkDBUrl, config.RethinkDBDatabase)
+	db, err := storage.NewRethinkDB(config.RethinkDBUrl, config.RethinkDBDatabase, config.DropDB)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%v\n", err)
-		os.Exit(1)
-	}
-
-	err = db.DropTables()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "%v\n", err)
-	}
-
-	err = db.CreateTables()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "%v\n", err)
-		os.Exit(1)
+		log.Fatalf("%v\n", err)
 	}
 
 	c, err := collector.StartAndListen(
 		config.ListenProtocol, config.ListenAddress, config.ListenPort, config.BufferSize, config.Debug)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%v\n", err)
-		os.Exit(1)
+		log.Fatalf("%v\n", err)
 	}
 
 	fmt.Printf("UDPCollector collecting on %s:%d\n", config.ListenAddress, config.ListenPort)

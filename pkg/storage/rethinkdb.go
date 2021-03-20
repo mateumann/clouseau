@@ -26,7 +26,7 @@ func (e RethinkDBError) Error() string {
 	return fmt.Sprintf("rethinkdb error: %v", e.err)
 }
 
-func NewRethinkDB(url string, database string) (db *RethinkDB, err error) {
+func NewRethinkDB(url, database string, recreate bool) (db *RethinkDB, err error) {
 	var session *r.Session
 	session, err = r.Connect(r.ConnectOpts{
 		Address:  url, // endpoint without http
@@ -39,10 +39,20 @@ func NewRethinkDB(url string, database string) (db *RethinkDB, err error) {
 
 	db = &RethinkDB{address: url, database: database, session: session}
 
+	if recreate {
+		if err = db.DropTables(); err != nil {
+			log.Printf("drop tables error: %v", err)
+		} else if err = db.CreateTables(); err != nil {
+			log.Printf("create tables error: %v", err)
+
+			return nil, RethinkDBError{err}
+		}
+	}
+
 	return db, nil
 }
 
-func (db *RethinkDB) DropTables() (err error) {
+func (db RethinkDB) DropTables() (err error) {
 	if err = r.TableDrop("messages").Exec(db.session); err != nil {
 		return RethinkDBError{err}
 	}
@@ -50,7 +60,7 @@ func (db *RethinkDB) DropTables() (err error) {
 	return nil
 }
 
-func (db *RethinkDB) CreateTables() (err error) {
+func (db RethinkDB) CreateTables() (err error) {
 	if err = r.TableCreate("messages").Exec(db.session); err != nil {
 		return RethinkDBError{err}
 	}
