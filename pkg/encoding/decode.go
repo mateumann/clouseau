@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net"
 )
 
@@ -99,15 +98,7 @@ func (d *Decoder) Read(p []byte) (n int, err error) {
 }
 
 func (d *Decoder) appendMessage(m Message) {
-	if d.debug {
-		log.Printf("appending message %v", m)
-	}
-
 	d.messages = append(d.messages, m)
-
-	if d.debug {
-		log.Printf("messages length %v", len(d.messages))
-	}
 }
 
 func (d *Decoder) LastMessage() *Message {
