@@ -328,19 +328,6 @@ func (s *Set) String() string {
 	return fmt.Sprintf("%v (%v octets) %v", setGenre, s.Length, intDescribed(len(s.Records), "record", "records"))
 }
 
-type SetWriteable struct {
-	SetID  uint16 `rethinkdb:"set_id"`
-	Length uint16 `rethinkdb:"length"`
-	// Records []recordWriteable `rethinkdb:"records"`
-}
-
-func (s Set) Marshal() SetWriteable {
-	return SetWriteable{
-		SetID:  s.SetID,
-		Length: s.Length,
-	}
-}
-
 func (s *Set) valid() bool {
 	return (s.SetID == 2 || s.SetID == 3 || s.SetID >= 256) && s.Length > 3
 }
