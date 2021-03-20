@@ -203,6 +203,7 @@ func (s *FieldSpecifier) valid() bool {
 	return s.InformationElementID < 32768 && s.EnterpriseNumber == 0
 }
 
+// Unmarshal reads byte stream from the reader and parses it into a FieldSpecifier.
 func (s *FieldSpecifier) Unmarshal(reader io.Reader) (n int, err error) {
 	if n, err = unmarshalFields(reader, &s.InformationElementID, &s.FieldLength); err != nil {
 		return n, err
@@ -223,11 +224,11 @@ func (s *FieldSpecifier) Unmarshal(reader io.Reader) (n int, err error) {
 // Message describes a IPFIX Message containing of a header and zero or more sets.
 // https://tools.ietf.org/html/rfc7011#section-3.1
 type Message struct {
-	SourceAddr          string    `rethinkdb:"source"`    // source address of the Message
-	Version             uint16    `rethinkdb:"version"`   // version of the IPFIX, currently 0x000a
-	Length              uint16    `rethinkdb:"length"`    // total length of Message, including the header and Set(s)
-	exportTime          uint32    `rethinkdb:"-"`         // time at witch Message left the exporter, Unix Epoch, UTC
-	ExportTime          time.Time `rethinkdb:"export_at"` // time at witch Message left the exporter, UTC
+	SourceAddr          string    `rethinkdb:"source"`  // source address of the Message
+	Version             uint16    `rethinkdb:"version"` // version of the IPFIX, currently 0x000a
+	Length              uint16    `rethinkdb:"length"`  // total length of Message, including the header and Set(s)
+	exportTime          uint32    // time at witch Message left the exporter, Unix Epoch, UTC
+	ExportedAt          time.Time `rethinkdb:"export_at"` // time at witch Message left the exporter, UTC
 	SequenceNumber      uint32    `rethinkdb:"seq"`       // incremental sequence counter modulo 2^32
 	ObservationDomainID uint32    `rethinkdb:"domain_id"` // a 32-bit identifier of the observation domain
 	Sets                []Set     `rethinkdb:"sets"`
@@ -235,7 +236,7 @@ type Message struct {
 
 func (m *Message) String() string {
 	return fmt.Sprintf("Message %v (%v octets, %v, %v, %v) %v",
-		m.Version, m.Length, m.ExportTime.Format(time.RFC3339),
+		m.Version, m.Length, m.ExportedAt.Format(time.RFC3339),
 		m.SequenceNumber, m.ObservationDomainID, intDescribed(len(m.Sets), "set", "sets"))
 }
 
@@ -248,12 +249,12 @@ func (m Message) valid() bool {
 func (m *Message) Unmarshal(reader io.Reader, source string, templates *[]*TemplateRecord) (n int, err error) {
 	if n, err = unmarshalFields(reader,
 		&m.Version, &m.Length, &m.exportTime, &m.SequenceNumber, &m.ObservationDomainID); err != nil {
-		m.ExportTime = time.Unix(int64(m.exportTime), 0).UTC()
+		m.ExportedAt = time.Unix(int64(m.exportTime), 0).UTC()
 
 		return n, err
 	}
 
-	m.ExportTime = time.Unix(int64(m.exportTime), 0).UTC()
+	m.ExportedAt = time.Unix(int64(m.exportTime), 0).UTC()
 	m.SourceAddr = source
 
 	for n < int(m.Length) {

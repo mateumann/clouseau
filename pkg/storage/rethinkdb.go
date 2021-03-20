@@ -8,16 +8,19 @@ import (
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
 
+// RethinkDB represents a rethinkdb database connection.
 type RethinkDB struct {
 	address  string
 	database string
 	session  *r.Session
 }
 
+// RethinkDBError represents an error that occurs during communication with rethinkdb.
 type RethinkDBError struct {
 	err error
 }
 
+// Unwrap returns the original error returned by rethinkdb.
 func (e RethinkDBError) Unwrap() error {
 	return e.err
 }
@@ -26,6 +29,7 @@ func (e RethinkDBError) Error() string {
 	return fmt.Sprintf("rethinkdb error: %v", e.err)
 }
 
+// NewRethinkDB creates a new connection to the rethinkdb.
 func NewRethinkDB(url, database string, recreate bool) (db *RethinkDB, err error) {
 	var session *r.Session
 	session, err = r.Connect(r.ConnectOpts{
@@ -40,9 +44,9 @@ func NewRethinkDB(url, database string, recreate bool) (db *RethinkDB, err error
 	db = &RethinkDB{address: url, database: database, session: session}
 
 	if recreate {
-		if err = db.DropTables(); err != nil {
+		if err = db.dropTables(); err != nil {
 			log.Printf("drop tables error: %v", err)
-		} else if err = db.CreateTables(); err != nil {
+		} else if err = db.createTables(); err != nil {
 			log.Printf("create tables error: %v", err)
 
 			return nil, RethinkDBError{err}
@@ -52,7 +56,7 @@ func NewRethinkDB(url, database string, recreate bool) (db *RethinkDB, err error
 	return db, nil
 }
 
-func (db RethinkDB) DropTables() (err error) {
+func (db RethinkDB) dropTables() (err error) {
 	if err = r.TableDrop("messages").Exec(db.session); err != nil {
 		return RethinkDBError{err}
 	}
@@ -60,7 +64,7 @@ func (db RethinkDB) DropTables() (err error) {
 	return nil
 }
 
-func (db RethinkDB) CreateTables() (err error) {
+func (db RethinkDB) createTables() (err error) {
 	if err = r.TableCreate("messages").Exec(db.session); err != nil {
 		return RethinkDBError{err}
 	}

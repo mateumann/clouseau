@@ -100,6 +100,7 @@ func (d *Decoder) appendMessage(m Message) {
 	d.messages = append(d.messages, m)
 }
 
+// LastMessage returns the last decoded Message.
 func (d *Decoder) LastMessage() *Message {
 	return &d.messages[len(d.messages)-1]
 }

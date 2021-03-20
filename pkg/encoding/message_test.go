@@ -352,7 +352,7 @@ func TestMessage_Unmarshal(t *testing.T) {
 			}
 			if m.Version != tt.want.Version ||
 				m.Length != tt.want.Length ||
-				m.ExportTime != tt.want.ExportTime ||
+				m.ExportedAt != tt.want.ExportedAt ||
 				m.SequenceNumber != tt.want.SequenceNumber ||
 				m.ObservationDomainID != tt.want.ObservationDomainID ||
 				len(m.Sets) != len(tt.want.Sets) {
@@ -495,7 +495,7 @@ func TestMessage_UnmarshalDataTemplate(t *testing.T) {
 
 	if m.Version != want.Version ||
 		m.Length != want.Length ||
-		m.ExportTime != want.ExportTime ||
+		m.ExportedAt != want.ExportedAt ||
 		m.SequenceNumber != want.SequenceNumber ||
 		m.ObservationDomainID != want.ObservationDomainID ||
 		len(m.Sets) != len(want.Sets) {

@@ -40,6 +40,7 @@ func StartAndListenUDP(address string, port, bufferSize int, debug bool) (*UDPCo
 	return &UDPCollector{addr, conn, bufferSize, debug}, nil
 }
 
+// Close closes a UDP connection.
 func (c *UDPCollector) Close() error {
 	if c == nil || c.conn == nil {
 		return errCollectorNotInitialized
@@ -48,6 +49,7 @@ func (c *UDPCollector) Close() error {
 	return c.conn.Close()
 }
 
+// LocalAddr returns an address of a UDP connection.
 func (c *UDPCollector) LocalAddr() net.Addr {
 	if c == nil || c.conn == nil {
 		return nil
