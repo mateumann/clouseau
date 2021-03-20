@@ -75,11 +75,10 @@ func TestNewDecoder(t *testing.T) {
 			name: "Decoder on localhost:4739",
 			arg:  net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 4739, Zone: ""},
 			want: Decoder{
-				source:              &net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 4739, Zone: ""},
-				debug:               true,
-				observationDomainID: 0,
-				err:                 nil,
-				buf:                 make([]byte, 2048),
+				source: &net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 4739, Zone: ""},
+				debug:  true,
+				err:    nil,
+				buf:    make([]byte, 2048),
 			},
 		},
 	}
@@ -91,8 +90,7 @@ func TestNewDecoder(t *testing.T) {
 			if !got.source.IP.Equal(tt.want.source.IP) ||
 				got.source.Port != tt.want.source.Port ||
 				got.source.Zone != tt.want.source.Zone ||
-				got.debug != tt.want.debug ||
-				got.observationDomainID != tt.want.observationDomainID {
+				got.debug != tt.want.debug {
 				t.Errorf("%v = %v, want %v", tt.name, got, tt.want)
 			}
 		})
@@ -108,7 +106,7 @@ func TestDecoder_String(t *testing.T) {
 		{
 			name: "Decoder on localhost:4739",
 			arg:  net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 4739, Zone: ""},
-			want: "Decoder (127.0.0.1:4739, 0): 0 messages",
+			want: "decoder (127.0.0.1:4739): 0 messages",
 		},
 	}
 	for _, tt := range tests {
@@ -289,9 +287,8 @@ func TestDecoder_Read_WholeMessageHeaders(t *testing.T) {
 				Length:  296,
 				exportTime: uint32(time.Date(2020, 6, 15,
 					6, 31, 13, 0, time.UTC).Unix()),
-				SequenceNumber:      0,
-				ObservationDomainID: 0,
-				Sets:                nil,
+				SequenceNumber: 0,
+				Sets:           nil,
 			},
 			err: nil,
 		},

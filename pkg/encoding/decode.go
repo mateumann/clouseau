@@ -9,12 +9,12 @@ import (
 	"net"
 )
 
-const (
+/*const (
 	// NoSpecificObservationDomainID represents no specific observation domain id relevant for the entire IPFIX Message
 	// e.g. when exporting the Exporting Process Statistics, or in the case of a hierarchy of Collectors when
 	// aggregated Data Records are exported.
 	NoSpecificObservationDomainID = 0
-)
+)*/
 
 // CorruptInputError describes an error in input data.
 type CorruptInputError struct {
@@ -34,34 +34,31 @@ func (e CorruptInputError) Unwrap() error {
 // Decoder represents IPFIX flow already received by the collecting process.
 type Decoder struct {
 	// TODO: remove source or replace it with more generic type (just a string?)
-	source              *net.UDPAddr
-	observationDomainID uint32
-	debug               bool
-	err                 error
-	buf                 []byte    // leftover decoded output
-	messages            []Message // TODO make it a slice of pointers to Message
-	data                []*DataRecord
-	templates           []*TemplateRecord
-	optionsTemplates    []*OptionsTemplateRecord
+	source           *net.UDPAddr
+	debug            bool
+	err              error
+	buf              []byte    // leftover decoded output
+	messages         []Message // TODO make it a slice of pointers to Message
+	data             []*DataRecord
+	templates        []*TemplateRecord
+	optionsTemplates []*OptionsTemplateRecord
 }
 
 func (d *Decoder) String() string {
-	return fmt.Sprintf("Decoder (%s, %d): %s", d.source, d.observationDomainID,
-		intDescribed(len(d.messages), "message", "messages"))
+	return fmt.Sprintf("decoder (%s): %s", d.source, intDescribed(len(d.messages), "message", "messages"))
 }
 
 // NewDecoder initializes a Decoder with provided source (net.UDPAddr) and default values of other parameters.
 func NewDecoder(s *net.UDPAddr, debug bool) *Decoder {
 	return &Decoder{
-		source:              s,
-		observationDomainID: NoSpecificObservationDomainID,
-		err:                 nil,
-		buf:                 make([]byte, 0),
-		messages:            make([]Message, 0),
-		data:                make([]*DataRecord, 0),
-		templates:           make([]*TemplateRecord, 0),
-		optionsTemplates:    make([]*OptionsTemplateRecord, 0),
-		debug:               debug,
+		source:           s,
+		err:              nil,
+		buf:              make([]byte, 0),
+		messages:         make([]Message, 0),
+		data:             make([]*DataRecord, 0),
+		templates:        make([]*TemplateRecord, 0),
+		optionsTemplates: make([]*OptionsTemplateRecord, 0),
+		debug:            debug,
 	}
 }
 
