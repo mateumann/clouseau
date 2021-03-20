@@ -246,7 +246,7 @@ func (m Message) valid() bool {
 
 // Unmarshal reads byte stream from the reader and parses it into a IPFIX Message. `templates` are used to store IPFIX
 // (Options) Template Records used to decode raw data into a IPFIX Data Records.
-func (m *Message) Unmarshal(reader io.Reader, source string, templates *[]*TemplateRecord) (n int, err error) {
+func (m *Message) Unmarshal(reader io.Reader, source string, templates *map[uint16]*TemplateRecord) (n int, err error) {
 	if n, err = unmarshalFields(reader,
 		&m.Version, &m.Length, &m.exportTime, &m.SequenceNumber, &m.ObservationDomainID); err != nil {
 		m.ExportedAt = time.Unix(int64(m.exportTime), 0).UTC()
@@ -269,7 +269,7 @@ func (m *Message) Unmarshal(reader io.Reader, source string, templates *[]*Templ
 	return n, err
 }
 
-func (m *Message) unmarshalSet(reader io.Reader, templates *[]*TemplateRecord) (n int, err error) {
+func (m *Message) unmarshalSet(reader io.Reader, templates *map[uint16]*TemplateRecord) (n int, err error) {
 	var s Set
 	n, err = s.Unmarshal(reader, templates)
 
@@ -336,7 +336,7 @@ func (s *Set) valid() bool {
 }
 
 // Unmarshal unmarshal a IPFIX Message.
-func (s *Set) Unmarshal(reader io.Reader, templates *[]*TemplateRecord) (n int, err error) {
+func (s *Set) Unmarshal(reader io.Reader, templates *map[uint16]*TemplateRecord) (n int, err error) {
 	if n, err = unmarshalFields(reader, &s.SetID, &s.Length); err != nil {
 		return n, err
 	}
@@ -368,7 +368,7 @@ func (s *Set) Unmarshal(reader io.Reader, templates *[]*TemplateRecord) (n int, 
 	return n, nil
 }
 
-func (s *Set) unmarshalTemplateRecord(reader io.Reader, templates *[]*TemplateRecord) (n int, err error) {
+func (s *Set) unmarshalTemplateRecord(reader io.Reader, templates *map[uint16]*TemplateRecord) (n int, err error) {
 	r := &TemplateRecord{}
 	n, err = r.Unmarshal(reader, nil)
 
@@ -378,7 +378,11 @@ func (s *Set) unmarshalTemplateRecord(reader io.Reader, templates *[]*TemplateRe
 
 	s.Records = append(s.Records, r)
 
-	*templates = append(*templates, s.Records[len(s.Records)-1].(*TemplateRecord))
+	if *templates == nil {
+		*templates = make(map[uint16]*TemplateRecord)
+	}
+
+	(*templates)[r.TemplateID] = r
 
 	return n, nil
 }
@@ -396,8 +400,9 @@ func (s *Set) unmarshalOptionsTemplateRecord(reader io.Reader) (n int, err error
 	return n, nil
 }
 
-func (s *Set) unmarshalDataRecord(reader io.Reader, templates []*TemplateRecord) (n int, err error) {
-	if template, ok := getTemplate(s.SetID, templates); ok {
+func (s *Set) unmarshalDataRecord(reader io.Reader, templates map[uint16]*TemplateRecord) (n int, err error) {
+	if template, ok := templates[s.SetID]; ok {
+		// if template, ok := getTemplate(s.SetID, templates); ok {
 		r := &DataRecord{}
 		n, err = r.Unmarshal(reader, template)
 
@@ -437,16 +442,6 @@ func (s *Set) handleUnmarshalError(reader io.Reader, n int, err error) (int, err
 	default:
 		return 0, err
 	}
-}
-
-func getTemplate(templateID uint16, templates []*TemplateRecord) (*TemplateRecord, bool) {
-	for _, template := range templates {
-		if template.TemplateID == templateID {
-			return template, true
-		}
-	}
-
-	return nil, false
 }
 
 // TemplateRecordBase contains fields definitions common for `templateRecord` and `optionsTemplateRecord`.
@@ -605,7 +600,7 @@ func (r *DataRecord) Unmarshal(reader io.Reader, template *TemplateRecord) (n in
 	return n, nil
 }
 
-// nolint: exhaustive, gomnd
+// nolint:exhaustive,gomnd
 func createValue(e InformationElement, data []byte) interface{} {
 	switch e.dataType {
 	case reflect.Bool:
@@ -624,9 +619,9 @@ func createValue(e InformationElement, data []byte) interface{} {
 		return math.Float64frombits(binary.BigEndian.Uint64(fillUp(8, data)))
 	case reflect.String:
 		return string(data)
+	default:
+		return data
 	}
-
-	return data
 }
 
 func fillUp(n int, data []byte) []byte {

@@ -381,7 +381,7 @@ func TestDecoder_Read(t *testing.T) {
 		},
 	}
 
-	decoder := Decoder{}
+	decoder := NewDecoder(false)
 
 	for i, b := range buf {
 		got, err := decoder.Read(b)
@@ -461,7 +461,7 @@ func TestDecoder_Read_Length(t *testing.T) {
 
 	for _, tt := range tests {
 		tt := tt // pin
-		decoder := Decoder{}
+		decoder := NewDecoder(false)
 
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := decoder.Read(tt.arg)
@@ -546,7 +546,7 @@ func TestDecoder_Read_Table(t *testing.T) {
 		},
 	}
 
-	decoder := Decoder{}
+	decoder := NewDecoder(false)
 
 	for _, tt := range tests {
 		tt := tt // pin
