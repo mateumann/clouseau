@@ -600,7 +600,7 @@ func (r *DataRecord) Unmarshal(reader io.Reader, template *TemplateRecord) (n in
 	return n, nil
 }
 
-// nolint: exhaustive, gomnd
+// nolint:exhaustive,gomnd
 func createValue(e InformationElement, data []byte) interface{} {
 	switch e.dataType {
 	case reflect.Bool:
@@ -619,9 +619,9 @@ func createValue(e InformationElement, data []byte) interface{} {
 		return math.Float64frombits(binary.BigEndian.Uint64(fillUp(8, data)))
 	case reflect.String:
 		return string(data)
+	default:
+		return data
 	}
-
-	return data
 }
 
 func fillUp(n int, data []byte) []byte {
