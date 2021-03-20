@@ -38,8 +38,8 @@ type Decoder struct {
 	buf              []byte    // leftover decoded output
 	messages         []Message // TODO make it a slice of pointers to Message
 	data             []*DataRecord
-	templates        []*TemplateRecord
-	optionsTemplates []*OptionsTemplateRecord
+	templates        map[uint16]*TemplateRecord
+	optionsTemplates map[uint16]*OptionsTemplateRecord
 }
 
 func (d *Decoder) String() string {
@@ -54,8 +54,8 @@ func NewDecoder(debug bool) *Decoder {
 		buf:              make([]byte, 0),
 		messages:         make([]Message, 0),
 		data:             make([]*DataRecord, 0),
-		templates:        make([]*TemplateRecord, 0),
-		optionsTemplates: make([]*OptionsTemplateRecord, 0),
+		templates:        make(map[uint16]*TemplateRecord),
+		optionsTemplates: make(map[uint16]*OptionsTemplateRecord),
 		debug:            debug,
 	}
 }

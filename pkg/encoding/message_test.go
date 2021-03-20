@@ -338,7 +338,7 @@ func TestMessage_Unmarshal(t *testing.T) {
 		},
 	}
 
-	var templates []*TemplateRecord
+	var templates map[uint16]*TemplateRecord
 
 	for _, tt := range tests {
 		tt := tt // pin
@@ -412,7 +412,7 @@ func TestMessage_Unmarshal_OneSet(t *testing.T) {
 		},
 	}
 
-	var templates []*TemplateRecord
+	var templates map[uint16]*TemplateRecord
 
 	for _, tt := range tests {
 		tt := tt // pin
@@ -481,7 +481,7 @@ func TestMessage_UnmarshalDataTemplate(t *testing.T) {
 
 	var m Message
 
-	var templates []*TemplateRecord
+	var templates map[uint16]*TemplateRecord
 
 	n, err := m.Unmarshal(bytes.NewReader(arg), "udp:127.0.0.1:4739", &templates)
 
@@ -573,7 +573,7 @@ func TestSet_Unmarshal(t *testing.T) {
 		},
 	}
 
-	var templates []*TemplateRecord
+	var templates map[uint16]*TemplateRecord
 
 	for _, tt := range tests {
 		tt := tt // pin
@@ -904,58 +904,6 @@ func TestDataRecord_Size(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.arg.Size(); got != tt.want {
 				t.Errorf("%v got %v, want %v", tt.name, got, tt.want)
-			}
-		})
-	}
-}
-
-func TestGetTemplate(t *testing.T) {
-	template1 := TemplateRecord{TemplateRecordBase{
-		TemplateID:      258,
-		FieldCount:      1,
-		FieldSpecifiers: []FieldSpecifier{{0, 0, 0}},
-	}}
-	template2 := TemplateRecord{TemplateRecordBase{
-		TemplateID:      259,
-		FieldCount:      1,
-		FieldSpecifiers: []FieldSpecifier{{0, 0, 0}},
-	}}
-	templates := []*TemplateRecord{&template1, &template2}
-
-	tests := []struct {
-		name  string
-		arg   uint16
-		found bool
-		want  *TemplateRecord
-	}{
-		{
-			name:  "get template #258",
-			arg:   258,
-			want:  &template1,
-			found: true,
-		},
-		{
-			name:  "get template #259",
-			arg:   259,
-			want:  &template2,
-			found: true,
-		},
-		{
-			name:  "get inexistent template",
-			arg:   999,
-			want:  nil,
-			found: false,
-		},
-	}
-	for _, tt := range tests {
-		tt := tt // pin
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := getTemplate(tt.arg, templates)
-			if got != tt.want {
-				t.Errorf("%v got %v, want %v", tt.name, got, tt.want)
-			}
-			if err != tt.found {
-				t.Errorf("%v error %v, want %v", tt.name, err, tt.found)
 			}
 		})
 	}
