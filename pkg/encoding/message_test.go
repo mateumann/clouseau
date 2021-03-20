@@ -9,7 +9,6 @@ import (
 	"io"
 	"math/big"
 	mbits "math/bits"
-	"net"
 	"reflect"
 	"testing"
 	"time"
@@ -252,7 +251,7 @@ func TestMessage_String(t *testing.T) {
 		{
 			name: "A Message with one template set",
 			arg: Message{
-				&net.UDPAddr{}, 0x000a, 296, 0x5ee715b1, time.Unix(0x5ee715b1, 0).UTC(), 0, 0,
+				"udp:127.0.0.1:4739", 0x000a, 296, 0x5ee715b1, time.Unix(0x5ee715b1, 0).UTC(), 0, 0,
 				[]Set{{2, 280, make([]Record, 2), make([]byte, 10)}},
 			},
 			want: "Message 10 (296 octets, 2020-06-15T06:31:13Z, 0, 0) 1 set",
@@ -260,7 +259,7 @@ func TestMessage_String(t *testing.T) {
 		{
 			name: "A Message with one data set",
 			arg: Message{
-				&net.UDPAddr{}, 0x000a, 412, 0x5ee7163d, time.Unix(0x5ee7163d, 0).UTC(), 195, 0,
+				"udp:127.0.0.1:4739", 0x000a, 412, 0x5ee7163d, time.Unix(0x5ee7163d, 0).UTC(), 195, 0,
 				[]Set{{259, 396, make([]Record, 1), make([]byte, 10)}},
 			},
 			want: "Message 10 (412 octets, 2020-06-15T06:33:33Z, 195, 0) 1 set",
@@ -289,7 +288,7 @@ func TestMessage_StringRand(t *testing.T) {
 
 		id := uint32(randomized.Int64())
 		h = Message{
-			&net.UDPAddr{}, 0x000a, uint16(id % 16), id, time.Unix(int64(id), 0).UTC(), 1, 1, nil,
+			"udp:127.0.0.1:4739", 0x000a, uint16(id % 16), id, time.Unix(int64(id), 0).UTC(), 1, 1, nil,
 		}
 
 		want := fmt.Sprintf("Message %v (%v octets, %v, %v, %v) 0 sets",
@@ -304,7 +303,6 @@ func TestMessage_StringRand(t *testing.T) {
 }
 
 func TestMessage_Unmarshal(t *testing.T) {
-	sourceAddr := &net.UDPAddr{IP: net.IPv4(10, 10, 10, 10), Port: 23456, Zone: ""}
 	tests := []struct {
 		name string
 		arg  []byte
@@ -317,7 +315,7 @@ func TestMessage_Unmarshal(t *testing.T) {
 				0x00, 0x0a, 0x00, 0x10, 0x5e, 0xe7, 0x15, 0xb1, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 			},
 			want: Message{
-				sourceAddr, 0x000a, 16, 0x5ee715b1, time.Unix(0x5ee715b1, 0).UTC(), 0, 0, nil,
+				"udp:127.0.0.1:4739", 0x000a, 16, 0x5ee715b1, time.Unix(0x5ee715b1, 0).UTC(), 0, 0, nil,
 			},
 			err: nil,
 		},
@@ -328,14 +326,14 @@ func TestMessage_Unmarshal(t *testing.T) {
 				0x00, 0x02, 0x00, 0x08, 0x02, 0x02, 0x00, 0x05, 0x0f,
 			},
 			want: Message{
-				sourceAddr, 10, 296, 0x5ee715b1, time.Unix(0x5ee715b1, 0).UTC(), 0, 0, nil,
+				"udp:127.0.0.1:4739", 10, 296, 0x5ee715b1, time.Unix(0x5ee715b1, 0).UTC(), 0, 0, nil,
 			},
 			err: io.ErrUnexpectedEOF,
 		},
 		{
 			name: "An invalid Message (unexpected EOF in message header)",
 			arg:  []byte{0x00, 0x0a, 0x01, 0x28, 0x5e, 0xe7, 0x15, 0xb1, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
-			want: Message{sourceAddr, 10, 296, 0x5ee715b1, time.Unix(0x5ee715b1, 0).UTC(), 0, 0, nil},
+			want: Message{"udp:127.0.0.1:4739", 10, 296, 0x5ee715b1, time.Unix(0x5ee715b1, 0).UTC(), 0, 0, nil},
 			err:  io.ErrUnexpectedEOF,
 		},
 	}
@@ -348,7 +346,8 @@ func TestMessage_Unmarshal(t *testing.T) {
 		var m Message
 
 		t.Run(tt.name, func(t *testing.T) {
-			if _, err := m.Unmarshal(bytes.NewReader(tt.arg), sourceAddr, &templates); !errors.Is(err, tt.err) {
+			if _, err := m.Unmarshal(bytes.NewReader(tt.arg), "udp:127.0.0.1:4739",
+				&templates); !errors.Is(err, tt.err) {
 				t.Errorf("%v got error %v (%T), want %v", tt.name, err, err, tt.err)
 			}
 			if m.Version != tt.want.Version ||
@@ -365,7 +364,6 @@ func TestMessage_Unmarshal(t *testing.T) {
 
 //nolint: funlen,gocognit
 func TestMessage_Unmarshal_OneSet(t *testing.T) {
-	sourceAddr := &net.UDPAddr{IP: net.IPv4(10, 10, 10, 10), Port: 23456, Zone: ""}
 	tests := []struct {
 		name string
 		arg  []byte
@@ -380,7 +378,7 @@ func TestMessage_Unmarshal_OneSet(t *testing.T) {
 				0x00, 0x02, 0x00, 0x04,
 			},
 			want: Message{
-				sourceAddr, 0x000a, 20, 0x5ee715b1, time.Unix(0x5ee715b1, 0).UTC(), 0, 0,
+				"", 0x000a, 20, 0x5ee715b1, time.Unix(0x5ee715b1, 0).UTC(), 0, 0,
 				[]Set{{2, 4, nil, nil}},
 			},
 			n:   20,
@@ -393,7 +391,7 @@ func TestMessage_Unmarshal_OneSet(t *testing.T) {
 				0x00, 0x02, 0x01,
 			},
 			want: Message{
-				sourceAddr, 0x000a, 296, 0x5ee715b1, time.Unix(0x5ee715b1, 0).UTC(), 0, 0,
+				"", 0x000a, 296, 0x5ee715b1, time.Unix(0x5ee715b1, 0).UTC(), 0, 0,
 				[]Set{{2, 0, nil, nil}},
 			},
 			n:   18,
@@ -406,7 +404,7 @@ func TestMessage_Unmarshal_OneSet(t *testing.T) {
 				0x01, 0x02, 0x00, 0x07, 0x06, 0x0f, 0x11,
 			},
 			want: Message{
-				sourceAddr, 0x000a, 23, 0x5ee715b1, time.Unix(0x5ee715b1, 0).UTC(), 0, 0,
+				"", 0x000a, 23, 0x5ee715b1, time.Unix(0x5ee715b1, 0).UTC(), 0, 0,
 				[]Set{{258, 7, nil, []byte{6, 15, 17}}},
 			},
 			n:   23,
@@ -422,7 +420,7 @@ func TestMessage_Unmarshal_OneSet(t *testing.T) {
 		var m Message
 
 		t.Run(tt.name, func(t *testing.T) {
-			n, err := m.Unmarshal(bytes.NewReader(tt.arg), sourceAddr, &templates)
+			n, err := m.Unmarshal(bytes.NewReader(tt.arg), "", &templates)
 			if !errors.Is(err, tt.err) {
 				t.Errorf("%v got error %v, want %v", tt.name, err, tt.err)
 			}
@@ -450,9 +448,7 @@ func TestMessage_Unmarshal_OneSet(t *testing.T) {
 	}
 }
 
-//nolint:funlen
 func TestMessage_UnmarshalDataTemplate(t *testing.T) {
-	sourceAddr := &net.UDPAddr{IP: net.IPv4(10, 10, 10, 10), Port: 23456, Zone: ""}
 	arg := []byte{
 		0x00, 0x0a, 0x00, 0x38, 0x5e, 0xe7, 0x16, 0x26, 0x00, 0x00, 0x00, 0xa8, 0x00, 0x00, 0x00, 0x00,
 		0x00, 0x02, 0x00, 0x28, 0x01, 0x02, 0x00, 0x05, 0x00, 0x3c, 0x00, 0x01, 0x00, 0x16, 0x00, 0x04,
@@ -460,7 +456,7 @@ func TestMessage_UnmarshalDataTemplate(t *testing.T) {
 		0x00, 0x06, 0x00, 0x01, 0x00, 0x50, 0x00, 0x06,
 	}
 	want := Message{
-		sourceAddr, 0x000a, 56, 0x5ee71626, time.Unix(0x5ee71626, 0).UTC(), 168, 0,
+		"udp:127.0.0.1:4739", 0x000a, 56, 0x5ee71626, time.Unix(0x5ee71626, 0).UTC(), 168, 0,
 		[]Set{
 			{
 				2, 40, []Record{
@@ -487,7 +483,7 @@ func TestMessage_UnmarshalDataTemplate(t *testing.T) {
 
 	var templates []*TemplateRecord
 
-	n, err := m.Unmarshal(bytes.NewReader(arg), sourceAddr, &templates)
+	n, err := m.Unmarshal(bytes.NewReader(arg), "udp:127.0.0.1:4739", &templates)
 
 	if !errors.Is(err, nil) {
 		t.Errorf("Unmarshal data template got error %v, want %v", err, nil)

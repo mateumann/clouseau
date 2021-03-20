@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"math"
-	"net"
 	"reflect"
 	"time"
 )
@@ -246,7 +245,7 @@ func (m Message) valid() bool {
 
 // Unmarshal reads byte stream from the reader and parses it into a IPFIX Message. `templates` are used to store IPFIX
 // (Options) Template Records used to decode raw data into a IPFIX Data Records.
-func (m *Message) Unmarshal(reader io.Reader, source *net.UDPAddr, templates *[]*TemplateRecord) (n int, err error) {
+func (m *Message) Unmarshal(reader io.Reader, source string, templates *[]*TemplateRecord) (n int, err error) {
 	if n, err = unmarshalFields(reader,
 		&m.Version, &m.Length, &m.exportTime, &m.SequenceNumber, &m.ObservationDomainID); err != nil {
 		m.ExportTime = time.Unix(int64(m.exportTime), 0).UTC()
@@ -255,7 +254,7 @@ func (m *Message) Unmarshal(reader io.Reader, source *net.UDPAddr, templates *[]
 	}
 
 	m.ExportTime = time.Unix(int64(m.exportTime), 0).UTC()
-	m.SourceAddr = source.String()
+	m.SourceAddr = source
 
 	for n < int(m.Length) {
 		bytesRead, err := m.unmarshalSet(reader, templates)

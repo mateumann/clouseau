@@ -2,6 +2,7 @@ package collector
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"net"
@@ -81,7 +82,7 @@ func (c *UDPCollector) Collect(s storage.Storage) {
 			continue
 		}
 
-		decoder.SourceAddr = sourceAddr
+		decoder.SourceAddr = fmt.Sprintf("udp:%v", sourceAddr)
 
 		c.decode(decoder, buf[:bytesCount])
 

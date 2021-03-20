@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net"
 )
 
 /*const (
@@ -33,7 +32,7 @@ func (e CorruptInputError) Unwrap() error {
 // Decoder represents IPFIX flow already received by the collecting process.
 type Decoder struct {
 	// TODO: remove source or replace it with more generic type (just a string?)
-	SourceAddr       *net.UDPAddr
+	SourceAddr       string
 	debug            bool
 	err              error
 	buf              []byte    // leftover decoded output
@@ -50,7 +49,7 @@ func (d *Decoder) String() string {
 // NewDecoder initializes a Decoder with provided source (net.UDPAddr) and default values of other parameters.
 func NewDecoder(debug bool) *Decoder {
 	return &Decoder{
-		SourceAddr:       nil,
+		SourceAddr:       "",
 		err:              nil,
 		buf:              make([]byte, 0),
 		messages:         make([]Message, 0),
