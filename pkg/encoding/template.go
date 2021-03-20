@@ -115,6 +115,7 @@ import (
 //      |        | |          |     |          |      | Set      | |
 //      |        | +----------+     +----------+      +----------+ |
 //      +--------+-------------------------------------------------+
+
 // TemplateRecordBase contains fields definitions common for `templateRecord` and `optionsTemplateRecord`.
 type TemplateRecordBase struct {
 	TemplateID      uint16           `rethinkdb:"template_id"`
