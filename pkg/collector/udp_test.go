@@ -41,8 +41,7 @@ func TestUDPCollector_Collect_nil_connection(t *testing.T) {
 }
 */
 
-func TestUDPCollector_decode(t *testing.T) {
-	c := UDPCollector{}
+func TestDecode(t *testing.T) {
 	d := encoding.NewDecoder(false)
-	c.decode(d, []byte{1, 2, 3, 4, 5})
+	decode(d, []byte{1, 2, 3, 4, 5})
 }

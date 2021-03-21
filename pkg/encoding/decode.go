@@ -35,8 +35,8 @@ type Decoder struct {
 	SourceAddr       string
 	debug            bool
 	err              error
-	buf              []byte    // leftover decoded output
-	messages         []Message // TODO make it a slice of pointers to Message
+	buf              []byte     // leftover decoded output
+	messages         []*Message // TODO make it a slice of pointers to Message
 	data             []*DataRecord
 	templates        map[uint16]*TemplateRecord
 	optionsTemplates map[uint16]*OptionsTemplateRecord
@@ -52,7 +52,7 @@ func NewDecoder(debug bool) *Decoder {
 		SourceAddr:       "",
 		err:              nil,
 		buf:              make([]byte, 0),
-		messages:         make([]Message, 0),
+		messages:         make([]*Message, 0),
 		data:             make([]*DataRecord, 0),
 		templates:        make(map[uint16]*TemplateRecord),
 		optionsTemplates: make(map[uint16]*OptionsTemplateRecord),
@@ -97,10 +97,15 @@ func (d *Decoder) Read(p []byte) (n int, err error) {
 }
 
 func (d *Decoder) appendMessage(m Message) {
-	d.messages = append(d.messages, m)
+	d.messages = append(d.messages, &m)
 }
 
-// LastMessage returns the last decoded Message.
-func (d *Decoder) LastMessage() *Message {
-	return &d.messages[len(d.messages)-1]
+// LastMessages returns a slice of the last `n` decded Messages.
+func (d *Decoder) LastMessages(n int) []*Message {
+	return d.messages[len(d.messages)-n:]
+}
+
+// FreeLastMessages removes last `n` Messages.
+func (d *Decoder) FreeLastMessages(n int) {
+	d.messages = d.messages[:len(d.messages)-n]
 }
