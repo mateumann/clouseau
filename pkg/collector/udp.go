@@ -86,19 +86,26 @@ func (c *UDPCollector) Collect(s storage.Storage) {
 
 		decoder.SourceAddr = fmt.Sprintf("udp:%v", sourceAddr)
 
-		c.decode(decoder, buf[:bytesCount])
+		n := decode(decoder, buf[:bytesCount])
 
-		if err := s.Write(decoder.LastMessage()); err != nil {
-			log.Printf("storage error: %v", err)
-		}
+		store(s, decoder, n)
 	}
 }
 
-func (c *UDPCollector) decode(decoder io.Reader, p []byte) {
-	messagesCount, err := decoder.Read(p)
+func decode(decoder io.Reader, p []byte) int {
+	n, err := decoder.Read(p)
 	if err != nil {
 		log.Printf("error while decoding IPFIX message: %v\n", err)
-	} else if c.debug {
-		log.Printf("%d messages decoded\n", messagesCount)
+	}
+
+	return n
+}
+
+func store(s storage.Storage, decoder *encoding.Decoder, n int) {
+	messagesDecoded := decoder.LastMessages(n)
+	for _, m := range messagesDecoded {
+		if err := s.Write(m); err != nil {
+			log.Printf("storage error: %v", err)
+		}
 	}
 }

@@ -62,5 +62,7 @@ func main() {
 
 	fmt.Printf("UDPCollector collecting on %s:%d\n", config.ListenAddress, config.ListenPort)
 
+	// TODO register (keyboard) breakpoints' handling function
+
 	c.Collect(db)
 }
