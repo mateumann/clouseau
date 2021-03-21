@@ -100,7 +100,12 @@ func (d *Decoder) appendMessage(m Message) {
 	d.messages = append(d.messages, &m)
 }
 
-// LastMessage returns a slice of the last decded Messages.
+// LastMessages returns a slice of the last `n` decded Messages.
 func (d *Decoder) LastMessages(n int) []*Message {
 	return d.messages[len(d.messages)-n:]
+}
+
+// FreeLastMessages removes last `n` Messages.
+func (d *Decoder) FreeLastMessages(n int) {
+	d.messages = d.messages[:len(d.messages)-n]
 }
