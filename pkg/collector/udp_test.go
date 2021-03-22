@@ -34,12 +34,11 @@ func TestUDPCollector_StartAndListenUDP(t *testing.T) {
 	}
 }
 
-/*
-func TestUDPCollector_Collect_nil_connection(t *testing.T) {
+func TestUDPCollector_Collect_exit_on_nil_connection(t *testing.T) {
 	c := UDPCollector{}
-	c.Collect()
+	c.Collect(nil)
+	t.Log("success")
 }
-*/
 
 func TestDecode(t *testing.T) {
 	d := encoding.NewDecoder(false)
