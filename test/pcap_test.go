@@ -36,6 +36,11 @@ func TestDecoder_MessagesLen(t *testing.T) {
 			"templates_and_data_258_259_260.pcap",
 			21,
 		},
+		{
+			"read templates with data",
+			"templates_and_data_105_pkts.pcap",
+			105,
+		},
 	}
 
 	// addr := net.UDPAddr{IP: net.ParseIP(""), Port: 0, Zone: ""}
