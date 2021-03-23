@@ -33,12 +33,14 @@ func (e UnmarshalError) Unwrap() error {
 	return e.err
 }
 
-type FreeLastMessagesErr struct {
+// FreeLastMessagesError describes an out of bounds error that occurred when trying to remove last `requestedIndex`
+// messages from a decoder.
+type FreeLastMessagesError struct {
 	requestedIndex int
 	messagesLength int
 }
 
-func (e FreeLastMessagesErr) Error() string {
+func (e FreeLastMessagesError) Error() string {
 	return fmt.Sprintf("ipfix: free last message error: wanted to removed %d messages, but only %d exist",
 		e.requestedIndex, e.messagesLength)
 }

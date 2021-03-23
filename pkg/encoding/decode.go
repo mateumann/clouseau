@@ -108,7 +108,7 @@ func (d *Decoder) LastMessages(n int) []*Message {
 // FreeLastMessages removes last `n` Messages.
 func (d *Decoder) FreeLastMessages(n int) error {
 	if len(d.messages) < n {
-		return FreeLastMessagesErr{requestedIndex: n, messagesLength: len(d.messages)}
+		return FreeLastMessagesError{requestedIndex: n, messagesLength: len(d.messages)}
 	}
 
 	d.messages = d.messages[:len(d.messages)-n]
