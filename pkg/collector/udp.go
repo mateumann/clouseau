@@ -89,9 +89,9 @@ func (c *UDPCollector) Collect(s storage.Storage) {
 		n := decode(decoder, buf[:bytesCount])
 
 		if err = store(s, decoder, n); err != nil {
-			log.Printf("error while saving occurred: %v\n", err)
-		} else {
-			cleanUp(decoder, n)
+			log.Printf("error saving: %v\n", err)
+		} else if err = cleanUp(decoder, n); err != nil {
+			log.Printf("error cleaning up: %v\n", err)
 		}
 	}
 }
@@ -116,6 +116,6 @@ func store(s storage.Storage, decoder *encoding.Decoder, n int) error {
 	return nil
 }
 
-func cleanUp(decoder *encoding.Decoder, n int) {
-	decoder.FreeLastMessages(n)
+func cleanUp(decoder *encoding.Decoder, n int) error {
+	return decoder.FreeLastMessages(n)
 }

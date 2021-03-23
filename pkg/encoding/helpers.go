@@ -33,6 +33,16 @@ func (e UnmarshalError) Unwrap() error {
 	return e.err
 }
 
+type FreeLastMessagesErr struct {
+	requestedIndex int
+	messagesLength int
+}
+
+func (e FreeLastMessagesErr) Error() string {
+	return fmt.Sprintf("ipfix: free last message error: wanted to removed %d messages, but only %d exist",
+		e.requestedIndex, e.messagesLength)
+}
+
 func intDescribed(n int, singular, plural string) string {
 	if n == 1 {
 		return fmt.Sprintf("1 %v", singular)
