@@ -41,7 +41,7 @@ type FreeLastMessagesError struct {
 }
 
 func (e FreeLastMessagesError) Error() string {
-	return fmt.Sprintf("ipfix: free last message error: wanted to removed %d messages, but only %d exist",
+	return fmt.Sprintf("ipfix: free last message error: wanted to removed %d messages, %d exist",
 		e.requestedIndex, e.messagesLength)
 }
 
