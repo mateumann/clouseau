@@ -81,13 +81,9 @@ func (db RethinkDB) createTables() (err error) {
 }
 
 func (db RethinkDB) Write(m *encoding.Message) (err error) {
-	var result r.WriteResponse
-
-	if result, err = r.Table("messages").Insert(m).RunWrite(db.session); err != nil {
+	if _, err = r.Table("messages").Insert(m).RunWrite(db.session); err != nil {
 		return RethinkDBError{err}
 	}
-
-	log.Printf("RethinkDB.Write(%v): inserted %v\n", *m, result.Inserted)
 
 	return nil
 }
