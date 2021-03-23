@@ -80,7 +80,7 @@ func (db RethinkDB) createTables() (err error) {
 	return nil
 }
 
-func (db *RethinkDB) Write(m *encoding.Message) (err error) {
+func (db RethinkDB) Write(m *encoding.Message) (err error) {
 	var result r.WriteResponse
 
 	if result, err = r.Table("messages").Insert(m).RunWrite(db.session); err != nil {
