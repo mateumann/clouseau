@@ -25,6 +25,32 @@ import (
 //      previously defined by a Template Record or an Options Template
 //      Record.
 
+var errInvalidSetType = errors.New("invalid set type")
+
+// TemplateNotDefinedError is returned when no template for input data is found.
+type TemplateNotDefinedError struct {
+	templateID uint16
+}
+
+func (e TemplateNotDefinedError) Error() string {
+	return fmt.Sprintf("ipfix template not defined %v", e.templateID)
+}
+
+// UnmarshalError describes an error that occurred when data are unmarshalled.
+// It wraps an error returned by the binary.Read function.
+type UnmarshalError struct {
+	err error
+}
+
+func (e UnmarshalError) Error() string {
+	return fmt.Sprintf("ipfix unmarshal error: %v", e.err)
+}
+
+// Unwrap returns the underlying error.
+func (e UnmarshalError) Unwrap() error {
+	return e.err
+}
+
 // Set describes a generic term for a collection of records that have a similar structure.  There are three different
 // types of Set: template sets, options template sets, and data sets.  Each of these sets consists of a Set header and
 // one or more records.  The exporting process may insert some padding octets, so that the subsequent Set starts at an
@@ -70,6 +96,21 @@ func (s *Set) valid() bool {
 
 // Unmarshal unmarshal a IPFIX Message.
 func (s *Set) Unmarshal(reader io.Reader, templates *map[uint16]*TemplateRecord) (n int, err error) {
+	n, err = s.unmarshal(reader, templates)
+
+	if err != nil {
+		nFromHandler, errFromHandler := s.handleUnmarshalError(reader, n, err)
+		if errFromHandler != nil {
+			return n + nFromHandler, UnmarshalError{errFromHandler}
+		}
+
+		n += nFromHandler
+	}
+
+	return n, nil
+}
+
+func (s *Set) unmarshal(reader io.Reader, templates *map[uint16]*TemplateRecord) (n int, err error) {
 	if n, err = unmarshalFields(reader, &s.SetID, &s.Length); err != nil {
 		return n, err
 	}
@@ -148,12 +189,12 @@ func (s *Set) unmarshalDataRecord(reader io.Reader, templates map[uint16]*Templa
 		return n, nil
 	}
 
-	return 0, templateNotDefinedError{templateID: s.SetID}
+	return 0, TemplateNotDefinedError{templateID: s.SetID}
 }
 
 func (s *Set) handleUnmarshalError(reader io.Reader, n int, err error) (int, error) {
 	switch {
-	case errors.Is(err, templateNotDefinedError{templateID: s.SetID}):
+	case errors.Is(err, TemplateNotDefinedError{templateID: s.SetID}):
 		// template for the data set not known, store raw data instead
 		buf := make([]byte, int(s.Length)-n)
 		if e := binary.Read(reader, binary.BigEndian, &buf); e != nil {

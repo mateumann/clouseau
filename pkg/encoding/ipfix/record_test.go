@@ -108,7 +108,7 @@ func TestDataRecord_Unmarshal(t *testing.T) {
 			DataRecord{FieldValues: []interface{}{uint8(6)}},
 			1, nil,
 		},
-		{"nil template", []byte{0x06, 0x00}, nil, DataRecord{}, 0, templateNotDefinedError{}},
+		{"nil template", []byte{0x06, 0x00}, nil, DataRecord{}, 0, TemplateNotDefinedError{}},
 	}
 	for _, tt := range tests {
 		tt := tt // pin

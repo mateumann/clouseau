@@ -31,6 +31,18 @@ func (e CorruptInputError) Unwrap() error {
 	return e.err
 }
 
+// FreeLastMessagesError describes an out of bounds error that occurred when trying to remove last `requestedIndex`
+// messages from a decoder.
+type FreeLastMessagesError struct {
+	requestedIndex int
+	messagesLength int
+}
+
+func (e FreeLastMessagesError) Error() string {
+	return fmt.Sprintf("ipfix free last message error: wanted to removed %d messages, %d exist",
+		e.requestedIndex, e.messagesLength)
+}
+
 // Decoder represents IPFIX flow already received by the collecting process.
 type Decoder struct {
 	ctx              context.Context
