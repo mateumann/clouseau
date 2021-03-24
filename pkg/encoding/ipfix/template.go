@@ -50,10 +50,10 @@ type TemplateRecord struct {
 
 func (r *TemplateRecord) String() string {
 	if !r.valid() {
-		return fmt.Sprintf("invalid template record #%v", r.TemplateID)
+		return fmt.Sprintf("ipfix invalid template record #%v", r.TemplateID)
 	}
 
-	return fmt.Sprintf("template record #%v (%v)", r.TemplateID, fieldDescribed(r.FieldCount))
+	return fmt.Sprintf("ipfix template record #%v (%v)", r.TemplateID, fieldDescribed(r.FieldCount))
 }
 
 func (r *TemplateRecord) valid() bool {
@@ -92,10 +92,10 @@ type OptionsTemplateRecord struct {
 
 func (r *OptionsTemplateRecord) String() string {
 	if !r.valid() {
-		return fmt.Sprintf("invalid options template record #%v", r.TemplateID)
+		return fmt.Sprintf("ipfix invalid options template record #%v", r.TemplateID)
 	}
 
-	return fmt.Sprintf("options template record #%v (scope %v of %v)", r.TemplateID,
+	return fmt.Sprintf("ipfix options template record #%v (scope %v of %v)", r.TemplateID,
 		fieldDescribed(r.ScopeFieldCount), fieldDescribed(r.FieldCount))
 }
 

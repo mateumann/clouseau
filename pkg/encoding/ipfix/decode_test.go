@@ -17,12 +17,12 @@ func TestCorruptInputError_Error(t *testing.T) {
 		{
 			name: "CorruptInputError at 0 (EOF)",
 			arg:  CorruptInputError{0, io.EOF},
-			want: "ipfix: error in the input data at byte 0 (EOF)",
+			want: "ipfix error in the input data at byte 0 (EOF)",
 		},
 		{
 			name: "CorruptInputError at 100 (unexpected EOF)",
 			arg:  CorruptInputError{100, io.ErrUnexpectedEOF},
-			want: "ipfix: error in the input data at byte 100 (unexpected EOF)",
+			want: "ipfix error in the input data at byte 100 (unexpected EOF)",
 		},
 	}
 	for _, tt := range tests {

@@ -16,15 +16,23 @@ func TestSet_String(t *testing.T) {
 		{
 			"Template Set with 1 record",
 			Set{2, 16, make([]Record, 1), make([]byte, 16)},
-			"template set (16 octets) 1 record",
+			"ipfix template set (16 octets) 1 record",
 		},
 		{
 			"Options Template Set with 2 record",
 			Set{3, 24, make([]Record, 2), make([]byte, 16)},
-			"options template set (24 octets) 2 records",
+			"ipfix options template set (24 octets) 2 records",
 		},
-		{"Data Set with 1 record", Set{258, 16, make([]Record, 1), make([]byte, 16)}, "data set (16 octets) 1 record"},
-		{"Invalid Set", Set{24, 16, make([]Record, 1), make([]byte, 16)}, "invalid set #24"},
+		{
+			"Data Set with 1 record",
+			Set{258, 16, make([]Record, 1), make([]byte, 16)},
+			"ipfix data set (16 octets) 1 record",
+		},
+		{
+			"Invalid Set",
+			Set{24, 16, make([]Record, 1), make([]byte, 16)},
+			"ipfix invalid set #24",
+		},
 	}
 	for _, tt := range tests {
 		tt := tt // pin

@@ -93,8 +93,8 @@ type Message struct {
 }
 
 func (m *Message) String() string {
-	return fmt.Sprintf("Message %v (%v octets, %v, %v, %v) %v",
-		m.Version, m.Length, m.ExportedAt.Format(time.RFC3339),
+	return fmt.Sprintf("ipfix message %d (%s, %v, %v, %v) %v",
+		m.Version, intDescribed(int(m.Length), "octet", "octets"), m.ExportedAt.Format(time.RFC3339),
 		m.SequenceNumber, m.ObservationDomainID, intDescribed(len(m.Sets), "set", "sets"))
 }
 

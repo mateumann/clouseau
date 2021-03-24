@@ -46,7 +46,7 @@ const (
 
 func (s *Set) String() string {
 	if !s.valid() {
-		return fmt.Sprintf("invalid set #%v", s.SetID)
+		return fmt.Sprintf("ipfix invalid set #%v", s.SetID)
 	}
 
 	var setGenre string
@@ -60,7 +60,8 @@ func (s *Set) String() string {
 		setGenre = "data set"
 	}
 
-	return fmt.Sprintf("%v (%v octets) %v", setGenre, s.Length, intDescribed(len(s.Records), "record", "records"))
+	return fmt.Sprintf("ipfix %v (%s) %s", setGenre, intDescribed(int(s.Length), "octet", "octets"),
+		intDescribed(len(s.Records), "record", "records"))
 }
 
 func (s *Set) valid() bool {

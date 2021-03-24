@@ -8,7 +8,7 @@ import (
 	"io"
 )
 
-type contextKey int
+type contextKey uint8
 
 const (
 	sourceAddress contextKey = iota
@@ -23,7 +23,7 @@ type CorruptInputError struct {
 }
 
 func (e CorruptInputError) Error() string {
-	return fmt.Sprintf("ipfix: error in the input data at byte %v (%v)", e.position, e.err)
+	return fmt.Sprintf("ipfix error in the input data at byte %v (%v)", e.position, e.err)
 }
 
 // Unwrap returns the underlying error.
@@ -72,7 +72,7 @@ func (d Decoder) SourceAddress() string {
 	return a
 }
 
-// Read decodes a IPFIX Message(s) from p buffer.
+// Read reads (and decodes) a IPFIX Message(s) from p buffer.
 func (d *Decoder) Read(p []byte) (n int, err error) {
 	if d.err != nil {
 		return 0, d.err

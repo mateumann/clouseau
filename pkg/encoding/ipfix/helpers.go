@@ -25,7 +25,7 @@ type UnmarshalError struct {
 }
 
 func (e UnmarshalError) Error() string {
-	return fmt.Sprintf("ipfix: unmarshal error: %v", e.err)
+	return fmt.Sprintf("ipfix unmarshal error: %v", e.err)
 }
 
 // Unwrap returns the underlying error.
@@ -41,7 +41,7 @@ type FreeLastMessagesError struct {
 }
 
 func (e FreeLastMessagesError) Error() string {
-	return fmt.Sprintf("ipfix: free last message error: wanted to removed %d messages, %d exist",
+	return fmt.Sprintf("ipfix free last message error: wanted to removed %d messages, %d exist",
 		e.requestedIndex, e.messagesLength)
 }
 

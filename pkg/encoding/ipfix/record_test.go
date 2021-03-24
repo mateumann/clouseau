@@ -23,14 +23,14 @@ func TestDataRecord_String(t *testing.T) {
 					uint32(0x18fa5d76),
 				},
 			},
-			want: "data record (3 fields)",
+			want: "ipfix data record (3 fields)",
 		},
 		{
 			name: "data record with 0 field values",
 			arg: DataRecord{
 				FieldValues: []interface{}{},
 			},
-			want: "data record (0 fields)",
+			want: "ipfix data record (0 fields)",
 		},
 		{
 			name: "data record with 1 field values",
@@ -39,7 +39,7 @@ func TestDataRecord_String(t *testing.T) {
 					uint32(0x18fa5d76),
 				},
 			},
-			want: "data record (1 field)",
+			want: "ipfix data record (1 field)",
 		},
 	}
 	for _, tt := range tests {

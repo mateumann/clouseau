@@ -18,7 +18,7 @@ type DataRecord struct {
 }
 
 func (r *DataRecord) String() string {
-	return fmt.Sprintf("data record (%v)", fieldDescribed(uint16(len(r.FieldValues))))
+	return fmt.Sprintf("ipfix data record (%v)", fieldDescribed(uint16(len(r.FieldValues))))
 }
 
 // Size returns a binary size of the dataRecord.

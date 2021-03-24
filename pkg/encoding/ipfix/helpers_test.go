@@ -42,12 +42,12 @@ func TestUnmarshalError_Error(t *testing.T) {
 		{
 			name: "UnmarshalError: EOF",
 			arg:  UnmarshalError{io.EOF},
-			want: "ipfix: unmarshal error: EOF",
+			want: "ipfix unmarshal error: EOF",
 		},
 		{
 			name: "UnmarshalError: unexpected EOF",
 			arg:  UnmarshalError{io.ErrUnexpectedEOF},
-			want: "ipfix: unmarshal error: unexpected EOF",
+			want: "ipfix unmarshal error: unexpected EOF",
 		},
 	}
 	for _, tt := range tests {
@@ -70,12 +70,12 @@ func TestFreeLastMessagesError_Error(t *testing.T) {
 		{
 			name: "FreeLastMessagesError(2, 1)",
 			arg:  FreeLastMessagesError{2, 1},
-			want: "ipfix: free last message error: wanted to removed 2 messages, 1 exist",
+			want: "ipfix free last message error: wanted to removed 2 messages, 1 exist",
 		},
 		{
 			name: "FreeLastMessagesError(0, 12)",
 			arg:  FreeLastMessagesError{0, 12},
-			want: "ipfix: free last message error: wanted to removed 0 messages, 12 exist",
+			want: "ipfix free last message error: wanted to removed 0 messages, 12 exist",
 		},
 	}
 	for _, tt := range tests {
