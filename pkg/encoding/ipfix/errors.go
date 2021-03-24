@@ -7,15 +7,6 @@ import (
 
 var errInvalidSetType = errors.New("invalid set type")
 
-// TemplateNotDefinedError is returned when no template for input data is found.
-type TemplateNotDefinedError struct {
-	templateID uint16
-}
-
-func (e TemplateNotDefinedError) Error() string {
-	return fmt.Sprintf("ipfix template not defined %v", e.templateID)
-}
-
 // UnmarshalError describes an error that occurred when data are unmarshalled.
 // It wraps an error returned by the binary.Read function.
 type UnmarshalError struct {
@@ -56,4 +47,13 @@ type FreeLastMessagesError struct {
 func (e FreeLastMessagesError) Error() string {
 	return fmt.Sprintf("ipfix free last message error: wanted to removed %d messages, %d exist",
 		e.requestedIndex, e.messagesLength)
+}
+
+// templateNotDefinedError is returned when no template for input data is found.
+type templateNotDefinedError struct {
+	templateID uint16
+}
+
+func (e templateNotDefinedError) Error() string {
+	return fmt.Sprintf("ipfix template not defined %v", e.templateID)
 }

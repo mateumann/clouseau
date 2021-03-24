@@ -9,17 +9,17 @@ import (
 func TestTemplateNotDefinedError_Error(t *testing.T) {
 	tests := []struct {
 		name string
-		arg  TemplateNotDefinedError
+		arg  templateNotDefinedError
 		want string
 	}{
 		{
 			name: "TemplateNotDefinedError 0",
-			arg:  TemplateNotDefinedError{0},
+			arg:  templateNotDefinedError{0},
 			want: "ipfix template not defined 0",
 		},
 		{
 			name: "TemplateNotDefinedError 234",
-			arg:  TemplateNotDefinedError{234},
+			arg:  templateNotDefinedError{234},
 			want: "ipfix template not defined 234",
 		},
 	}

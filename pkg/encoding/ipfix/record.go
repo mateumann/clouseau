@@ -34,7 +34,7 @@ func (r DataRecord) size() int {
 // Unmarshal unmarshal a IPFIX dataRecord.
 func (r *DataRecord) unmarshal(reader io.Reader, template *TemplateRecord) (n int, err error) {
 	if template == nil {
-		return 0, TemplateNotDefinedError{0}
+		return 0, templateNotDefinedError{0}
 	}
 
 	n = 0

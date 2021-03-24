@@ -124,7 +124,7 @@ func (s *Set) doUnmarshal(reader io.Reader, templates *map[uint16]*TemplateRecor
 
 func (s *Set) handleUnmarshalError(reader io.Reader, n int, err error) (int, error) {
 	switch {
-	case errors.Is(err, TemplateNotDefinedError{templateID: s.SetID}):
+	case errors.Is(err, templateNotDefinedError{templateID: s.SetID}):
 		// template for the data set not known, store raw data instead
 		buf := make([]byte, int(s.Length)-n)
 		if e := binary.Read(reader, binary.BigEndian, &buf); e != nil {
@@ -195,5 +195,5 @@ func (s *Set) unmarshalDataRecord(reader io.Reader, templates map[uint16]*Templa
 		return n, nil
 	}
 
-	return 0, TemplateNotDefinedError{templateID: s.SetID}
+	return 0, templateNotDefinedError{templateID: s.SetID}
 }
