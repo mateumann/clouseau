@@ -2,6 +2,7 @@ package ipfix
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"io"
 	"testing"
@@ -9,6 +10,7 @@ import (
 )
 
 func TestNewDecoder(t *testing.T) {
+	aSourceAddress := "udp:127.0.0.1:4739"
 	tests := []struct {
 		name string
 		want Decoder
@@ -16,20 +18,27 @@ func TestNewDecoder(t *testing.T) {
 		{
 			name: "Decoder on localhost:4739",
 			want: Decoder{
-				ctx:   nil,
+				ctx:   context.WithValue(context.Background(), sourceAddress, aSourceAddress),
 				debug: true,
 				err:   nil,
 				buf:   make([]byte, 2048),
 			},
 		},
 	}
+
 	for _, tt := range tests {
 		tt := tt // pin
 
 		t.Run(tt.name, func(t *testing.T) {
 			got := NewDecoder(true)
-			if got.ctx != tt.want.ctx || got.debug != tt.want.debug {
-				t.Errorf("%v = %v, want %v", tt.name, got, tt.want)
+			got.NewContext(aSourceAddress)
+
+			if got.SourceAddress() != tt.want.SourceAddress() {
+				t.Errorf("%v got source address %v, want %v", tt.name, got.SourceAddress(), tt.want.SourceAddress())
+			}
+
+			if got.debug != tt.want.debug {
+				t.Errorf("%v got debug %v, want %v", tt.want, got.debug, tt.want.debug)
 			}
 		})
 	}

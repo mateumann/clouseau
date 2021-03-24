@@ -116,7 +116,7 @@ func (d *Decoder) FreeLastMessages(n int) error {
 // NewDecoder initializes a Decoder with provided source (net.UDPAddr) and default values of other parameters.
 func NewDecoder(debug bool) *Decoder {
 	return &Decoder{
-		ctx:              nil,
+		ctx:              context.Background(),
 		err:              nil,
 		buf:              make([]byte, 0),
 		messages:         make([]*Message, 0),
