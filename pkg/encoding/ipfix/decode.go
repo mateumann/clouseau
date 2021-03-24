@@ -2,9 +2,18 @@ package ipfix
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
+)
+
+type contextKey int
+
+const (
+	sourceAddress contextKey = iota
+
+	unknownSource = "unknown"
 )
 
 // CorruptInputError describes an error in input data.
@@ -24,7 +33,7 @@ func (e CorruptInputError) Unwrap() error {
 
 // Decoder represents IPFIX flow already received by the collecting process.
 type Decoder struct {
-	SourceAddr       string
+	ctx              context.Context
 	debug            bool
 	err              error
 	buf              []byte // leftover decoded output
@@ -35,7 +44,32 @@ type Decoder struct {
 }
 
 func (d *Decoder) String() string {
-	return fmt.Sprintf("decoder (%s): %s", d.SourceAddr, intDescribed(len(d.messages), "message", "messages"))
+	return fmt.Sprintf("ipfix decoder: %s, %s, %s",
+		intDescribed(len(d.templates), "template", "templates"),
+		intDescribed(len(d.optionsTemplates), "options template", "options templates"),
+		intDescribed(len(d.messages), "message", "messages"))
+}
+
+// NewContext creates and returns a new Decoder's Context which carries a value of the request source address.
+func (d *Decoder) NewContext(addr string) context.Context {
+	d.ctx = context.WithValue(d.ctx, sourceAddress, addr)
+
+	return d.ctx
+}
+
+// SourceAddress returns the source address value stored in ctx, if any.
+func (d Decoder) SourceAddress() string {
+	if d.ctx == nil {
+		return unknownSource
+	}
+
+	a, ok := d.ctx.Value(sourceAddress).(string)
+
+	if !ok {
+		return unknownSource
+	}
+
+	return a
 }
 
 // Read decodes a IPFIX Message(s) from p buffer.
@@ -55,7 +89,7 @@ func (d *Decoder) Read(p []byte) (n int, err error) {
 
 	var m Message
 
-	nn, err := m.Unmarshal(r, d.SourceAddr, &d.templates)
+	nn, err := m.Unmarshal(r, d.SourceAddress(), &d.templates)
 	d.buf = d.buf[nn:]
 	n += nn
 
@@ -97,7 +131,7 @@ func (d *Decoder) FreeLastMessages(n int) error {
 // NewDecoder initializes a Decoder with provided source (net.UDPAddr) and default values of other parameters.
 func NewDecoder(debug bool) *Decoder {
 	return &Decoder{
-		SourceAddr:       "",
+		ctx:              nil,
 		err:              nil,
 		buf:              make([]byte, 0),
 		messages:         make([]*Message, 0),

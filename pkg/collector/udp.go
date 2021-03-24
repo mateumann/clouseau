@@ -84,7 +84,7 @@ func (c *UDPCollector) Collect(s storage.Storage) {
 			continue
 		}
 
-		decoder.SourceAddr = fmt.Sprintf("udp:%v", sourceAddr)
+		decoder.NewContext(fmt.Sprintf("udp:%v", sourceAddr))
 
 		n := decode(decoder, buf[:bytesCount])
 

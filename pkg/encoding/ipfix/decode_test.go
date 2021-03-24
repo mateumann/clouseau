@@ -72,10 +72,10 @@ func TestNewDecoder(t *testing.T) {
 		{
 			name: "Decoder on localhost:4739",
 			want: Decoder{
-				SourceAddr: "",
-				debug:      true,
-				err:        nil,
-				buf:        make([]byte, 2048),
+				ctx:   nil,
+				debug: true,
+				err:   nil,
+				buf:   make([]byte, 2048),
 			},
 		},
 	}
@@ -84,7 +84,7 @@ func TestNewDecoder(t *testing.T) {
 
 		t.Run(tt.name, func(t *testing.T) {
 			got := NewDecoder(true)
-			if got.SourceAddr != tt.want.SourceAddr || got.debug != tt.want.debug {
+			if got.ctx != tt.want.ctx || got.debug != tt.want.debug {
 				t.Errorf("%v = %v, want %v", tt.name, got, tt.want)
 			}
 		})
@@ -94,13 +94,11 @@ func TestNewDecoder(t *testing.T) {
 func TestDecoder_String(t *testing.T) {
 	tests := []struct {
 		name string
-		arg  string
 		want string
 	}{
 		{
-			name: "Decoder on localhost:4739",
-			arg:  "udp:127.0.0.1:4739",
-			want: "decoder (udp:127.0.0.1:4739): 0 messages",
+			name: "Empty Decoder",
+			want: "ipfix decoder: 0 templates, 0 options templates, 0 messages",
 		},
 	}
 	for _, tt := range tests {
@@ -108,7 +106,6 @@ func TestDecoder_String(t *testing.T) {
 
 		t.Run(tt.name, func(t *testing.T) {
 			got := NewDecoder(false)
-			got.SourceAddr = tt.arg
 			if got.String() != tt.want {
 				t.Errorf("%v = %v, want %v", tt.name, got, tt.want)
 			}
@@ -210,7 +207,7 @@ func TestDecoder_Read_Buffer(t *testing.T) {
 		tt := tt // pin
 
 		t.Run(tt.name, func(t *testing.T) {
-			decoder := Decoder{SourceAddr: "", buf: tt.decoderBufBefore}
+			decoder := Decoder{ctx: nil, buf: tt.decoderBufBefore}
 			got, err := decoder.Read(tt.arg)
 			if got != tt.want {
 				t.Errorf("%v = %v, want %v", tt.name, got, tt.want)
@@ -250,7 +247,7 @@ func TestDecoder_Read_WithError(t *testing.T) {
 	}
 	for _, tt := range tests {
 		tt := tt // pin
-		decoder := Decoder{SourceAddr: "", err: tt.decoderErr}
+		decoder := Decoder{ctx: nil, err: tt.decoderErr}
 
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := decoder.Read(tt.arg)
