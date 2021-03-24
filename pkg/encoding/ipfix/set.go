@@ -70,7 +70,7 @@ func (s *Set) valid() bool {
 
 // Unmarshal unmarshal a IPFIX Message.
 func (s *Set) Unmarshal(reader io.Reader, templates *map[uint16]*TemplateRecord) (n int, err error) {
-	n, err = s.unmarshal(reader, templates)
+	n, err = s.doUnmarshal(reader, templates)
 
 	if err != nil {
 		nFromHandler, errFromHandler := s.handleUnmarshalError(reader, n, err)
@@ -84,7 +84,7 @@ func (s *Set) Unmarshal(reader io.Reader, templates *map[uint16]*TemplateRecord)
 	return n, nil
 }
 
-func (s *Set) unmarshal(reader io.Reader, templates *map[uint16]*TemplateRecord) (n int, err error) {
+func (s *Set) doUnmarshal(reader io.Reader, templates *map[uint16]*TemplateRecord) (n int, err error) {
 	if n, err = unmarshalFields(reader, &s.SetID, &s.Length); err != nil {
 		return n, err
 	}
