@@ -1,4 +1,4 @@
-package encoding
+package ipfix
 
 import (
 	"bytes"
@@ -6,13 +6,6 @@ import (
 	"fmt"
 	"io"
 )
-
-/*const (
-	// NoSpecificObservationDomainID represents no specific observation domain id relevant for the entire IPFIX Message
-	// e.g. when exporting the Exporting Process Statistics, or in the case of a hierarchy of Collectors when
-	// aggregated Data Records are exported.
-	NoSpecificObservationDomainID = 0
-)*/
 
 // CorruptInputError describes an error in input data.
 type CorruptInputError struct {
@@ -31,12 +24,11 @@ func (e CorruptInputError) Unwrap() error {
 
 // Decoder represents IPFIX flow already received by the collecting process.
 type Decoder struct {
-	// TODO: remove source or replace it with more generic type (just a string?)
 	SourceAddr       string
 	debug            bool
 	err              error
-	buf              []byte     // leftover decoded output
-	messages         []*Message // TODO make it a slice of pointers to Message
+	buf              []byte // leftover decoded output
+	messages         []*Message
 	data             []*DataRecord
 	templates        map[uint16]*TemplateRecord
 	optionsTemplates map[uint16]*OptionsTemplateRecord
@@ -44,20 +36,6 @@ type Decoder struct {
 
 func (d *Decoder) String() string {
 	return fmt.Sprintf("decoder (%s): %s", d.SourceAddr, intDescribed(len(d.messages), "message", "messages"))
-}
-
-// NewDecoder initializes a Decoder with provided source (net.UDPAddr) and default values of other parameters.
-func NewDecoder(debug bool) *Decoder {
-	return &Decoder{
-		SourceAddr:       "",
-		err:              nil,
-		buf:              make([]byte, 0),
-		messages:         make([]*Message, 0),
-		data:             make([]*DataRecord, 0),
-		templates:        make(map[uint16]*TemplateRecord),
-		optionsTemplates: make(map[uint16]*OptionsTemplateRecord),
-		debug:            debug,
-	}
 }
 
 // Read decodes a IPFIX Message(s) from p buffer.
@@ -114,4 +92,18 @@ func (d *Decoder) FreeLastMessages(n int) error {
 	d.messages = d.messages[:len(d.messages)-n]
 
 	return nil
+}
+
+// NewDecoder initializes a Decoder with provided source (net.UDPAddr) and default values of other parameters.
+func NewDecoder(debug bool) *Decoder {
+	return &Decoder{
+		SourceAddr:       "",
+		err:              nil,
+		buf:              make([]byte, 0),
+		messages:         make([]*Message, 0),
+		data:             make([]*DataRecord, 0),
+		templates:        make(map[uint16]*TemplateRecord),
+		optionsTemplates: make(map[uint16]*OptionsTemplateRecord),
+		debug:            debug,
+	}
 }

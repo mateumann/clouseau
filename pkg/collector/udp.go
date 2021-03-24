@@ -7,7 +7,7 @@ import (
 	"log"
 	"net"
 
-	"github.com/mateumann/clouseau/pkg/encoding"
+	"github.com/mateumann/clouseau/pkg/encoding/ipfix"
 	"github.com/mateumann/clouseau/pkg/storage"
 )
 
@@ -67,7 +67,7 @@ func (c *UDPCollector) Collect(s storage.Storage) {
 	}
 	defer c.conn.Close()
 
-	decoder := encoding.NewDecoder(c.debug)
+	decoder := ipfix.NewDecoder(c.debug)
 
 	var bytesCount int
 
@@ -105,7 +105,7 @@ func decode(decoder io.Reader, p []byte) int {
 	return n
 }
 
-func store(s storage.Storage, decoder *encoding.Decoder, n int) error {
+func store(s storage.Storage, decoder *ipfix.Decoder, n int) error {
 	messagesDecoded := decoder.LastMessages(n)
 	for _, m := range messagesDecoded {
 		if err := s.Write(m); err != nil {
@@ -116,6 +116,6 @@ func store(s storage.Storage, decoder *encoding.Decoder, n int) error {
 	return nil
 }
 
-func cleanUp(decoder *encoding.Decoder, n int) error {
+func cleanUp(decoder *ipfix.Decoder, n int) error {
 	return decoder.FreeLastMessages(n)
 }

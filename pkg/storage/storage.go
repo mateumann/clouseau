@@ -3,7 +3,7 @@ package storage
 import (
 	"fmt"
 
-	"github.com/mateumann/clouseau/pkg/encoding"
+	"github.com/mateumann/clouseau/pkg/encoding/ipfix"
 )
 
 // DBError describes an error in storage backend.
@@ -22,5 +22,5 @@ func (e DBError) Unwrap() error {
 
 // Storage is an interface defining a IPFIX Message writer.
 type Storage interface {
-	Write(*encoding.Message) error
+	Write(*ipfix.Message) error
 }

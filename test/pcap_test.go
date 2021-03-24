@@ -7,7 +7,7 @@ import (
 
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/pcap"
-	"github.com/mateumann/clouseau/pkg/encoding"
+	"github.com/mateumann/clouseau/pkg/encoding/ipfix"
 )
 
 func TestDecoder_MessagesLen(t *testing.T) {
@@ -49,7 +49,7 @@ func TestDecoder_MessagesLen(t *testing.T) {
 		tt := tt // pin
 
 		t.Run(tt.name, func(t *testing.T) {
-			decoder := encoding.NewDecoder(true)
+			decoder := ipfix.NewDecoder(true)
 			messagesRead := 0
 
 			handle, err := pcap.OpenOffline("./testdata/pcap/" + tt.pcapFilename)

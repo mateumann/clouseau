@@ -1,4 +1,4 @@
-package encoding
+package ipfix
 
 import (
 	"io"
