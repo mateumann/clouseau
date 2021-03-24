@@ -16,33 +16,6 @@ const (
 	unknownSource = "unknown"
 )
 
-// CorruptInputError describes an error in input data.
-type CorruptInputError struct {
-	position int
-	err      error
-}
-
-func (e CorruptInputError) Error() string {
-	return fmt.Sprintf("ipfix error in the input data at byte %v (%v)", e.position, e.err)
-}
-
-// Unwrap returns the underlying error.
-func (e CorruptInputError) Unwrap() error {
-	return e.err
-}
-
-// FreeLastMessagesError describes an out of bounds error that occurred when trying to remove last `requestedIndex`
-// messages from a decoder.
-type FreeLastMessagesError struct {
-	requestedIndex int
-	messagesLength int
-}
-
-func (e FreeLastMessagesError) Error() string {
-	return fmt.Sprintf("ipfix free last message error: wanted to removed %d messages, %d exist",
-		e.requestedIndex, e.messagesLength)
-}
-
 // Decoder represents IPFIX flow already received by the collecting process.
 type Decoder struct {
 	ctx              context.Context

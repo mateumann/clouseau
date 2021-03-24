@@ -25,32 +25,6 @@ import (
 //      previously defined by a Template Record or an Options Template
 //      Record.
 
-var errInvalidSetType = errors.New("invalid set type")
-
-// TemplateNotDefinedError is returned when no template for input data is found.
-type TemplateNotDefinedError struct {
-	templateID uint16
-}
-
-func (e TemplateNotDefinedError) Error() string {
-	return fmt.Sprintf("ipfix template not defined %v", e.templateID)
-}
-
-// UnmarshalError describes an error that occurred when data are unmarshalled.
-// It wraps an error returned by the binary.Read function.
-type UnmarshalError struct {
-	err error
-}
-
-func (e UnmarshalError) Error() string {
-	return fmt.Sprintf("ipfix unmarshal error: %v", e.err)
-}
-
-// Unwrap returns the underlying error.
-func (e UnmarshalError) Unwrap() error {
-	return e.err
-}
-
 // Set describes a generic term for a collection of records that have a similar structure.  There are three different
 // types of Set: template sets, options template sets, and data sets.  Each of these sets consists of a Set header and
 // one or more records.  The exporting process may insert some padding octets, so that the subsequent Set starts at an
