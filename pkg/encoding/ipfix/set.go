@@ -25,6 +25,19 @@ import (
 //      previously defined by a Template Record or an Options Template
 //      Record.
 
+// Set ID constants defining valid IPFIX set identifiers (or a minimum valid set id in case of MinimumDataSetID).
+const (
+	TemplateSetID        = 2   // TemplateSetID identifies a IPFIX Template Set
+	OptionsTemplateSetID = 3   // OptionsTemplateSetID identifies a IPFIX Options Template Set
+	MinimumDataSetID     = 256 // set ids >= MinimumDataSetID identify IPFIX Data Sets
+)
+
+// Record describes one of three ipfix records.
+type Record interface {
+	size() int
+	unmarshal(io.Reader, *TemplateRecord) (int, error)
+}
+
 // Set describes a generic term for a collection of records that have a similar structure.  There are three different
 // types of Set: template sets, options template sets, and data sets.  Each of these sets consists of a Set header and
 // one or more records.  The exporting process may insert some padding octets, so that the subsequent Set starts at an
@@ -36,13 +49,6 @@ type Set struct {
 	Records []Record `rethinkdb:"records"`
 	RawData []byte   `rethinkdb:"data,omitempty"`
 }
-
-// Set ID constants defining valid IPFIX set identifiers (or a minimum valid set id in case of MinimumDataSetID).
-const (
-	TemplateSetID        = 2   // TemplateSetID identifies a IPFIX Template Set
-	OptionsTemplateSetID = 3   // OptionsTemplateSetID identifies a IPFIX Options Template Set
-	MinimumDataSetID     = 256 // set ids >= MinimumDataSetID identify IPFIX Data Sets
-)
 
 func (s *Set) String() string {
 	if !s.valid() {
@@ -60,7 +66,7 @@ func (s *Set) String() string {
 		setGenre = "data set"
 	}
 
-	return fmt.Sprintf("ipfix %v (%s) %s", setGenre, intDescribed(int(s.Length), "octet", "octets"),
+	return fmt.Sprintf("ipfix %s (%s) %s", setGenre, intDescribed(int(s.Length), "octet", "octets"),
 		intDescribed(len(s.Records), "record", "records"))
 }
 
@@ -116,56 +122,6 @@ func (s *Set) doUnmarshal(reader io.Reader, templates *map[uint16]*TemplateRecor
 	return n, nil
 }
 
-func (s *Set) unmarshalTemplateRecord(reader io.Reader, templates *map[uint16]*TemplateRecord) (n int, err error) {
-	r := &TemplateRecord{}
-	n, err = r.Unmarshal(reader, nil)
-
-	if err != nil {
-		return n, err
-	}
-
-	s.Records = append(s.Records, r)
-
-	if *templates == nil {
-		*templates = make(map[uint16]*TemplateRecord)
-	}
-
-	(*templates)[r.TemplateID] = r
-
-	return n, nil
-}
-
-func (s *Set) unmarshalOptionsTemplateRecord(reader io.Reader) (n int, err error) {
-	r := &OptionsTemplateRecord{}
-	n, err = r.Unmarshal(reader, nil)
-
-	if err != nil {
-		return n, err
-	}
-
-	s.Records = append(s.Records, r)
-
-	return n, nil
-}
-
-func (s *Set) unmarshalDataRecord(reader io.Reader, templates map[uint16]*TemplateRecord) (n int, err error) {
-	if template, ok := templates[s.SetID]; ok {
-		// if template, ok := getTemplate(s.SetID, templates); ok {
-		r := &DataRecord{}
-		n, err = r.Unmarshal(reader, template)
-
-		if err != nil {
-			return n, err
-		}
-
-		s.Records = append(s.Records, r)
-
-		return n, nil
-	}
-
-	return 0, TemplateNotDefinedError{templateID: s.SetID}
-}
-
 func (s *Set) handleUnmarshalError(reader io.Reader, n int, err error) (int, error) {
 	switch {
 	case errors.Is(err, TemplateNotDefinedError{templateID: s.SetID}):
@@ -192,8 +148,52 @@ func (s *Set) handleUnmarshalError(reader io.Reader, n int, err error) (int, err
 	}
 }
 
-// Record describes one of three ipfix records.
-type Record interface {
-	Size() int
-	Unmarshal(io.Reader, *TemplateRecord) (int, error)
+func (s *Set) unmarshalTemplateRecord(reader io.Reader, templates *map[uint16]*TemplateRecord) (n int, err error) {
+	r := &TemplateRecord{}
+	n, err = r.unmarshal(reader, nil)
+
+	if err != nil {
+		return n, err
+	}
+
+	s.Records = append(s.Records, r)
+
+	if *templates == nil {
+		*templates = make(map[uint16]*TemplateRecord)
+	}
+
+	(*templates)[r.TemplateID] = r
+
+	return n, nil
+}
+
+func (s *Set) unmarshalOptionsTemplateRecord(reader io.Reader) (n int, err error) {
+	r := &OptionsTemplateRecord{}
+	n, err = r.unmarshal(reader, nil)
+
+	if err != nil {
+		return n, err
+	}
+
+	s.Records = append(s.Records, r)
+
+	return n, nil
+}
+
+func (s *Set) unmarshalDataRecord(reader io.Reader, templates map[uint16]*TemplateRecord) (n int, err error) {
+	if template, ok := templates[s.SetID]; ok {
+		// if template, ok := getTemplate(s.SetID, templates); ok {
+		r := &DataRecord{}
+		n, err = r.unmarshal(reader, template)
+
+		if err != nil {
+			return n, err
+		}
+
+		s.Records = append(s.Records, r)
+
+		return n, nil
+	}
+
+	return 0, TemplateNotDefinedError{templateID: s.SetID}
 }

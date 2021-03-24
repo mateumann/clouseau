@@ -33,7 +33,7 @@ func TestFieldSpecifier_StringRand(t *testing.T) {
 		case id >= 32768 && fs.EnterpriseNumber > 0:
 			want = fmt.Sprintf("enterprise-specific field #%v (%v)", id, fs.EnterpriseNumber)
 		case id < 32768 && fs.EnterpriseNumber == 0:
-			want = fmt.Sprintf("IANA-registered field #%v", InformationElementByID(id))
+			want = fmt.Sprintf("IANA-registered field #%v", informationElementByID(id))
 		default:
 			want = fmt.Sprintf("invalid field #%v", id)
 		}
@@ -168,7 +168,7 @@ func TestFieldSpecifier_Unmarshal(t *testing.T) {
 		var s FieldSpecifier
 
 		t.Run(tt.name, func(t *testing.T) {
-			n, err := s.Unmarshal(bytes.NewReader(tt.arg))
+			n, err := s.unmarshal(bytes.NewReader(tt.arg))
 			if !errors.Is(err, tt.err) {
 				t.Errorf("%v got error %v, want %v", tt.name, err, tt.err)
 			}

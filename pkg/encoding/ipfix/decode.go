@@ -42,8 +42,8 @@ func (d *Decoder) NewContext(addr string) context.Context {
 	return d.ctx
 }
 
-// SourceAddress returns the source address value stored in ctx, if any.
-func (d Decoder) SourceAddress() string {
+// sourceAddress returns the source address value stored in ctx, if any.
+func (d Decoder) sourceAddress() string {
 	if d.ctx == nil {
 		return unknownSource
 	}
@@ -74,7 +74,7 @@ func (d *Decoder) Read(p []byte) (n int, err error) {
 
 	var m Message
 
-	nn, err := m.Unmarshal(r, d.SourceAddress(), &d.templates)
+	nn, err := m.unmarshal(r, d.sourceAddress(), &d.templates)
 	d.buf = d.buf[nn:]
 	n += nn
 

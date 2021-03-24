@@ -102,9 +102,9 @@ func (m Message) valid() bool {
 	return m.Version == 0x000a && m.Length > 0
 }
 
-// Unmarshal reads byte stream from the reader and parses it into a IPFIX Message. `templates` are used to store IPFIX
+// unmarshal reads byte stream from the reader and parses it into a IPFIX Message. `templates` are used to store IPFIX
 // (Options) Template Records used to decode raw data into a IPFIX Data Records.
-func (m *Message) Unmarshal(reader io.Reader, source string, templates *map[uint16]*TemplateRecord) (n int, err error) {
+func (m *Message) unmarshal(reader io.Reader, source string, templates *map[uint16]*TemplateRecord) (n int, err error) {
 	if n, err = unmarshalFields(reader,
 		&m.Version, &m.Length, &m.exportTime, &m.SequenceNumber, &m.ObservationDomainID); err != nil {
 		m.ExportedAt = time.Unix(int64(m.exportTime), 0).UTC()

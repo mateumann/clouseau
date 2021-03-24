@@ -33,8 +33,8 @@ func TestNewDecoder(t *testing.T) {
 			got := NewDecoder(true)
 			got.NewContext(aSourceAddress)
 
-			if got.SourceAddress() != tt.want.SourceAddress() {
-				t.Errorf("%v got source address %v, want %v", tt.name, got.SourceAddress(), tt.want.SourceAddress())
+			if got.sourceAddress() != tt.want.sourceAddress() {
+				t.Errorf("%v got source address %v, want %v", tt.name, got.sourceAddress(), tt.want.sourceAddress())
 			}
 
 			if got.debug != tt.want.debug {

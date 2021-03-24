@@ -116,7 +116,7 @@ func TestMessage_Unmarshal(t *testing.T) {
 		var m Message
 
 		t.Run(tt.name, func(t *testing.T) {
-			if _, err := m.Unmarshal(bytes.NewReader(tt.arg), "udp:127.0.0.1:4739",
+			if _, err := m.unmarshal(bytes.NewReader(tt.arg), "udp:127.0.0.1:4739",
 				&templates); !errors.Is(err, tt.err) {
 				t.Errorf("%v got error %v (%T), want %v", tt.name, err, err, tt.err)
 			}
@@ -190,7 +190,7 @@ func TestMessage_Unmarshal_OneSet(t *testing.T) {
 		var m Message
 
 		t.Run(tt.name, func(t *testing.T) {
-			n, err := m.Unmarshal(bytes.NewReader(tt.arg), "", &templates)
+			n, err := m.unmarshal(bytes.NewReader(tt.arg), "", &templates)
 			if !errors.Is(err, tt.err) {
 				t.Errorf("%v got error %v, want %v", tt.name, err, tt.err)
 			}
@@ -253,7 +253,7 @@ func TestMessage_UnmarshalDataTemplate(t *testing.T) {
 
 	var templates map[uint16]*TemplateRecord
 
-	n, err := m.Unmarshal(bytes.NewReader(arg), "udp:127.0.0.1:4739", &templates)
+	n, err := m.unmarshal(bytes.NewReader(arg), "udp:127.0.0.1:4739", &templates)
 
 	if !errors.Is(err, nil) {
 		t.Errorf("Unmarshal data template got error %v, want %v", err, nil)

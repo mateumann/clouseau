@@ -69,7 +69,7 @@ func TestTemplateRecord_Size(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt // pin
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.arg.Size(); got != tt.want {
+			if got := tt.arg.size(); got != tt.want {
 				t.Errorf("%v got %v, want %v", tt.name, got, tt.want)
 			}
 		})
@@ -103,7 +103,7 @@ func TestTemplateRecord_Unmarshal(t *testing.T) {
 		var r TemplateRecord
 
 		t.Run(tt.name, func(t *testing.T) {
-			n, err := r.Unmarshal(bytes.NewReader(tt.arg), nil)
+			n, err := r.unmarshal(bytes.NewReader(tt.arg), nil)
 			if !errors.Is(err, tt.err) {
 				t.Errorf("%v got error %v, want %v", tt.name, err, tt.err)
 			}
@@ -186,7 +186,7 @@ func TestOptionsTemplateRecord_Size(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt // pin
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.arg.Size(); got != tt.want {
+			if got := tt.arg.size(); got != tt.want {
 				t.Errorf("%v got %v, want %v", tt.name, got, tt.want)
 			}
 		})
@@ -236,7 +236,7 @@ func TestOptionsTemplateRecord_Unmarshal(t *testing.T) {
 		var r OptionsTemplateRecord
 
 		t.Run(tt.name, func(t *testing.T) {
-			n, err := r.Unmarshal(bytes.NewReader(tt.arg), nil)
+			n, err := r.unmarshal(bytes.NewReader(tt.arg), nil)
 			if !errors.Is(err, tt.err) {
 				t.Errorf("%v got error %v, want %v", tt.name, err, tt.err)
 			}
