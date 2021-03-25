@@ -73,7 +73,8 @@ func TestSet_Unmarshal(t *testing.T) {
 			"Set #4 (invalid set type)",
 			[]byte{0x00, 0x04, 0x00, 0x0e, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x0e, 0x00, 0x01},
 			Set{4, 14, nil, nil},
-			4, errInvalidSetType,
+			4,
+			invalidSetIDError{4},
 		},
 	}
 
@@ -85,7 +86,7 @@ func TestSet_Unmarshal(t *testing.T) {
 		var s Set
 
 		t.Run(tt.name, func(t *testing.T) {
-			n, err := s.Unmarshal(bytes.NewReader(tt.arg), &templates)
+			n, err := s.unmarshal(bytes.NewReader(tt.arg), &templates)
 			if !errors.Is(err, tt.err) {
 				t.Errorf("%v got error %v, want %v", tt.name, err, tt.err)
 			}

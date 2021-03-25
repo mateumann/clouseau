@@ -129,7 +129,7 @@ func (m *Message) unmarshal(reader io.Reader, source string, templates *map[uint
 
 func (m *Message) unmarshalSet(reader io.Reader, templates *map[uint16]*TemplateRecord) (n int, err error) {
 	var s Set
-	n, err = s.Unmarshal(reader, templates)
+	n, err = s.unmarshal(reader, templates)
 
 	if err != nil {
 		return n, err

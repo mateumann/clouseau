@@ -1,11 +1,10 @@
 package ipfix
 
 import (
-	"errors"
 	"fmt"
 )
 
-var errInvalidSetType = errors.New("invalid set type")
+// var errInvalidSetType = errors.New("invalid set type")
 
 // UnmarshalError describes an error that occurred when data are unmarshalled.
 // It wraps an error returned by the binary.Read function.
@@ -47,6 +46,16 @@ type FreeLastMessagesError struct {
 func (e FreeLastMessagesError) Error() string {
 	return fmt.Sprintf("ipfix free last message error: wanted to removed %d messages, %d exist",
 		e.requestedIndex, e.messagesLength)
+}
+
+// invalidSetIDError is returned when there is an invalid Set.SetID in input data, which makes it
+// impossible to unmarshal.
+type invalidSetIDError struct {
+	setID uint16
+}
+
+func (e invalidSetIDError) Error() string {
+	return fmt.Sprintf("ipfix invalid set id: %d", e.setID)
 }
 
 // templateNotDefinedError is returned when no template for input data is found.

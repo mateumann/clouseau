@@ -74,9 +74,9 @@ func (s *Set) valid() bool {
 	return (s.SetID == 2 || s.SetID == 3 || s.SetID >= 256) && s.Length > 3
 }
 
-// Unmarshal unmarshal a IPFIX Message.
-func (s *Set) Unmarshal(reader io.Reader, templates *map[uint16]*TemplateRecord) (n int, err error) {
-	n, err = s.doUnmarshal(reader, templates)
+// unmarshal a Set.
+func (s *Set) unmarshal(reader io.Reader, templates *map[uint16]*TemplateRecord) (n int, err error) {
+	n, err = s.justUnmarshal(reader, templates)
 
 	if err != nil {
 		nFromHandler, errFromHandler := s.handleUnmarshalError(reader, n, err)
@@ -90,7 +90,7 @@ func (s *Set) Unmarshal(reader io.Reader, templates *map[uint16]*TemplateRecord)
 	return n, nil
 }
 
-func (s *Set) doUnmarshal(reader io.Reader, templates *map[uint16]*TemplateRecord) (n int, err error) {
+func (s *Set) justUnmarshal(reader io.Reader, templates *map[uint16]*TemplateRecord) (n int, err error) {
 	if n, err = unmarshalFields(reader, &s.SetID, &s.Length); err != nil {
 		return n, err
 	}
@@ -109,7 +109,7 @@ func (s *Set) doUnmarshal(reader io.Reader, templates *map[uint16]*TemplateRecor
 			bytesRead, err = s.unmarshalDataRecord(reader, *templates)
 
 		default:
-			return n, UnmarshalError{errInvalidSetType}
+			return n, UnmarshalError{invalidSetIDError{s.SetID}}
 		}
 
 		n += bytesRead
@@ -134,6 +134,7 @@ func (s *Set) handleUnmarshalError(reader io.Reader, n int, err error) (int, err
 		s.RawData = buf
 
 		return len(buf), nil
+
 	case errors.Is(err, io.ErrUnexpectedEOF) && (int(s.Length) > n):
 		// assume s.Unmarshal failed to read a record which was actually a padding
 		buf := make([]byte, int(s.Length)-n)
@@ -143,6 +144,7 @@ func (s *Set) handleUnmarshalError(reader io.Reader, n int, err error) (int, err
 		}
 
 		return len(buf), nil
+
 	default:
 		return 0, err
 	}
