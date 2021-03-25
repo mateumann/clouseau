@@ -39,13 +39,13 @@ func (e CorruptInputError) Unwrap() error {
 // FreeLastMessagesError describes an out of bounds error that occurred when trying to remove last `requestedIndex`
 // messages from a decoder.
 type FreeLastMessagesError struct {
-	requestedIndex int
-	messagesLength int
+	numberOfMessages int
+	messagesLength   int
 }
 
 func (e FreeLastMessagesError) Error() string {
-	return fmt.Sprintf("ipfix free last message error: wanted to removed %d messages, %d exist",
-		e.requestedIndex, e.messagesLength)
+	return fmt.Sprintf("ipfix free last message error: wanted to remove %d messages, %d exist",
+		e.numberOfMessages, e.messagesLength)
 }
 
 // invalidSetIDError is returned when there is an invalid Set.SetID in input data, which makes it
