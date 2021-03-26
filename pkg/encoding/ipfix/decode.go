@@ -79,7 +79,7 @@ func (d *Decoder) Read(p []byte) (n int, err error) {
 	n += nn
 
 	if err != nil && !errors.Is(err, io.EOF) {
-		d.err = CorruptInputError{n, errors.Unwrap(err)}
+		d.err = InputError{n, errors.Unwrap(err)}
 
 		return 0, d.err
 	}
@@ -104,8 +104,8 @@ func (d *Decoder) LastMessages(n int) []*Message {
 
 // FreeLastMessages removes last `n` Messages.
 func (d *Decoder) FreeLastMessages(n int) error {
-	if len(d.messages) < n {
-		return FreeLastMessagesError{n, len(d.messages)}
+	if n > len(d.messages) {
+		return IndexError{n, len(d.messages)}
 	}
 
 	d.messages = d.messages[:len(d.messages)-n]

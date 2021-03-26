@@ -15,12 +15,12 @@ func TestTemplateNotDefinedError_Error(t *testing.T) {
 		{
 			name: "TemplateNotDefinedError 0",
 			arg:  templateNotDefinedError{0},
-			want: "ipfix template not defined 0",
+			want: "template not defined: 0",
 		},
 		{
 			name: "TemplateNotDefinedError 234",
 			arg:  templateNotDefinedError{234},
-			want: "ipfix template not defined 234",
+			want: "template not defined: 234",
 		},
 	}
 	for _, tt := range tests {
@@ -37,18 +37,18 @@ func TestTemplateNotDefinedError_Error(t *testing.T) {
 func TestUnmarshalError_Error(t *testing.T) {
 	tests := []struct {
 		name string
-		arg  UnmarshalError
+		arg  unmarshalError
 		want string
 	}{
 		{
 			name: "UnmarshalError: EOF",
-			arg:  UnmarshalError{io.EOF},
-			want: "ipfix unmarshal error: EOF",
+			arg:  unmarshalError{io.EOF},
+			want: "unmarshal error: EOF",
 		},
 		{
 			name: "UnmarshalError: unexpected EOF",
-			arg:  UnmarshalError{io.ErrUnexpectedEOF},
-			want: "ipfix unmarshal error: unexpected EOF",
+			arg:  unmarshalError{io.ErrUnexpectedEOF},
+			want: "unmarshal error: unexpected EOF",
 		},
 	}
 	for _, tt := range tests {
@@ -65,18 +65,18 @@ func TestUnmarshalError_Error(t *testing.T) {
 func TestCorruptInputError_Error(t *testing.T) {
 	tests := []struct {
 		name string
-		arg  CorruptInputError
+		arg  InputError
 		want string
 	}{
 		{
 			name: "CorruptInputError at 0 (EOF)",
-			arg:  CorruptInputError{0, io.EOF},
-			want: "ipfix error in the input data at byte 0 (EOF)",
+			arg:  InputError{0, io.EOF},
+			want: "corruption in input data at byte 0: EOF",
 		},
 		{
 			name: "CorruptInputError at 100 (unexpected EOF)",
-			arg:  CorruptInputError{100, io.ErrUnexpectedEOF},
-			want: "ipfix error in the input data at byte 100 (unexpected EOF)",
+			arg:  InputError{100, io.ErrUnexpectedEOF},
+			want: "corruption in input data at byte 100: unexpected EOF",
 		},
 	}
 	for _, tt := range tests {
@@ -93,17 +93,17 @@ func TestCorruptInputError_Error(t *testing.T) {
 func TestCorruptInputError_Unwrap(t *testing.T) {
 	tests := []struct {
 		name string
-		arg  CorruptInputError
+		arg  InputError
 		want error
 	}{
 		{
 			name: "CorruptInputError at 0 (EOF)",
-			arg:  CorruptInputError{0, io.EOF},
+			arg:  InputError{0, io.EOF},
 			want: io.EOF,
 		},
 		{
 			name: "CorruptInputError at 100 (unexpected EOF)",
-			arg:  CorruptInputError{100, io.ErrUnexpectedEOF},
+			arg:  InputError{100, io.ErrUnexpectedEOF},
 			want: io.ErrUnexpectedEOF,
 		},
 	}
@@ -118,21 +118,21 @@ func TestCorruptInputError_Unwrap(t *testing.T) {
 	}
 }
 
-func TestFreeLastMessagesError_Error(t *testing.T) {
+func TestInvalidIndexError_Error(t *testing.T) {
 	tests := []struct {
 		name string
-		arg  FreeLastMessagesError
+		arg  IndexError
 		want string
 	}{
 		{
 			name: "FreeLastMessagesError(2, 1)",
-			arg:  FreeLastMessagesError{2, 1},
-			want: "ipfix free last message error: wanted to remove 2 messages, 1 exist",
+			arg:  IndexError{2, 1},
+			want: "invalid index 2 for an object which is 1 long",
 		},
 		{
 			name: "FreeLastMessagesError(0, 12)",
-			arg:  FreeLastMessagesError{0, 12},
-			want: "ipfix free last message error: wanted to remove 0 messages, 12 exist",
+			arg:  IndexError{-1, 12},
+			want: "invalid index -1 for an object which is 12 long",
 		},
 	}
 	for _, tt := range tests {

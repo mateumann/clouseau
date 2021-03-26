@@ -25,7 +25,7 @@ func unmarshalFields(reader io.Reader, data ...interface{}) (n int, err error) {
 
 	for _, elem := range data {
 		if err = binary.Read(reader, binary.BigEndian, elem); err != nil {
-			return n, &UnmarshalError{err}
+			return n, &unmarshalError{err}
 		}
 
 		elemSize := binary.Size(elem)

@@ -44,7 +44,7 @@ func (r *DataRecord) unmarshal(reader io.Reader, template *TemplateRecord) (n in
 		buf := make([]byte, f.FieldLength)
 
 		if err = binary.Read(reader, binary.BigEndian, &buf); err != nil {
-			return n, &UnmarshalError{err}
+			return n, &unmarshalError{err}
 		}
 
 		n += int(f.FieldLength)

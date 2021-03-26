@@ -81,7 +81,7 @@ func (s *Set) unmarshal(reader io.Reader, templates *map[uint16]*TemplateRecord)
 	if err != nil {
 		nFromHandler, errFromHandler := s.handleUnmarshalError(reader, n, err)
 		if errFromHandler != nil {
-			return n + nFromHandler, UnmarshalError{errFromHandler}
+			return n + nFromHandler, unmarshalError{errFromHandler}
 		}
 
 		n += nFromHandler
@@ -109,13 +109,13 @@ func (s *Set) justUnmarshal(reader io.Reader, templates *map[uint16]*TemplateRec
 			bytesRead, err = s.unmarshalDataRecord(reader, *templates)
 
 		default:
-			return n, UnmarshalError{invalidSetIDError{s.SetID}}
+			return n, unmarshalError{invalidSetIDError{s.SetID}}
 		}
 
 		n += bytesRead
 
 		if err != nil {
-			return n, UnmarshalError{err}
+			return n, unmarshalError{err}
 		}
 	}
 
@@ -128,7 +128,7 @@ func (s *Set) handleUnmarshalError(reader io.Reader, n int, err error) (int, err
 		// template for the data set not known, store raw data instead
 		buf := make([]byte, int(s.Length)-n)
 		if e := binary.Read(reader, binary.BigEndian, &buf); e != nil {
-			return len(buf), UnmarshalError{e}
+			return len(buf), unmarshalError{e}
 		}
 
 		s.RawData = buf
@@ -140,7 +140,7 @@ func (s *Set) handleUnmarshalError(reader io.Reader, n int, err error) (int, err
 		buf := make([]byte, int(s.Length)-n)
 
 		if e := binary.Read(reader, binary.BigEndian, &buf); e != nil {
-			return len(buf), UnmarshalError{e}
+			return len(buf), unmarshalError{e}
 		}
 
 		return len(buf), nil

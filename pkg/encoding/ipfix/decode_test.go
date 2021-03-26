@@ -83,13 +83,13 @@ func TestDecoder_Read_FewBytes(t *testing.T) {
 			name: "Decoder Read 1-byte buffer",
 			arg:  []byte{0x00},
 			want: 0,
-			err:  CorruptInputError{0, io.ErrUnexpectedEOF},
+			err:  InputError{0, io.ErrUnexpectedEOF},
 		},
 		{
 			name: "Decoder Read 3-byte buffer",
 			arg:  []byte{0x00, 0x0a, 0x01},
 			want: 0,
-			err:  CorruptInputError{2, io.ErrUnexpectedEOF},
+			err:  InputError{2, io.ErrUnexpectedEOF},
 		},
 		{
 			name: "Decoder Read 8-byte buffer",
@@ -145,7 +145,7 @@ func TestDecoder_Read_Buffer(t *testing.T) {
 			decoderBufBefore: []byte{0x00, 0x0a, 0x01},
 			decoderBufAfter:  []byte{0x5e, 0xe7},
 			want:             0,
-			err:              CorruptInputError{4, io.ErrUnexpectedEOF},
+			err:              InputError{4, io.ErrUnexpectedEOF},
 		},
 		{
 			name:             "Decoder Read Message header from 8-byte buffer and 8-byte Decoder.buf",
@@ -193,9 +193,9 @@ func TestDecoder_Read_WithError(t *testing.T) {
 		{
 			name:       "Decoder Read with non-nil Decoder.found",
 			arg:        []byte{0x00, 0x0a, 0x01, 0x28},
-			decoderErr: CorruptInputError{0, nil},
+			decoderErr: InputError{0, nil},
 			want:       0,
-			err:        CorruptInputError{0, nil},
+			err:        InputError{0, nil},
 		},
 	}
 	for _, tt := range tests {
@@ -511,6 +511,65 @@ func TestDecoder_Read_Table(t *testing.T) {
 			}
 			if !errors.Is(decoder.err, tt.err) {
 				t.Errorf("%v Decoder error %v, want %v", tt.name, decoder.err, tt.err)
+			}
+		})
+	}
+}
+
+func TestFreeLastMessages(t *testing.T) {
+	tests := []struct {
+		name    string
+		decoder Decoder
+		arg     int
+		want    int
+		err     error
+	}{
+		{
+			name: "remove last 3 messages out of 4",
+			decoder: Decoder{
+				ctx:              nil,
+				debug:            false,
+				err:              nil,
+				buf:              nil,
+				messages:         []*Message{{}, {}, {}, {}},
+				data:             nil,
+				templates:        nil,
+				optionsTemplates: nil,
+			},
+			arg:  3,
+			want: 1,
+			err:  nil,
+		},
+		{
+			name: "remove last 33 messages out of 4",
+			decoder: Decoder{
+				ctx:              nil,
+				debug:            false,
+				err:              nil,
+				buf:              nil,
+				messages:         []*Message{{}, {}, {}, {}},
+				data:             nil,
+				templates:        nil,
+				optionsTemplates: nil,
+			},
+			arg:  33,
+			want: 4,
+			err:  IndexError{33, 4},
+		},
+	}
+	for _, tt := range tests {
+		tt := tt // pin
+
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.decoder.FreeLastMessages(tt.arg)
+
+			if !errors.Is(err, tt.err) {
+				t.Errorf("%v: expected error %v, got %v",
+					tt.name, tt.err, err)
+			}
+			if len(tt.decoder.messages) != tt.want {
+				t.Errorf("%v: wrong messages length (%d) after removing last %d of them, expected %d",
+					tt.name, len(tt.decoder.messages), tt.arg, tt.want)
 			}
 		})
 	}
