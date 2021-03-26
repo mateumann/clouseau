@@ -8,9 +8,60 @@ import (
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/pcap"
 	"github.com/mateumann/clouseau/pkg/encoding/ipfix"
+	"github.com/mateumann/clouseau/pkg/storage"
 )
 
 func TestDecoder_MessagesLen(t *testing.T) {
+	tests := []struct {
+		name         string
+		pcapFilename string
+		want         int
+	}{
+		{
+			"read two templates",
+			"templates_258_259.pcap",
+			1,
+		},
+		{
+			"read templates with data",
+			"templates_and_data_105_pkts.pcap",
+			105,
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt // pin
+
+		t.Run(tt.name, func(t *testing.T) {
+			decoder := ipfix.NewDecoder(true)
+			decoder.NewContext(tt.name) // set source address in the decoder's context
+			messagesRead := 0
+
+			handle, err := pcap.OpenOffline("./testdata/pcap/" + tt.pcapFilename)
+			if err != nil {
+				t.Errorf("error reading pcap file %v: %v", tt.pcapFilename, err)
+			}
+
+			packetSource := gopacket.NewPacketSource(handle, handle.LinkType())
+			for packet := range packetSource.Packets() {
+				pcapData := packet.ApplicationLayer()
+				n, err := decoder.Read(pcapData.Payload())
+				if err != nil {
+					t.Errorf("error reading pcap file %v: %v", tt.pcapFilename, err)
+				}
+				messagesRead += n
+			}
+
+			if messagesRead != tt.want {
+				t.Errorf("read %d messages, want: %d", messagesRead, tt.want)
+			}
+
+			handle.Close()
+		})
+	}
+}
+
+func TestDecoder_Storage(t *testing.T) {
 	tests := []struct {
 		name         string
 		pcapFilename string
@@ -45,11 +96,18 @@ func TestDecoder_MessagesLen(t *testing.T) {
 
 	// addr := net.UDPAddr{IP: net.ParseIP(""), Port: 0, Zone: ""}
 
+	// setup db
+	db, err := storage.NewRethinkDB("localhost:28015", "clouseau_test", true)
+	if err != nil {
+		t.Errorf("unable to create db connection: %v", err)
+	}
+
 	for _, tt := range tests {
 		tt := tt // pin
 
 		t.Run(tt.name, func(t *testing.T) {
 			decoder := ipfix.NewDecoder(true)
+			decoder.NewContext(tt.name) // set source address in the decoder's context
 			messagesRead := 0
 
 			handle, err := pcap.OpenOffline("./testdata/pcap/" + tt.pcapFilename)
@@ -65,6 +123,17 @@ func TestDecoder_MessagesLen(t *testing.T) {
 					t.Errorf("error reading pcap file %v: %v", tt.pcapFilename, err)
 				}
 				messagesRead += n
+
+				for _, m := range decoder.LastMessages(n) {
+					if err := db.Write(m); err != nil {
+						t.Errorf("error saving message %v: %v", m, err)
+					}
+				}
+
+				if err := decoder.FreeLastMessages(n); err != nil {
+					t.Errorf("error freeing up stored messages: %v", err)
+				}
+
 			}
 
 			if messagesRead != tt.want {

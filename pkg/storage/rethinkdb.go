@@ -44,9 +44,21 @@ func NewRethinkDB(url, database string, recreate bool) (db *RethinkDB, err error
 	db = &RethinkDB{address: url, database: database, session: session}
 
 	if recreate {
+		if err = db.dropDB(); err != nil {
+			log.Printf("drop db error: %v", err)
+		}
+
+		if err = db.createDB(); err != nil {
+			log.Printf("create db error: %v", err)
+
+			return nil, RethinkDBError{err}
+		}
+
 		if err = db.dropTables(); err != nil {
 			log.Printf("drop tables error: %v", err)
-		} else if err = db.createTables(); err != nil {
+		}
+
+		if err = db.createTables(); err != nil {
 			log.Printf("create tables error: %v", err)
 
 			return nil, RethinkDBError{err}
@@ -54,6 +66,22 @@ func NewRethinkDB(url, database string, recreate bool) (db *RethinkDB, err error
 	}
 
 	return db, nil
+}
+
+func (db RethinkDB) dropDB() (err error) {
+	if err = r.DBDrop(db.database).Exec(db.session); err != nil {
+		return RethinkDBError{err}
+	}
+
+	return nil
+}
+
+func (db RethinkDB) createDB() (err error) {
+	if err = r.DBCreate(db.database).Exec(db.session); err != nil {
+		return RethinkDBError{err}
+	}
+
+	return nil
 }
 
 func (db RethinkDB) dropTables() (err error) {
