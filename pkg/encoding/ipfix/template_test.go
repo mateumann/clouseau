@@ -1,4 +1,4 @@
-package encoding
+package ipfix
 
 import (
 	"bytes"
@@ -16,22 +16,22 @@ func TestTemplateRecord_String(t *testing.T) {
 		{
 			"Template Record #258 with 1 field specifier",
 			TemplateRecord{TemplateRecordBase{258, 1, make([]FieldSpecifier, 1)}},
-			"template record #258 (1 field)",
+			"ipfix template record #258 (1 field)",
 		},
 		{
 			"Template Record #259 with 19 field specifiers",
 			TemplateRecord{TemplateRecordBase{259, 19, make([]FieldSpecifier, 19)}},
-			"template record #259 (19 fields)",
+			"ipfix template record #259 (19 fields)",
 		},
 		{
 			"Template Record #260 with 0 field specifiers",
 			TemplateRecord{TemplateRecordBase{260, 0, make([]FieldSpecifier, 0)}},
-			"template record #260 (0 fields)",
+			"ipfix template record #260 (0 fields)",
 		},
 		{
 			"Template Record #24 with 1 field specifier",
 			TemplateRecord{TemplateRecordBase{24, 1, make([]FieldSpecifier, 1)}},
-			"invalid template record #24",
+			"ipfix invalid template record #24",
 		},
 	}
 	for _, tt := range tests {
@@ -69,7 +69,7 @@ func TestTemplateRecord_Size(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt // pin
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.arg.Size(); got != tt.want {
+			if got := tt.arg.size(); got != tt.want {
 				t.Errorf("%v got %v, want %v", tt.name, got, tt.want)
 			}
 		})
@@ -103,7 +103,7 @@ func TestTemplateRecord_Unmarshal(t *testing.T) {
 		var r TemplateRecord
 
 		t.Run(tt.name, func(t *testing.T) {
-			n, err := r.Unmarshal(bytes.NewReader(tt.arg), nil)
+			n, err := r.unmarshal(bytes.NewReader(tt.arg), nil)
 			if !errors.Is(err, tt.err) {
 				t.Errorf("%v got error %v, want %v", tt.name, err, tt.err)
 			}
@@ -128,22 +128,22 @@ func TestOptionsTemplateRecord_String(t *testing.T) {
 		{
 			"Options Template Record #258 with 3 field specifier",
 			OptionsTemplateRecord{TemplateRecordBase{258, 3, make([]FieldSpecifier, 3)}, 2},
-			"options template record #258 (scope 2 fields of 3 fields)",
+			"ipfix options template record #258 (scope 2 fields of 3 fields)",
 		},
 		{
 			"Options Template Record #24 with 1 field specifier",
 			OptionsTemplateRecord{TemplateRecordBase{24, 1, make([]FieldSpecifier, 1)}, 1},
-			"invalid options template record #24",
+			"ipfix invalid options template record #24",
 		},
 		{
 			"Options Template Record #384 with 0 scope fields",
 			OptionsTemplateRecord{TemplateRecordBase{384, 1, make([]FieldSpecifier, 1)}, 0},
-			"invalid options template record #384",
+			"ipfix invalid options template record #384",
 		},
 		{
 			"Options Template Record #385 with 2 field specifier",
 			OptionsTemplateRecord{TemplateRecordBase{385, 2, make([]FieldSpecifier, 2)}, 3},
-			"invalid options template record #385",
+			"ipfix invalid options template record #385",
 		},
 	}
 	for _, tt := range tests {
@@ -186,7 +186,7 @@ func TestOptionsTemplateRecord_Size(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt // pin
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.arg.Size(); got != tt.want {
+			if got := tt.arg.size(); got != tt.want {
 				t.Errorf("%v got %v, want %v", tt.name, got, tt.want)
 			}
 		})
@@ -236,7 +236,7 @@ func TestOptionsTemplateRecord_Unmarshal(t *testing.T) {
 		var r OptionsTemplateRecord
 
 		t.Run(tt.name, func(t *testing.T) {
-			n, err := r.Unmarshal(bytes.NewReader(tt.arg), nil)
+			n, err := r.unmarshal(bytes.NewReader(tt.arg), nil)
 			if !errors.Is(err, tt.err) {
 				t.Errorf("%v got error %v, want %v", tt.name, err, tt.err)
 			}

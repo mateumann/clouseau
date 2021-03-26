@@ -4,19 +4,19 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/mateumann/clouseau/pkg/encoding"
+	"github.com/mateumann/clouseau/pkg/encoding/ipfix"
 )
 
 type MockStorageOK struct{}
 
-func (db MockStorageOK) Write(m *encoding.Message) (err error) {
+func (db MockStorageOK) Write(m *ipfix.Message) (err error) {
 	return nil
 }
 
 type MockStorageErr struct{}
 
 // nolint:goerr113
-func (db MockStorageErr) Write(m *encoding.Message) (err error) {
+func (db MockStorageErr) Write(m *ipfix.Message) (err error) {
 	return errors.New("no good")
 }
 
@@ -55,7 +55,7 @@ func TestUDPCollector_Collect_exit_on_nil_connection(t *testing.T) {
 }
 
 func TestDecode(t *testing.T) {
-	d := encoding.NewDecoder(false)
+	d := ipfix.NewDecoder(false)
 	n := decode(d, []byte{1, 2, 3, 4, 5})
 
 	if n != 0 {
@@ -65,7 +65,7 @@ func TestDecode(t *testing.T) {
 
 // nolint: wsl
 func TestStore(t *testing.T) {
-	d := encoding.NewDecoder(false)
+	d := ipfix.NewDecoder(false)
 	n, err := d.Read([]byte{
 		0x00, 0x0a, 0x01, 0x30, 0x5f, 0xdb, 0x7d, 0x6f, 0x00, 0x40, 0xe0, 0x6e, 0x00, 0x00, 0x00, 0x00,
 		0x00, 0x02, 0x01, 0x20, 0x01, 0x02, 0x00, 0x24, 0x00, 0x3c, 0x00, 0x01, 0x00, 0x16, 0x00, 0x04,
@@ -107,7 +107,7 @@ func TestStore(t *testing.T) {
 
 // nolint: wsl
 func TestCleanUp(t *testing.T) {
-	d := encoding.NewDecoder(false)
+	d := ipfix.NewDecoder(false)
 	n, err := d.Read([]byte{
 		0x00, 0x0a, 0x01, 0x58, 0x5f, 0xdb, 0x7d, 0x78, 0x00, 0x40, 0xe0, 0xa0, 0x00, 0x00, 0x00, 0x00,
 		0x01, 0x02, 0x01, 0x48, 0x04, 0x2d, 0x20, 0x6d, 0x2c, 0x2d, 0x20, 0x71, 0x78, 0x00, 0x00, 0x00,

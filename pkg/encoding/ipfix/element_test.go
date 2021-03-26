@@ -1,4 +1,4 @@
-package encoding
+package ipfix
 
 import (
 	"crypto/rand"
@@ -143,7 +143,7 @@ func TestInformationElementByID(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt // pin
 		t.Run(tt.name, func(t *testing.T) {
-			if got := InformationElementByID(tt.arg); got != tt.want {
+			if got := informationElementByID(tt.arg); got != tt.want {
 				t.Errorf("InformationElementByID(%v) = %v, want %v", tt.arg, got, tt.want)
 			}
 		})
@@ -152,7 +152,7 @@ func TestInformationElementByID(t *testing.T) {
 
 func TestInformationElementByIDAll(t *testing.T) {
 	for id, want := range constInformationElements() {
-		got := InformationElementByID(id)
+		got := informationElementByID(id)
 		if want != got {
 			t.Errorf("InformationElementByID(%v) = %v, want %v", id, got, want)
 		}
@@ -184,7 +184,7 @@ func TestInformationElementByIDRandom(t *testing.T) {
 			}
 		}
 
-		got := InformationElementByID(id)
+		got := informationElementByID(id)
 		if want != got {
 			t.Errorf("InformationElementByID(%v) = %v, want %v", id, got, want)
 		}
@@ -199,22 +199,22 @@ func TestInformationElement_String(t *testing.T) {
 	}{
 		{
 			name: "Information Element 0",
-			arg:  InformationElementByID(0),
+			arg:  informationElementByID(0),
 			want: "reserved",
 		},
 		{
 			name: "Information Element 22",
-			arg:  InformationElementByID(22),
+			arg:  informationElementByID(22),
 			want: "flowStartSysUpTime",
 		},
 		{
 			name: "Information Element 35",
-			arg:  InformationElementByID(35),
+			arg:  informationElementByID(35),
 			want: "samplingAlgorithm",
 		},
 		{
 			name: "Information Element 283",
-			arg:  InformationElementByID(283),
+			arg:  informationElementByID(283),
 			want: "natPoolId",
 		},
 	}

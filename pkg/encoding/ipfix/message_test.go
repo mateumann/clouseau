@@ -1,4 +1,4 @@
-package encoding
+package ipfix
 
 import (
 	"bytes"
@@ -24,7 +24,7 @@ func TestMessage_String(t *testing.T) {
 				"udp:127.0.0.1:4739", 0x000a, 296, 0x5ee715b1, time.Unix(0x5ee715b1, 0).UTC(), 0, 0,
 				[]Set{{2, 280, make([]Record, 2), make([]byte, 10)}},
 			},
-			want: "Message 10 (296 octets, 2020-06-15T06:31:13Z, 0, 0) 1 set",
+			want: "ipfix message 10 (296 octets, 2020-06-15T06:31:13Z, 0, 0) 1 set",
 		},
 		{
 			name: "A Message with one data set",
@@ -32,7 +32,7 @@ func TestMessage_String(t *testing.T) {
 				"udp:127.0.0.1:4739", 0x000a, 412, 0x5ee7163d, time.Unix(0x5ee7163d, 0).UTC(), 195, 0,
 				[]Set{{259, 396, make([]Record, 1), make([]byte, 10)}},
 			},
-			want: "Message 10 (412 octets, 2020-06-15T06:33:33Z, 195, 0) 1 set",
+			want: "ipfix message 10 (412 octets, 2020-06-15T06:33:33Z, 195, 0) 1 set",
 		},
 	}
 	for _, tt := range tests {
@@ -61,9 +61,9 @@ func TestMessage_StringRand(t *testing.T) {
 			"udp:127.0.0.1:4739", 0x000a, uint16(id % 16), id, time.Unix(int64(id), 0).UTC(), 1, 1, nil,
 		}
 
-		want := fmt.Sprintf("Message %v (%v octets, %v, %v, %v) 0 sets",
-			h.Version, h.Length, time.Unix(int64(h.exportTime), 0).UTC().Format(time.RFC3339),
-			h.SequenceNumber, h.ObservationDomainID)
+		want := fmt.Sprintf("ipfix message %v (%s, %v, %v, %v) 0 sets",
+			h.Version, intDescribed(int(h.Length), "octet", "octets"),
+			time.Unix(int64(h.exportTime), 0).UTC().Format(time.RFC3339), h.SequenceNumber, h.ObservationDomainID)
 		got := h.String()
 
 		if want != got {
@@ -116,7 +116,7 @@ func TestMessage_Unmarshal(t *testing.T) {
 		var m Message
 
 		t.Run(tt.name, func(t *testing.T) {
-			if _, err := m.Unmarshal(bytes.NewReader(tt.arg), "udp:127.0.0.1:4739",
+			if _, err := m.unmarshal(bytes.NewReader(tt.arg), "udp:127.0.0.1:4739",
 				&templates); !errors.Is(err, tt.err) {
 				t.Errorf("%v got error %v (%T), want %v", tt.name, err, err, tt.err)
 			}
@@ -190,7 +190,7 @@ func TestMessage_Unmarshal_OneSet(t *testing.T) {
 		var m Message
 
 		t.Run(tt.name, func(t *testing.T) {
-			n, err := m.Unmarshal(bytes.NewReader(tt.arg), "", &templates)
+			n, err := m.unmarshal(bytes.NewReader(tt.arg), "", &templates)
 			if !errors.Is(err, tt.err) {
 				t.Errorf("%v got error %v, want %v", tt.name, err, tt.err)
 			}
@@ -253,7 +253,7 @@ func TestMessage_UnmarshalDataTemplate(t *testing.T) {
 
 	var templates map[uint16]*TemplateRecord
 
-	n, err := m.Unmarshal(bytes.NewReader(arg), "udp:127.0.0.1:4739", &templates)
+	n, err := m.unmarshal(bytes.NewReader(arg), "udp:127.0.0.1:4739", &templates)
 
 	if !errors.Is(err, nil) {
 		t.Errorf("Unmarshal data template got error %v, want %v", err, nil)

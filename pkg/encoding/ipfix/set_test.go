@@ -1,4 +1,4 @@
-package encoding
+package ipfix
 
 import (
 	"bytes"
@@ -16,15 +16,23 @@ func TestSet_String(t *testing.T) {
 		{
 			"Template Set with 1 record",
 			Set{2, 16, make([]Record, 1), make([]byte, 16)},
-			"template set (16 octets) 1 record",
+			"ipfix template set (16 octets) 1 record",
 		},
 		{
 			"Options Template Set with 2 record",
 			Set{3, 24, make([]Record, 2), make([]byte, 16)},
-			"options template set (24 octets) 2 records",
+			"ipfix options template set (24 octets) 2 records",
 		},
-		{"Data Set with 1 record", Set{258, 16, make([]Record, 1), make([]byte, 16)}, "data set (16 octets) 1 record"},
-		{"Invalid Set", Set{24, 16, make([]Record, 1), make([]byte, 16)}, "invalid set #24"},
+		{
+			"Data Set with 1 record",
+			Set{258, 16, make([]Record, 1), make([]byte, 16)},
+			"ipfix data set (16 octets) 1 record",
+		},
+		{
+			"Invalid Set",
+			Set{24, 16, make([]Record, 1), make([]byte, 16)},
+			"ipfix invalid set #24",
+		},
 	}
 	for _, tt := range tests {
 		tt := tt // pin
@@ -65,7 +73,8 @@ func TestSet_Unmarshal(t *testing.T) {
 			"Set #4 (invalid set type)",
 			[]byte{0x00, 0x04, 0x00, 0x0e, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x0e, 0x00, 0x01},
 			Set{4, 14, nil, nil},
-			4, errInvalidSetType,
+			4,
+			invalidSetIDError{4},
 		},
 	}
 
@@ -77,7 +86,7 @@ func TestSet_Unmarshal(t *testing.T) {
 		var s Set
 
 		t.Run(tt.name, func(t *testing.T) {
-			n, err := s.Unmarshal(bytes.NewReader(tt.arg), &templates)
+			n, err := s.unmarshal(bytes.NewReader(tt.arg), &templates)
 			if !errors.Is(err, tt.err) {
 				t.Errorf("%v got error %v, want %v", tt.name, err, tt.err)
 			}

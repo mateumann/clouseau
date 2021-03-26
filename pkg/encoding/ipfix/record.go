@@ -1,4 +1,4 @@
-package encoding
+package ipfix
 
 import (
 	"encoding/binary"
@@ -18,11 +18,11 @@ type DataRecord struct {
 }
 
 func (r *DataRecord) String() string {
-	return fmt.Sprintf("data record (%v)", fieldDescribed(uint16(len(r.FieldValues))))
+	return fmt.Sprintf("ipfix data record (%v)", fieldDescribed(uint16(len(r.FieldValues))))
 }
 
 // Size returns a binary size of the dataRecord.
-func (r DataRecord) Size() int {
+func (r DataRecord) size() int {
 	n := 0
 	for _, v := range r.FieldValues {
 		n += int(reflect.ValueOf(v).Type().Size())
@@ -32,7 +32,7 @@ func (r DataRecord) Size() int {
 }
 
 // Unmarshal unmarshal a IPFIX dataRecord.
-func (r *DataRecord) Unmarshal(reader io.Reader, template *TemplateRecord) (n int, err error) {
+func (r *DataRecord) unmarshal(reader io.Reader, template *TemplateRecord) (n int, err error) {
 	if template == nil {
 		return 0, templateNotDefinedError{0}
 	}
@@ -40,11 +40,11 @@ func (r *DataRecord) Unmarshal(reader io.Reader, template *TemplateRecord) (n in
 	n = 0
 
 	for _, f := range template.FieldSpecifiers {
-		e := InformationElementByID(f.InformationElementID)
+		e := informationElementByID(f.InformationElementID)
 		buf := make([]byte, f.FieldLength)
 
 		if err = binary.Read(reader, binary.BigEndian, &buf); err != nil {
-			return n, &UnmarshalError{err}
+			return n, &unmarshalError{err}
 		}
 
 		n += int(f.FieldLength)

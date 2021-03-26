@@ -1,4 +1,4 @@
-package encoding
+package ipfix
 
 import (
 	"bytes"
@@ -23,14 +23,14 @@ func TestDataRecord_String(t *testing.T) {
 					uint32(0x18fa5d76),
 				},
 			},
-			want: "data record (3 fields)",
+			want: "ipfix data record (3 fields)",
 		},
 		{
 			name: "data record with 0 field values",
 			arg: DataRecord{
 				FieldValues: []interface{}{},
 			},
-			want: "data record (0 fields)",
+			want: "ipfix data record (0 fields)",
 		},
 		{
 			name: "data record with 1 field values",
@@ -39,7 +39,7 @@ func TestDataRecord_String(t *testing.T) {
 					uint32(0x18fa5d76),
 				},
 			},
-			want: "data record (1 field)",
+			want: "ipfix data record (1 field)",
 		},
 	}
 	for _, tt := range tests {
@@ -67,7 +67,7 @@ func TestDataRecord_Size(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt // pin
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.arg.Size(); got != tt.want {
+			if got := tt.arg.size(); got != tt.want {
 				t.Errorf("%v got %v, want %v", tt.name, got, tt.want)
 			}
 		})
@@ -116,7 +116,7 @@ func TestDataRecord_Unmarshal(t *testing.T) {
 		var r DataRecord
 
 		t.Run(tt.name, func(t *testing.T) {
-			n, err := r.Unmarshal(bytes.NewReader(tt.arg), tt.template)
+			n, err := r.unmarshal(bytes.NewReader(tt.arg), tt.template)
 			if !errors.Is(err, tt.err) {
 				t.Errorf("%v got error %v, want %v", tt.name, err, tt.err)
 			}
@@ -176,7 +176,7 @@ func TestDataRecord_Unmarshal_Mild(t *testing.T) {
 		var r DataRecord
 
 		t.Run(tt.name, func(t *testing.T) {
-			n, err := r.Unmarshal(bytes.NewReader(tt.arg), tt.template)
+			n, err := r.unmarshal(bytes.NewReader(tt.arg), tt.template)
 			if !errors.Is(err, tt.err) {
 				t.Errorf("%v got error %v, want %v", tt.name, err, tt.err)
 			}
@@ -194,30 +194,30 @@ func TestCreateValue(t *testing.T) {
 		data []byte
 		want interface{}
 	}{
-		{"hashDigestOutput (bool)", InformationElementByID(333), []byte{0x01}, true},
-		{"dot1qDEI (bool)", InformationElementByID(388), []byte{0x00}, false},
-		{"mibObjectValueInteger (int32)", InformationElementByID(434), []byte{0xff, 0xfe, 0xfd, 0xfc}, int32(-66052)},
-		{"mibObjectValueInteger (int32)", InformationElementByID(434), []byte{0xff, 0xfe, 0xfd, 0xfc}, int32(-66052)},
-		{"protocolIdentifier (uint8)", InformationElementByID(60), []byte{0x06}, uint8(6)},
-		{"udpSourcePort (uint16)", InformationElementByID(180), []byte{0x01, 0x02}, uint16(258)},
-		{"tcpSequenceNumber (uint32)", InformationElementByID(184), []byte{0x01, 0x02, 0x03, 0x04}, uint32(16909060)},
+		{"hashDigestOutput (bool)", informationElementByID(333), []byte{0x01}, true},
+		{"dot1qDEI (bool)", informationElementByID(388), []byte{0x00}, false},
+		{"mibObjectValueInteger (int32)", informationElementByID(434), []byte{0xff, 0xfe, 0xfd, 0xfc}, int32(-66052)},
+		{"mibObjectValueInteger (int32)", informationElementByID(434), []byte{0xff, 0xfe, 0xfd, 0xfc}, int32(-66052)},
+		{"protocolIdentifier (uint8)", informationElementByID(60), []byte{0x06}, uint8(6)},
+		{"udpSourcePort (uint16)", informationElementByID(180), []byte{0x01, 0x02}, uint16(258)},
+		{"tcpSequenceNumber (uint32)", informationElementByID(184), []byte{0x01, 0x02, 0x03, 0x04}, uint32(16909060)},
 		{
-			"exportedOctetTotalCount (uint64)", InformationElementByID(40),
+			"exportedOctetTotalCount (uint64)", informationElementByID(40),
 			[]byte{0xff, 0xfe, 0xfd, 0x01, 0x02, 0x03},
 			uint64(281470631477763),
 		},
 		{
-			"absoluteError (float64)", InformationElementByID(320),
+			"absoluteError (float64)", informationElementByID(320),
 			[]byte{0xaa, 0x55, 0xaa, 0x55, 0xaa},
 			float64(3.614493686586e-312),
 		},
-		{"interfaceName (string)", InformationElementByID(82), []byte{0x65, 0x74, 0x68, 0x30}, "eth0"},
+		{"interfaceName (string)", informationElementByID(82), []byte{0x65, 0x74, 0x68, 0x30}, "eth0"},
 		{
-			"destinationMacAddress (array)", InformationElementByID(80),
+			"destinationMacAddress (array)", informationElementByID(80),
 			[]byte{0x5a, 0xea, 0xf0, 0xa8, 0xd3, 0x7b},
 			[]byte{0x5a, 0xea, 0xf0, 0xa8, 0xd3, 0x7b},
 		},
-		{"layer2packetSectionData (slice)", InformationElementByID(104), []byte{0xca, 0xfe}, []byte{0xca, 0xfe}},
+		{"layer2packetSectionData (slice)", informationElementByID(104), []byte{0xca, 0xfe}, []byte{0xca, 0xfe}},
 		// {"reserved InformationElement", InformationElementByID(0), []byte{0xca, 0xfe}, nil},
 	}
 	for _, tt := range tests {

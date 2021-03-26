@@ -1,4 +1,4 @@
-package encoding
+package ipfix
 
 import (
 	"encoding/binary"
@@ -25,6 +25,19 @@ import (
 //      previously defined by a Template Record or an Options Template
 //      Record.
 
+// Set ID constants defining valid IPFIX set identifiers (or a minimum valid set id in case of MinimumDataSetID).
+const (
+	TemplateSetID        = 2   // TemplateSetID identifies a IPFIX Template Set
+	OptionsTemplateSetID = 3   // OptionsTemplateSetID identifies a IPFIX Options Template Set
+	MinimumDataSetID     = 256 // set ids >= MinimumDataSetID identify IPFIX Data Sets
+)
+
+// Record describes one of three ipfix records.
+type Record interface {
+	size() int
+	unmarshal(io.Reader, *TemplateRecord) (int, error)
+}
+
 // Set describes a generic term for a collection of records that have a similar structure.  There are three different
 // types of Set: template sets, options template sets, and data sets.  Each of these sets consists of a Set header and
 // one or more records.  The exporting process may insert some padding octets, so that the subsequent Set starts at an
@@ -37,16 +50,9 @@ type Set struct {
 	RawData []byte   `rethinkdb:"data,omitempty"`
 }
 
-// Set ID constants defining valid IPFIX set identifiers (or a minimum valid set id in case of MinimumDataSetID).
-const (
-	TemplateSetID        = 2   // TemplateSetID identifies a IPFIX Template Set
-	OptionsTemplateSetID = 3   // OptionsTemplateSetID identifies a IPFIX Options Template Set
-	MinimumDataSetID     = 256 // set ids >= MinimumDataSetID identify IPFIX Data Sets
-)
-
 func (s *Set) String() string {
 	if !s.valid() {
-		return fmt.Sprintf("invalid set #%v", s.SetID)
+		return fmt.Sprintf("ipfix invalid set #%v", s.SetID)
 	}
 
 	var setGenre string
@@ -60,15 +66,31 @@ func (s *Set) String() string {
 		setGenre = "data set"
 	}
 
-	return fmt.Sprintf("%v (%v octets) %v", setGenre, s.Length, intDescribed(len(s.Records), "record", "records"))
+	return fmt.Sprintf("ipfix %s (%s) %s", setGenre, intDescribed(int(s.Length), "octet", "octets"),
+		intDescribed(len(s.Records), "record", "records"))
 }
 
 func (s *Set) valid() bool {
 	return (s.SetID == 2 || s.SetID == 3 || s.SetID >= 256) && s.Length > 3
 }
 
-// Unmarshal unmarshal a IPFIX Message.
-func (s *Set) Unmarshal(reader io.Reader, templates *map[uint16]*TemplateRecord) (n int, err error) {
+// unmarshal a Set.
+func (s *Set) unmarshal(reader io.Reader, templates *map[uint16]*TemplateRecord) (n int, err error) {
+	n, err = s.justUnmarshal(reader, templates)
+
+	if err != nil {
+		nFromHandler, errFromHandler := s.handleUnmarshalError(reader, n, err)
+		if errFromHandler != nil {
+			return n + nFromHandler, unmarshalError{errFromHandler}
+		}
+
+		n += nFromHandler
+	}
+
+	return n, nil
+}
+
+func (s *Set) justUnmarshal(reader io.Reader, templates *map[uint16]*TemplateRecord) (n int, err error) {
 	if n, err = unmarshalFields(reader, &s.SetID, &s.Length); err != nil {
 		return n, err
 	}
@@ -87,22 +109,50 @@ func (s *Set) Unmarshal(reader io.Reader, templates *map[uint16]*TemplateRecord)
 			bytesRead, err = s.unmarshalDataRecord(reader, *templates)
 
 		default:
-			return n, UnmarshalError{errInvalidSetType}
+			return n, unmarshalError{invalidSetIDError{s.SetID}}
 		}
 
 		n += bytesRead
 
 		if err != nil {
-			return n, UnmarshalError{err}
+			return n, unmarshalError{err}
 		}
 	}
 
 	return n, nil
 }
 
+func (s *Set) handleUnmarshalError(reader io.Reader, n int, err error) (int, error) {
+	switch {
+	case errors.Is(err, templateNotDefinedError{templateID: s.SetID}):
+		// template for the data set not known, store raw data instead
+		buf := make([]byte, int(s.Length)-n)
+		if e := binary.Read(reader, binary.BigEndian, &buf); e != nil {
+			return len(buf), unmarshalError{e}
+		}
+
+		s.RawData = buf
+
+		return len(buf), nil
+
+	case errors.Is(err, io.ErrUnexpectedEOF) && (int(s.Length) > n):
+		// assume s.Unmarshal failed to read a record which was actually a padding
+		buf := make([]byte, int(s.Length)-n)
+
+		if e := binary.Read(reader, binary.BigEndian, &buf); e != nil {
+			return len(buf), unmarshalError{e}
+		}
+
+		return len(buf), nil
+
+	default:
+		return 0, err
+	}
+}
+
 func (s *Set) unmarshalTemplateRecord(reader io.Reader, templates *map[uint16]*TemplateRecord) (n int, err error) {
 	r := &TemplateRecord{}
-	n, err = r.Unmarshal(reader, nil)
+	n, err = r.unmarshal(reader, nil)
 
 	if err != nil {
 		return n, err
@@ -121,7 +171,7 @@ func (s *Set) unmarshalTemplateRecord(reader io.Reader, templates *map[uint16]*T
 
 func (s *Set) unmarshalOptionsTemplateRecord(reader io.Reader) (n int, err error) {
 	r := &OptionsTemplateRecord{}
-	n, err = r.Unmarshal(reader, nil)
+	n, err = r.unmarshal(reader, nil)
 
 	if err != nil {
 		return n, err
@@ -136,7 +186,7 @@ func (s *Set) unmarshalDataRecord(reader io.Reader, templates map[uint16]*Templa
 	if template, ok := templates[s.SetID]; ok {
 		// if template, ok := getTemplate(s.SetID, templates); ok {
 		r := &DataRecord{}
-		n, err = r.Unmarshal(reader, template)
+		n, err = r.unmarshal(reader, template)
 
 		if err != nil {
 			return n, err
@@ -148,36 +198,4 @@ func (s *Set) unmarshalDataRecord(reader io.Reader, templates map[uint16]*Templa
 	}
 
 	return 0, templateNotDefinedError{templateID: s.SetID}
-}
-
-func (s *Set) handleUnmarshalError(reader io.Reader, n int, err error) (int, error) {
-	switch {
-	case errors.Is(err, templateNotDefinedError{templateID: s.SetID}):
-		// template for the data set not known, store raw data instead
-		buf := make([]byte, int(s.Length)-n)
-		if e := binary.Read(reader, binary.BigEndian, &buf); e != nil {
-			return len(buf), UnmarshalError{e}
-		}
-
-		s.RawData = buf
-
-		return len(buf), nil
-	case errors.Is(err, io.ErrUnexpectedEOF) && (int(s.Length) > n):
-		// assume s.Unmarshal failed to read a record which was actually a padding
-		buf := make([]byte, int(s.Length)-n)
-
-		if e := binary.Read(reader, binary.BigEndian, &buf); e != nil {
-			return len(buf), UnmarshalError{e}
-		}
-
-		return len(buf), nil
-	default:
-		return 0, err
-	}
-}
-
-// Record describes one of three ipfix records.
-type Record interface {
-	Size() int
-	Unmarshal(io.Reader, *TemplateRecord) (int, error)
 }

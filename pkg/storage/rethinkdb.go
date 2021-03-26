@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/mateumann/clouseau/pkg/encoding"
+	"github.com/mateumann/clouseau/pkg/encoding/ipfix"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
 
@@ -80,7 +80,7 @@ func (db RethinkDB) createTables() (err error) {
 	return nil
 }
 
-func (db RethinkDB) Write(m *encoding.Message) (err error) {
+func (db RethinkDB) Write(m *ipfix.Message) (err error) {
 	if _, err = r.Table("messages").Insert(m).RunWrite(db.session); err != nil {
 		return RethinkDBError{err}
 	}

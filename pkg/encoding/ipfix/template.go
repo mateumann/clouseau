@@ -1,4 +1,4 @@
-package encoding
+package ipfix
 
 import (
 	"encoding/binary"
@@ -29,7 +29,7 @@ type TemplateRecordBase struct {
 func (r *TemplateRecordBase) unmarshalFieldSpecifiers(reader io.Reader) (n int, err error) {
 	for i := uint16(0); i < r.FieldCount; i++ {
 		var fs FieldSpecifier
-		bytesRead, err := fs.Unmarshal(reader)
+		bytesRead, err := fs.unmarshal(reader)
 		n += bytesRead
 
 		if err != nil {
@@ -50,10 +50,10 @@ type TemplateRecord struct {
 
 func (r *TemplateRecord) String() string {
 	if !r.valid() {
-		return fmt.Sprintf("invalid template record #%v", r.TemplateID)
+		return fmt.Sprintf("ipfix invalid template record #%v", r.TemplateID)
 	}
 
-	return fmt.Sprintf("template record #%v (%v)", r.TemplateID, fieldDescribed(r.FieldCount))
+	return fmt.Sprintf("ipfix template record #%v (%v)", r.TemplateID, fieldDescribed(r.FieldCount))
 }
 
 func (r *TemplateRecord) valid() bool {
@@ -61,7 +61,7 @@ func (r *TemplateRecord) valid() bool {
 }
 
 // Size returns a binary size of the templateRecord.
-func (r TemplateRecord) Size() int {
+func (r TemplateRecord) size() int {
 	n := binary.Size(r.TemplateID) + binary.Size(r.FieldCount)
 
 	for _, s := range r.FieldSpecifiers {
@@ -72,7 +72,7 @@ func (r TemplateRecord) Size() int {
 }
 
 // Unmarshal unmarshal a IPFIX templateRecord.
-func (r *TemplateRecord) Unmarshal(reader io.Reader, _ *TemplateRecord) (n int, err error) {
+func (r *TemplateRecord) unmarshal(reader io.Reader, _ *TemplateRecord) (n int, err error) {
 	if n, err = unmarshalFields(reader, &r.TemplateID, &r.FieldCount); err != nil {
 		return n, err
 	}
@@ -92,10 +92,10 @@ type OptionsTemplateRecord struct {
 
 func (r *OptionsTemplateRecord) String() string {
 	if !r.valid() {
-		return fmt.Sprintf("invalid options template record #%v", r.TemplateID)
+		return fmt.Sprintf("ipfix invalid options template record #%v", r.TemplateID)
 	}
 
-	return fmt.Sprintf("options template record #%v (scope %v of %v)", r.TemplateID,
+	return fmt.Sprintf("ipfix options template record #%v (scope %v of %v)", r.TemplateID,
 		fieldDescribed(r.ScopeFieldCount), fieldDescribed(r.FieldCount))
 }
 
@@ -107,7 +107,7 @@ func (r *OptionsTemplateRecord) valid() bool {
 }
 
 // Size returns a binary size of the optionsTemplateRecord.
-func (r OptionsTemplateRecord) Size() int {
+func (r OptionsTemplateRecord) size() int {
 	n := binary.Size(r.TemplateID) + binary.Size(r.FieldCount) + binary.Size(r.ScopeFieldCount)
 
 	for _, s := range r.FieldSpecifiers {
@@ -118,7 +118,7 @@ func (r OptionsTemplateRecord) Size() int {
 }
 
 // Unmarshal unmarshal a IPFIX templateRecord.
-func (r *OptionsTemplateRecord) Unmarshal(reader io.Reader, _ *TemplateRecord) (n int, err error) {
+func (r *OptionsTemplateRecord) unmarshal(reader io.Reader, _ *TemplateRecord) (n int, err error) {
 	if n, err = unmarshalFields(reader, &r.TemplateID, &r.FieldCount, &r.ScopeFieldCount); err != nil {
 		return n, err
 	}

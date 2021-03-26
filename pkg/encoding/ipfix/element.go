@@ -1,4 +1,4 @@
-package encoding
+package ipfix
 
 import (
 	"reflect"
@@ -570,8 +570,8 @@ func constInformationElements() map[uint16]InformationElement {
 	}
 }
 
-// InformationElementByID returns an InformationElement identified by an id.
-func InformationElementByID(id uint16) InformationElement {
+// informationElementByID returns an InformationElement identified by an id.
+func informationElementByID(id uint16) InformationElement {
 	if val, ok := constInformationElements()[id]; ok {
 		return val
 	}

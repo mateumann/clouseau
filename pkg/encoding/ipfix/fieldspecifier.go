@@ -1,4 +1,4 @@
-package encoding
+package ipfix
 
 import (
 	"fmt"
@@ -29,7 +29,7 @@ func (s *FieldSpecifier) String() string {
 		}
 
 		return fmt.Sprintf("IANA-registered field #%v",
-			InformationElementByID(s.InformationElementID))
+			informationElementByID(s.InformationElementID))
 	}
 
 	return fmt.Sprintf("invalid field #%v", s.InformationElementID)
@@ -47,8 +47,8 @@ func (s *FieldSpecifier) valid() bool {
 	return s.InformationElementID < 32768 && s.EnterpriseNumber == 0
 }
 
-// Unmarshal reads byte stream from the reader and parses it into a FieldSpecifier.
-func (s *FieldSpecifier) Unmarshal(reader io.Reader) (n int, err error) {
+// unmarshal reads byte stream from the reader and parses it into a FieldSpecifier.
+func (s *FieldSpecifier) unmarshal(reader io.Reader) (n int, err error) {
 	if n, err = unmarshalFields(reader, &s.InformationElementID, &s.FieldLength); err != nil {
 		return n, err
 	}

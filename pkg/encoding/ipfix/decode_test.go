@@ -1,70 +1,16 @@
-package encoding
+package ipfix
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"io"
 	"testing"
 	"time"
 )
 
-func TestCorruptInputError_Error(t *testing.T) {
-	tests := []struct {
-		name string
-		arg  CorruptInputError
-		want string
-	}{
-		{
-			name: "CorruptInputError at 0 (EOF)",
-			arg:  CorruptInputError{0, io.EOF},
-			want: "ipfix: error in the input data at byte 0 (EOF)",
-		},
-		{
-			name: "CorruptInputError at 100 (unexpected EOF)",
-			arg:  CorruptInputError{100, io.ErrUnexpectedEOF},
-			want: "ipfix: error in the input data at byte 100 (unexpected EOF)",
-		},
-	}
-	for _, tt := range tests {
-		tt := tt // pin
-		t.Run(tt.name, func(t *testing.T) {
-			got := tt.arg.Error()
-			if got != tt.want {
-				t.Errorf("%v = %v, want %v", tt.name, got, tt.want)
-			}
-		})
-	}
-}
-
-func TestCorruptInputError_Unwrap(t *testing.T) {
-	tests := []struct {
-		name string
-		arg  CorruptInputError
-		want error
-	}{
-		{
-			name: "CorruptInputError at 0 (EOF)",
-			arg:  CorruptInputError{0, io.EOF},
-			want: io.EOF,
-		},
-		{
-			name: "CorruptInputError at 100 (unexpected EOF)",
-			arg:  CorruptInputError{100, io.ErrUnexpectedEOF},
-			want: io.ErrUnexpectedEOF,
-		},
-	}
-	for _, tt := range tests {
-		tt := tt // pin
-		t.Run(tt.name, func(t *testing.T) {
-			got := tt.arg.Unwrap()
-			if !errors.Is(tt.want, got) {
-				t.Errorf("%v = %v, want %v", tt.name, got, tt.want)
-			}
-		})
-	}
-}
-
 func TestNewDecoder(t *testing.T) {
+	aSourceAddress := "udp:127.0.0.1:4739"
 	tests := []struct {
 		name string
 		want Decoder
@@ -72,20 +18,27 @@ func TestNewDecoder(t *testing.T) {
 		{
 			name: "Decoder on localhost:4739",
 			want: Decoder{
-				SourceAddr: "",
-				debug:      true,
-				err:        nil,
-				buf:        make([]byte, 2048),
+				ctx:   context.WithValue(context.Background(), sourceAddress, aSourceAddress),
+				debug: true,
+				err:   nil,
+				buf:   make([]byte, 2048),
 			},
 		},
 	}
+
 	for _, tt := range tests {
 		tt := tt // pin
 
 		t.Run(tt.name, func(t *testing.T) {
 			got := NewDecoder(true)
-			if got.SourceAddr != tt.want.SourceAddr || got.debug != tt.want.debug {
-				t.Errorf("%v = %v, want %v", tt.name, got, tt.want)
+			got.NewContext(aSourceAddress)
+
+			if got.sourceAddress() != tt.want.sourceAddress() {
+				t.Errorf("%v got source address %v, want %v", tt.name, got.sourceAddress(), tt.want.sourceAddress())
+			}
+
+			if got.debug != tt.want.debug {
+				t.Errorf("%v got debug %v, want %v", tt.want, got.debug, tt.want.debug)
 			}
 		})
 	}
@@ -94,13 +47,11 @@ func TestNewDecoder(t *testing.T) {
 func TestDecoder_String(t *testing.T) {
 	tests := []struct {
 		name string
-		arg  string
 		want string
 	}{
 		{
-			name: "Decoder on localhost:4739",
-			arg:  "udp:127.0.0.1:4739",
-			want: "decoder (udp:127.0.0.1:4739): 0 messages",
+			name: "Empty Decoder",
+			want: "ipfix decoder: 0 templates, 0 options templates, 0 messages",
 		},
 	}
 	for _, tt := range tests {
@@ -108,7 +59,6 @@ func TestDecoder_String(t *testing.T) {
 
 		t.Run(tt.name, func(t *testing.T) {
 			got := NewDecoder(false)
-			got.SourceAddr = tt.arg
 			if got.String() != tt.want {
 				t.Errorf("%v = %v, want %v", tt.name, got, tt.want)
 			}
@@ -133,13 +83,13 @@ func TestDecoder_Read_FewBytes(t *testing.T) {
 			name: "Decoder Read 1-byte buffer",
 			arg:  []byte{0x00},
 			want: 0,
-			err:  CorruptInputError{0, io.ErrUnexpectedEOF},
+			err:  InputError{0, io.ErrUnexpectedEOF},
 		},
 		{
 			name: "Decoder Read 3-byte buffer",
 			arg:  []byte{0x00, 0x0a, 0x01},
 			want: 0,
-			err:  CorruptInputError{2, io.ErrUnexpectedEOF},
+			err:  InputError{2, io.ErrUnexpectedEOF},
 		},
 		{
 			name: "Decoder Read 8-byte buffer",
@@ -195,7 +145,7 @@ func TestDecoder_Read_Buffer(t *testing.T) {
 			decoderBufBefore: []byte{0x00, 0x0a, 0x01},
 			decoderBufAfter:  []byte{0x5e, 0xe7},
 			want:             0,
-			err:              CorruptInputError{4, io.ErrUnexpectedEOF},
+			err:              InputError{4, io.ErrUnexpectedEOF},
 		},
 		{
 			name:             "Decoder Read Message header from 8-byte buffer and 8-byte Decoder.buf",
@@ -210,7 +160,7 @@ func TestDecoder_Read_Buffer(t *testing.T) {
 		tt := tt // pin
 
 		t.Run(tt.name, func(t *testing.T) {
-			decoder := Decoder{SourceAddr: "", buf: tt.decoderBufBefore}
+			decoder := Decoder{ctx: nil, buf: tt.decoderBufBefore}
 			got, err := decoder.Read(tt.arg)
 			if got != tt.want {
 				t.Errorf("%v = %v, want %v", tt.name, got, tt.want)
@@ -243,14 +193,14 @@ func TestDecoder_Read_WithError(t *testing.T) {
 		{
 			name:       "Decoder Read with non-nil Decoder.found",
 			arg:        []byte{0x00, 0x0a, 0x01, 0x28},
-			decoderErr: CorruptInputError{0, nil},
+			decoderErr: InputError{0, nil},
 			want:       0,
-			err:        CorruptInputError{0, nil},
+			err:        InputError{0, nil},
 		},
 	}
 	for _, tt := range tests {
 		tt := tt // pin
-		decoder := Decoder{SourceAddr: "", err: tt.decoderErr}
+		decoder := Decoder{ctx: nil, err: tt.decoderErr}
 
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := decoder.Read(tt.arg)
@@ -561,6 +511,65 @@ func TestDecoder_Read_Table(t *testing.T) {
 			}
 			if !errors.Is(decoder.err, tt.err) {
 				t.Errorf("%v Decoder error %v, want %v", tt.name, decoder.err, tt.err)
+			}
+		})
+	}
+}
+
+func TestFreeLastMessages(t *testing.T) {
+	tests := []struct {
+		name    string
+		decoder Decoder
+		arg     int
+		want    int
+		err     error
+	}{
+		{
+			name: "remove last 3 messages out of 4",
+			decoder: Decoder{
+				ctx:              nil,
+				debug:            false,
+				err:              nil,
+				buf:              nil,
+				messages:         []*Message{{}, {}, {}, {}},
+				data:             nil,
+				templates:        nil,
+				optionsTemplates: nil,
+			},
+			arg:  3,
+			want: 1,
+			err:  nil,
+		},
+		{
+			name: "remove last 33 messages out of 4",
+			decoder: Decoder{
+				ctx:              nil,
+				debug:            false,
+				err:              nil,
+				buf:              nil,
+				messages:         []*Message{{}, {}, {}, {}},
+				data:             nil,
+				templates:        nil,
+				optionsTemplates: nil,
+			},
+			arg:  33,
+			want: 4,
+			err:  IndexError{33, 4},
+		},
+	}
+	for _, tt := range tests {
+		tt := tt // pin
+
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.decoder.FreeLastMessages(tt.arg)
+
+			if !errors.Is(err, tt.err) {
+				t.Errorf("%v: expected error %v, got %v",
+					tt.name, tt.err, err)
+			}
+			if len(tt.decoder.messages) != tt.want {
+				t.Errorf("%v: wrong messages length (%d) after removing last %d of them, expected %d",
+					tt.name, len(tt.decoder.messages), tt.arg, tt.want)
 			}
 		})
 	}
