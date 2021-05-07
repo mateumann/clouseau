@@ -111,9 +111,11 @@ func (c UDPCollector) process(buf []byte, bytesCount int, sourceAddr *net.UDPAdd
 	n := decode(c.decoder, buf[:bytesCount])
 
 	if err := store(c.storage, c.decoder.LastMessages(n)); err != nil {
-		log.Printf("error saving: %v\n", err.Error())
+		log.Printf("error saving %d decoded messages\n", n)
+		fmt.Printf("error saving data: '%v'\n", err)
 	} else if err = cleanUp(c.decoder, n); err != nil {
-		log.Printf("error cleaning up: %v\n", err.Error())
+		log.Printf("error cleaning up %d decoded messages\n", n)
+		fmt.Printf("error cleaning up: '%v'\n", err)
 	}
 }
 
