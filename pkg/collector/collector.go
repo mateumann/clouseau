@@ -28,6 +28,20 @@ func (e NotImplementedNetworkError) Error() string {
 	return fmt.Sprintf("network not implemented: %v", e.network)
 }
 
+// Error represents general collector error.  This is a wrapper for errors from other packages.
+type Error struct {
+	err error
+}
+
+// Unwrap returns the original error.
+func (e Error) Unwrap() error {
+	return e.err
+}
+
+func (e Error) Error() string {
+	return fmt.Sprintf("collector error: %v", e.err)
+}
+
 var errCollectorNotInitialized = errors.New("connector not initialized")
 
 // Collector is an interface defining a IPFIX collector which collects incoming messages.

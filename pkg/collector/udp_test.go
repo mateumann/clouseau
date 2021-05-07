@@ -2,6 +2,7 @@ package collector
 
 import (
 	"errors"
+	"net"
 	"testing"
 
 	"github.com/mateumann/clouseau/pkg/encoding/ipfix"
@@ -43,7 +44,7 @@ func TestUDPCollector_StartAndListenUDP(t *testing.T) {
 
 	err = c.Close()
 
-	if err == nil || err.Error() != "close udp 127.0.0.1:20000: use of closed network connection" {
+	if err == nil || errors.Unwrap(err).Error() != "close udp 127.0.0.1:20000: use of closed network connection" {
 		t.Errorf("expected use of closed network connection error, got %v", err)
 	}
 }
@@ -51,6 +52,18 @@ func TestUDPCollector_StartAndListenUDP(t *testing.T) {
 func TestUDPCollector_Collect_exit_on_nil_connection(t *testing.T) {
 	c := UDPCollector{}
 	c.Collect(nil)
+	t.Log("success")
+}
+
+func TestUDPCollector_Process_StorageOK(t *testing.T) {
+	c := UDPCollector{storage: MockStorageOK{}, decoder: ipfix.NewDecoder(true), debug: true}
+	c.process([]byte{0x00, 0x0a, 0x01, 0x30}, 4, &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 12345, Zone: ""})
+	t.Log("success")
+}
+
+func TestUDPCollector_Process_StorageErr(t *testing.T) {
+	c := UDPCollector{storage: MockStorageErr{}, decoder: ipfix.NewDecoder(true), debug: true}
+	c.process([]byte{0x00, 0x0a, 0x01, 0x30}, 4, &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 12345, Zone: ""})
 	t.Log("success")
 }
 
@@ -95,11 +108,11 @@ func TestStore(t *testing.T) {
 		t.Errorf("wrong number of decoded messages %v, want %v", n, 1)
 	}
 
-	err = store(MockStorageErr{}, d, n)
+	err = store(MockStorageErr{}, d.LastMessages(n))
 	if err == nil {
 		t.Error("expected error storing decoded Messages, got nil")
 	}
-	err = store(MockStorageOK{}, d, n)
+	err = store(MockStorageOK{}, d.LastMessages(n))
 	if err != nil {
 		t.Errorf("error storing decoded Messages: %v", err)
 	}
