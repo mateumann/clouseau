@@ -2,7 +2,6 @@ package storage
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/mateumann/clouseau/pkg/encoding/ipfix"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
@@ -44,18 +43,41 @@ func NewRethinkDB(url, database string, recreate bool) (db *RethinkDB, err error
 	db = &RethinkDB{address: url, database: database, session: session}
 
 	if recreate {
-		if err = db.dropTables(); err != nil {
-			log.Printf("drop tables error: %v", err)
-		} else if err = db.createTables(); err != nil {
-			log.Printf("create tables error: %v", err)
-
-			return nil, RethinkDBError{err}
+		if err = db.recreateDB(); err != nil {
+			return nil, err
 		}
 	}
 
 	return db, nil
 }
 
+func (db RethinkDB) dropDB() (err error) {
+	if err = r.DBDrop(db.database).Exec(db.session); err != nil {
+		return RethinkDBError{err}
+	}
+
+	return nil
+}
+
+func (db RethinkDB) createDB() (err error) {
+	if err = r.DBCreate(db.database).Exec(db.session); err != nil {
+		return RethinkDBError{err}
+	}
+
+	return nil
+}
+
+func (db RethinkDB) recreateDB() error {
+	_ = db.dropDB()
+
+	if err := db.createDB(); err != nil {
+		return err
+	}
+
+	return db.createTables()
+}
+
+/*
 func (db RethinkDB) dropTables() (err error) {
 	if err = r.TableDrop("messages").Exec(db.session); err != nil {
 		return RethinkDBError{err}
@@ -63,6 +85,7 @@ func (db RethinkDB) dropTables() (err error) {
 
 	return nil
 }
+*/
 
 func (db RethinkDB) createTables() (err error) {
 	if err = r.TableCreate("messages").Exec(db.session); err != nil {
