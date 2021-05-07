@@ -74,13 +74,7 @@ func (db RethinkDB) recreateDB() error {
 		return err
 	}
 
-	// db.dropTables()
-
-	if err := db.createTables(); err != nil {
-		return err
-	}
-
-	return nil
+	return db.createTables()
 }
 
 /*
