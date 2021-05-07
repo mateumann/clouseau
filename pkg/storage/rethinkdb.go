@@ -70,21 +70,21 @@ func (db RethinkDB) createDB() (err error) {
 
 func (db RethinkDB) recreateDB() (err error) {
 	if err = db.dropDB(); err != nil {
-		log.Printf("drop db error: %v", err)
+		log.Printf("drop db error: '%s'", err)
 	}
 
 	if err = db.createDB(); err != nil {
-		log.Printf("create db error: %v", err)
+		log.Printf("create db error: '%s'", err)
 
 		return err
 	}
 
 	if err = db.dropTables(); err != nil {
-		log.Printf("drop tables error: %v", err)
+		log.Printf("drop tables error: '%s'", err)
 	}
 
 	if err = db.createTables(); err != nil {
-		log.Printf("create tables error: %v", err)
+		log.Printf("create tables error: '%s'", err)
 
 		return err
 	}
