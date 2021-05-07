@@ -98,8 +98,8 @@ func (c *UDPCollector) Collect(s storage.Storage) {
 	}
 }
 
-func (c *UDPCollector) TearDown() {
-}
+// func (c *UDPCollector) TearDown() {
+// }
 
 func (c UDPCollector) process(buf []byte, bytesCount int, sourceAddr *net.UDPAddr) {
 	if c.debug {
