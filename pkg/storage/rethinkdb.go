@@ -2,7 +2,6 @@ package storage
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/mateumann/clouseau/pkg/encoding/ipfix"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
@@ -68,30 +67,23 @@ func (db RethinkDB) createDB() (err error) {
 	return nil
 }
 
-func (db RethinkDB) recreateDB() (err error) {
-	if err = db.dropDB(); err != nil {
-		log.Printf("drop db error: '%s'", err)
-	}
+func (db RethinkDB) recreateDB() error {
+	_ = db.dropDB()
 
-	if err = db.createDB(); err != nil {
-		log.Printf("create db error: '%s'", err)
-
+	if err := db.createDB(); err != nil {
 		return err
 	}
 
-	if err = db.dropTables(); err != nil {
-		log.Printf("drop tables error: '%s'", err)
-	}
+	// db.dropTables()
 
-	if err = db.createTables(); err != nil {
-		log.Printf("create tables error: '%s'", err)
-
+	if err := db.createTables(); err != nil {
 		return err
 	}
 
 	return nil
 }
 
+/*
 func (db RethinkDB) dropTables() (err error) {
 	if err = r.TableDrop("messages").Exec(db.session); err != nil {
 		return RethinkDBError{err}
@@ -99,6 +91,7 @@ func (db RethinkDB) dropTables() (err error) {
 
 	return nil
 }
+*/
 
 func (db RethinkDB) createTables() (err error) {
 	if err = r.TableCreate("messages").Exec(db.session); err != nil {
