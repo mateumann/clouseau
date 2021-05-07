@@ -77,11 +77,17 @@ func (c *UDPCollector) Collect(s storage.Storage) {
 
 	buf := make([]byte, c.bufferSize)
 
+	log.Printf("UDPCollector collecting on '%s', buffer size %d bytes, debug %v", c.conn.LocalAddr(), len(buf), c.debug)
+
 	for {
 		if bytesCount, sourceAddr, err = c.conn.ReadFromUDP(buf); err != nil {
 			log.Printf("error while reading from UDP occurred: %v\n", err)
 
 			continue
+		}
+
+		if c.debug {
+			log.Printf("UDPCollector got %d bytes from %v", bytesCount, sourceAddr)
 		}
 
 		decoder.NewContext(fmt.Sprintf("%s:%s", udpNetwork, sourceAddr))
