@@ -2,6 +2,7 @@ package collector
 
 import (
 	"errors"
+	"net"
 	"testing"
 
 	"github.com/mateumann/clouseau/pkg/encoding/ipfix"
@@ -54,6 +55,18 @@ func TestUDPCollector_Collect_exit_on_nil_connection(t *testing.T) {
 	t.Log("success")
 }
 
+func TestUDPCollector_Process_StorageOK(t *testing.T) {
+	c := UDPCollector{storage: MockStorageOK{}, decoder: ipfix.NewDecoder(true), debug: true}
+	c.process([]byte{0x00, 0x0a, 0x01, 0x30}, 4, &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 12345, Zone: ""})
+	t.Log("success")
+}
+
+func TestUDPCollector_Process_StorageErr(t *testing.T) {
+	c := UDPCollector{storage: MockStorageErr{}, decoder: ipfix.NewDecoder(true), debug: true}
+	c.process([]byte{0x00, 0x0a, 0x01, 0x30}, 4, &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 12345, Zone: ""})
+	t.Log("success")
+}
+
 func TestDecode(t *testing.T) {
 	d := ipfix.NewDecoder(false)
 	n := decode(d, []byte{1, 2, 3, 4, 5})
@@ -95,11 +108,11 @@ func TestStore(t *testing.T) {
 		t.Errorf("wrong number of decoded messages %v, want %v", n, 1)
 	}
 
-	err = store(MockStorageErr{}, d, n)
+	err = store(MockStorageErr{}, d.LastMessages(n))
 	if err == nil {
 		t.Error("expected error storing decoded Messages, got nil")
 	}
-	err = store(MockStorageOK{}, d, n)
+	err = store(MockStorageOK{}, d.LastMessages(n))
 	if err != nil {
 		t.Errorf("error storing decoded Messages: %v", err)
 	}

@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/mateumann/clouseau/pkg/encoding/ipfix"
@@ -19,6 +20,12 @@ func (e DBError) Error() string {
 func (e DBError) Unwrap() error {
 	return e.err
 }
+
+func NewDBError(err error) DBError {
+	return DBError{err}
+}
+
+var ErrStorageNotInitialized = errors.New("storage not initialized")
 
 // Storage is an interface defining a IPFIX Message writer.
 type Storage interface {

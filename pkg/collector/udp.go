@@ -19,6 +19,8 @@ const (
 type UDPCollector struct {
 	addr       *net.UDPAddr
 	conn       *net.UDPConn
+	decoder    *ipfix.Decoder
+	storage    storage.Storage
 	bufferSize int
 	debug      bool
 }
@@ -37,7 +39,7 @@ func StartAndListenUDP(address string, port, bufferSize int, debug bool) (*UDPCo
 		return &UDPCollector{}, errors.Unwrap(err)
 	}
 
-	return &UDPCollector{addr, conn, bufferSize, debug}, nil
+	return &UDPCollector{addr, conn, nil, nil, bufferSize, debug}, nil
 }
 
 // Close closes a UDP connection.
@@ -71,7 +73,9 @@ func (c *UDPCollector) Collect(s storage.Storage) {
 	}
 	defer c.conn.Close()
 
-	decoder := ipfix.NewDecoder(c.debug)
+	c.storage = s
+
+	c.decoder = ipfix.NewDecoder(c.debug)
 
 	var bytesCount int
 
@@ -90,23 +94,25 @@ func (c *UDPCollector) Collect(s storage.Storage) {
 			continue
 		}
 
-		c.process(decoder, s, buf, bytesCount, sourceAddr)
+		c.process(buf, bytesCount, sourceAddr)
 	}
 }
 
-func (c UDPCollector) process(decoder *ipfix.Decoder, s storage.Storage,
-	buf []byte, bytesCount int, sourceAddr *net.UDPAddr) {
+func (c *UDPCollector) TearDown() {
+}
+
+func (c UDPCollector) process(buf []byte, bytesCount int, sourceAddr *net.UDPAddr) {
 	if c.debug {
 		log.Printf("UDPCollector got %d bytes from %v", bytesCount, sourceAddr)
 	}
 
-	decoder.NewContext(fmt.Sprintf("%s:%s", udpNetwork, sourceAddr))
+	c.decoder.NewContext(fmt.Sprintf("%s:%s", udpNetwork, sourceAddr))
 
-	n := decode(decoder, buf[:bytesCount])
+	n := decode(c.decoder, buf[:bytesCount])
 
-	if err := store(s, decoder, n); err != nil {
+	if err := store(c.storage, c.decoder.LastMessages(n)); err != nil {
 		log.Printf("error saving: %v\n", err)
-	} else if err = cleanUp(decoder, n); err != nil {
+	} else if err = cleanUp(c.decoder, n); err != nil {
 		log.Printf("error cleaning up: %v\n", err)
 	}
 }
@@ -120,11 +126,14 @@ func decode(decoder io.Reader, p []byte) int {
 	return n
 }
 
-func store(s storage.Storage, decoder *ipfix.Decoder, n int) error {
-	messagesDecoded := decoder.LastMessages(n)
-	for _, m := range messagesDecoded {
+func store(s storage.Storage, messages []*ipfix.Message) error {
+	if s == nil {
+		return Error{storage.ErrStorageNotInitialized}
+	}
+
+	for _, m := range messages {
 		if err := s.Write(m); err != nil {
-			return storage.DBError{}
+			return storage.NewDBError(err)
 		}
 	}
 
