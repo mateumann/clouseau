@@ -85,11 +85,12 @@ func (c *UDPCollector) Collect(s storage.Storage) {
 
 	buf := make([]byte, c.bufferSize)
 
-	log.Printf("UDPCollector collecting on '%s', buffer size %d bytes, debug %v", c.conn.LocalAddr(), len(buf), c.debug)
+	fmt.Printf("UDPCollector collecting on '%s', buffer size %d bytes, debug %v", c.conn.LocalAddr(), len(buf), c.debug)
 
 	for {
 		if bytesCount, sourceAddr, err = c.conn.ReadFromUDP(buf); err != nil {
-			log.Printf("error while reading from UDP occurred: %v\n", err.Error())
+			log.Println("error while reading from UDP")
+			fmt.Printf("error while reading from UDP occurred: %v\n", err.Error())
 
 			continue
 		}
@@ -111,10 +112,10 @@ func (c UDPCollector) process(buf []byte, bytesCount int, sourceAddr *net.UDPAdd
 	n := decode(c.decoder, buf[:bytesCount])
 
 	if err := store(c.storage, c.decoder.LastMessages(n)); err != nil {
-		log.Printf("error saving %d decoded messages\n", n)
+		log.Println("error saving decoded messages")
 		fmt.Printf("error saving data: '%v'\n", err)
 	} else if err = cleanUp(c.decoder, n); err != nil {
-		log.Printf("error cleaning up %d decoded messages\n", n)
+		log.Println("error cleaning up decoded messages")
 		fmt.Printf("error cleaning up: '%v'\n", err)
 	}
 }
@@ -122,7 +123,8 @@ func (c UDPCollector) process(buf []byte, bytesCount int, sourceAddr *net.UDPAdd
 func decode(decoder io.Reader, p []byte) int {
 	n, err := decoder.Read(p)
 	if err != nil {
-		log.Printf("error while decoding IPFIX message: %v\n", err.Error())
+		log.Println("error while decoding")
+		fmt.Printf("error while decoding: %v\n", err.Error())
 	}
 
 	return n
