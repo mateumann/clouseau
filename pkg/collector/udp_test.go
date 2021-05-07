@@ -43,7 +43,7 @@ func TestUDPCollector_StartAndListenUDP(t *testing.T) {
 
 	err = c.Close()
 
-	if err == nil || err.Error() != "close udp 127.0.0.1:20000: use of closed network connection" {
+	if err == nil || errors.Unwrap(err).Error() != "close udp 127.0.0.1:20000: use of closed network connection" {
 		t.Errorf("expected use of closed network connection error, got %v", err)
 	}
 }

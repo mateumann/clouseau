@@ -46,7 +46,11 @@ func (c *UDPCollector) Close() error {
 		return errCollectorNotInitialized
 	}
 
-	return c.conn.Close()
+	if err := c.conn.Close(); err != nil {
+		return Error{err}
+	}
+
+	return nil
 }
 
 // LocalAddr returns an address of a UDP connection.
@@ -86,19 +90,24 @@ func (c *UDPCollector) Collect(s storage.Storage) {
 			continue
 		}
 
-		if c.debug {
-			log.Printf("UDPCollector got %d bytes from %v", bytesCount, sourceAddr)
-		}
+		c.process(decoder, s, buf, bytesCount, sourceAddr)
+	}
+}
 
-		decoder.NewContext(fmt.Sprintf("%s:%s", udpNetwork, sourceAddr))
+func (c UDPCollector) process(decoder *ipfix.Decoder, s storage.Storage,
+	buf []byte, bytesCount int, sourceAddr *net.UDPAddr) {
+	if c.debug {
+		log.Printf("UDPCollector got %d bytes from %v", bytesCount, sourceAddr)
+	}
 
-		n := decode(decoder, buf[:bytesCount])
+	decoder.NewContext(fmt.Sprintf("%s:%s", udpNetwork, sourceAddr))
 
-		if err = store(s, decoder, n); err != nil {
-			log.Printf("error saving: %v\n", err)
-		} else if err = cleanUp(decoder, n); err != nil {
-			log.Printf("error cleaning up: %v\n", err)
-		}
+	n := decode(decoder, buf[:bytesCount])
+
+	if err := store(s, decoder, n); err != nil {
+		log.Printf("error saving: %v\n", err)
+	} else if err = cleanUp(decoder, n); err != nil {
+		log.Printf("error cleaning up: %v\n", err)
 	}
 }
 
@@ -123,5 +132,9 @@ func store(s storage.Storage, decoder *ipfix.Decoder, n int) error {
 }
 
 func cleanUp(decoder *ipfix.Decoder, n int) error {
-	return decoder.FreeLastMessages(n)
+	if err := decoder.FreeLastMessages(n); err != nil {
+		return Error{err}
+	}
+
+	return nil
 }
