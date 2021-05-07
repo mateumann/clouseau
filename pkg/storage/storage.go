@@ -16,11 +16,6 @@ func (e DBError) Error() string {
 	return fmt.Sprintf("database error: %v", e.err)
 }
 
-// Unwrap returns the underlying error.
-func (e DBError) Unwrap() error {
-	return e.err
-}
-
 // NewDBError returns a DBError which wraps an err.
 func NewDBError(err error) DBError {
 	return DBError{err}
