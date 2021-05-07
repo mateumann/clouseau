@@ -55,7 +55,7 @@ test:
 
 .PHONY: integration-test
 integration-test:
-	docker rm -f rethink1
+	docker rm -f rethink1 || true
 	docker run -d -p 8080:8080 -p 28015:28015 -p 29015:29015 -P --name rethink1 rethinkdb && \
 	go test -tags=integration ./test && \
 	docker rm -f rethink1
