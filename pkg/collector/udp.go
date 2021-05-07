@@ -104,7 +104,7 @@ func (c *UDPCollector) Collect(s storage.Storage) {
 
 func (c UDPCollector) process(buf []byte, bytesCount int, sourceAddr *net.UDPAddr) {
 	if c.debug {
-		log.Printf("UDPCollector got %d bytes from %v", bytesCount, sourceAddr)
+		fmt.Printf("UDPCollector got %d bytes from %v", bytesCount, sourceAddr)
 	}
 
 	c.decoder.NewContext(fmt.Sprintf("%s:%s", udpNetwork, sourceAddr))
