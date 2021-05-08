@@ -85,7 +85,7 @@ func (c *UDPCollector) Collect(s storage.Storage) {
 
 	buf := make([]byte, c.bufferSize)
 
-	fmt.Printf("UDPCollector collecting on '%s', buffer size %d bytes, debug %v", c.conn.LocalAddr(), len(buf), c.debug)
+	fmt.Printf("UDPCollector collecting on '%s', buffer size %d bytes, debug %v\n", c.conn.LocalAddr(), len(buf), c.debug)
 
 	for {
 		if bytesCount, sourceAddr, err = c.conn.ReadFromUDP(buf); err != nil {
