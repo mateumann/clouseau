@@ -57,19 +57,19 @@ func TestUDPCollector_Collect_exit_on_nil_connection(t *testing.T) {
 
 func TestUDPCollector_Process_StorageOK(t *testing.T) {
 	c := UDPCollector{storage: MockStorageOK{}, decoder: ipfix.NewDecoder(true), debug: true}
-	c.process([]byte{0x00, 0x0a, 0x01, 0x30}, 4, &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 12345, Zone: ""})
+	c.process([]byte{0x00, 0x0a, 0x01, 0x30}, &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 12345, Zone: ""})
 	t.Log("success")
 }
 
 func TestUDPCollector_Process_StorageErr(t *testing.T) {
 	c := UDPCollector{storage: MockStorageErr{}, decoder: ipfix.NewDecoder(true), debug: true}
-	c.process([]byte{0x00, 0x0a, 0x01, 0x30}, 4, &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 12345, Zone: ""})
+	c.process([]byte{0x00, 0x0a, 0x01, 0x30}, &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 12345, Zone: ""})
 	t.Log("success")
 }
 
 func TestDecode(t *testing.T) {
-	d := ipfix.NewDecoder(false)
-	n := decode(d, []byte{1, 2, 3, 4, 5})
+	c := UDPCollector{storage: MockStorageErr{}, decoder: ipfix.NewDecoder(false), debug: true}
+	n := c.decode([]byte{1, 2, 3, 4, 5})
 
 	if n != 0 {
 		t.Errorf("wrong number of decoded messages %v, want %v", n, 0)
@@ -108,11 +108,14 @@ func TestStore(t *testing.T) {
 		t.Errorf("wrong number of decoded messages %v, want %v", n, 1)
 	}
 
-	err = store(MockStorageErr{}, d.LastMessages(n))
+	c1 := UDPCollector{storage: MockStorageErr{}, decoder: d, debug: true}
+	err = c1.store(d.LastMessages(n))
 	if err == nil {
 		t.Error("expected error storing decoded Messages, got nil")
 	}
-	err = store(MockStorageOK{}, d.LastMessages(n))
+
+	c2 := UDPCollector{storage: MockStorageOK{}, decoder: d, debug: true}
+	err = c2.store(d.LastMessages(n))
 	if err != nil {
 		t.Errorf("error storing decoded Messages: %v", err)
 	}
