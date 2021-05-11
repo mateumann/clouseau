@@ -14,7 +14,7 @@ func TestNotImplementedNetworkError(t *testing.T) {
 
 func TestStartAndListen_NotImplemented(t *testing.T) {
 	c, err := StartAndListen("foo", "127.0.0.1", 20000, 0, false)
-	if err == nil || !errors.Is(err, NotImplementedNetworkError{"foo"}) {
+	if err == nil || !errors.Is(err, notImplementedNetworkError{"foo"}) {
 		t.Errorf("expected: 'network not implemented: foo' error, got: %v", err)
 	}
 
@@ -25,7 +25,7 @@ func TestStartAndListen_NotImplemented(t *testing.T) {
 
 func TestStartAndListen_InvalidAddress(t *testing.T) {
 	c, err := StartAndListen("udp", "bar", 20000, 0, false)
-	if err == nil || !errors.Is(err, InvalidAddressError{"bar"}) {
+	if err == nil || !errors.Is(err, invalidAddressError{"bar"}) {
 		t.Errorf("expected: 'invalid address: bar' error, got: %v", err)
 	}
 

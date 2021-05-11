@@ -28,7 +28,7 @@ type UDPCollector struct {
 func StartAndListenUDP(address string, port, bufferSize int, debug bool) (*UDPCollector, error) {
 	ip := net.ParseIP(address)
 	if ip == nil {
-		return &UDPCollector{}, InvalidAddressError{address: address}
+		return &UDPCollector{}, invalidAddressError{address: address}
 	}
 
 	addr := &net.UDPAddr{IP: ip, Port: port, Zone: ""}
