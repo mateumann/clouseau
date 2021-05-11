@@ -97,9 +97,14 @@ func TestDecoder_Storage(t *testing.T) {
 	// addr := net.UDPAddr{IP: net.ParseIP(""), Port: 0, Zone: ""}
 
 	// setup db
-	db, err := storage.NewRethinkDB("localhost:28015", "clouseau_test", true)
+	db, err := storage.NewRethinkDB("localhost:28015", "clouseau_test")
 	if err != nil {
 		t.Errorf("unable to create db connection: %v", err)
+	}
+
+	err = db.RecreateDB()
+	if err != nil {
+		t.Errorf("unable to recreate db: %v", err)
 	}
 
 	for _, tt := range tests {

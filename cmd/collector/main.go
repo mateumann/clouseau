@@ -49,9 +49,17 @@ func main() {
 	config := configure()
 
 	// db, err := storage.NewRethinkDB(config.RethinkDBUrl, config.RethinkDBDatabase)
-	db, err := storage.NewRethinkDB(config.RethinkDBUrl, config.RethinkDBDatabase, config.DropDB)
+	db, err := storage.NewRethinkDB(config.RethinkDBUrl, config.RethinkDBDatabase)
 	if err != nil {
 		log.Fatalf("%v\n", err)
+	}
+
+	if config.DropDB {
+		err = db.RecreateDB()
+
+		if err != nil {
+			log.Fatalf("%v\n", err)
+		}
 	}
 
 	c, err := collector.StartAndListen(

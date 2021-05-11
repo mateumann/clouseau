@@ -38,11 +38,19 @@ func (db MockStorageOK) Write(m *ipfix.Message) (err error) {
 	return nil
 }
 
+func (db MockStorageOK) RecreateDB() error {
+	return nil
+}
+
 type MockStorageErr struct{}
 
 // nolint:goerr113
 func (db MockStorageErr) Write(m *ipfix.Message) (err error) {
 	return errors.New("no good")
+}
+
+func (db MockStorageErr) RecreateDB() error {
+	return nil
 }
 
 func TestUDPCollector_StartAndListenUDP(t *testing.T) {

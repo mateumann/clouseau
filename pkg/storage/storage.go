@@ -27,4 +27,5 @@ var ErrStorageNotInitialized = errors.New("storage not initialized")
 // Storage is an interface defining a IPFIX Message writer.
 type Storage interface {
 	Write(*ipfix.Message) error
+	RecreateDB() error
 }
