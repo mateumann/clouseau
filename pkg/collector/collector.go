@@ -3,7 +3,6 @@ package collector
 import (
 	"errors"
 	"fmt"
-	"net"
 
 	"github.com/mateumann/clouseau/pkg/storage"
 )
@@ -47,7 +46,6 @@ var errCollectorNotInitialized = errors.New("connector not initialized")
 // Collector is an interface defining a IPFIX collector which collects incoming messages.
 type Collector interface {
 	Close() error
-	LocalAddr() net.Addr
 	Collect(s storage.Storage)
 }
 

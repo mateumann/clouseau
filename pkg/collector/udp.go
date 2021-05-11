@@ -54,15 +54,6 @@ func (c *UDPCollector) Close() error {
 	return nil
 }
 
-// LocalAddr returns an address of a UDP connection.
-func (c *UDPCollector) LocalAddr() net.Addr {
-	if c == nil || c.conn == nil {
-		return nil
-	}
-
-	return c.conn.LocalAddr()
-}
-
 // Collect listens on the UDP connection for the incoming IPFIX Messages and stores them.
 func (c *UDPCollector) Collect(s storage.Storage) {
 	if c.conn == nil {

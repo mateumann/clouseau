@@ -29,10 +29,6 @@ func TestStartAndListen_InvalidAddress(t *testing.T) {
 		t.Errorf("expected: 'invalid address: bar' error, got: %v", err)
 	}
 
-	if addr := c.LocalAddr(); addr != nil {
-		t.Errorf("expected local address: 'nil', got: %v", addr)
-	}
-
 	err = c.Close()
 
 	if err == nil || err.Error() != "connector not initialized" {
@@ -44,10 +40,6 @@ func TestStartAndListen_CannotListen(t *testing.T) {
 	c, err := StartAndListen("udp", "127.0.0.1", -1, 0, false)
 	if err == nil || err.Error() != "bind: invalid argument" {
 		t.Errorf("expected: 'bind: invalid argument' error, got: %v", err)
-	}
-
-	if addr := c.LocalAddr(); addr != nil {
-		t.Errorf("expected local address: 'nil', got: %v", addr)
 	}
 
 	err = c.Close()

@@ -57,10 +57,6 @@ func TestUDPCollector_StartAndListenUDP(t *testing.T) {
 		return
 	}
 
-	if c.LocalAddr().String() != "127.0.0.1:20000" {
-		t.Error("invalid connection address")
-	}
-
 	err = c.Close()
 	if err != nil {
 		t.Errorf("unable to close UDP connection: %v", err)
