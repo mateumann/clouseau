@@ -63,7 +63,7 @@ func main() {
 	}
 
 	c, err := collector.StartAndListen(
-		config.ListenProtocol, config.ListenAddress, config.ListenPort, config.BufferSize, config.Debug)
+		config.ListenProtocol, config.ListenAddress, config.ListenPort, config.BufferSize)
 	if err != nil {
 		log.Fatalf("%v\n", err)
 	}
@@ -72,5 +72,5 @@ func main() {
 
 	// TODO register (keyboard) breakpoints' handling function
 
-	c.Collect(db)
+	c.Collect(db, config.Debug)
 }

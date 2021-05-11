@@ -46,15 +46,15 @@ var errCollectorNotInitialized = errors.New("connector not initialized")
 // Collector is an interface defining a IPFIX collector which collects incoming messages.
 type Collector interface {
 	Close() error
-	Collect(s storage.Storage)
+	Collect(s storage.Storage, debug bool)
 }
 
 // StartAndListen starts listening on [network]://[address]:[port] (e.g. udp://localhost:4739) for the incoming
 // IPFIX messages.
-func StartAndListen(network, address string, port, bufferSize int, debug bool) (Collector, error) {
+func StartAndListen(network, address string, port, bufferSize int) (Collector, error) {
 	switch network {
 	case "udp":
-		return StartAndListenUDP(address, port, bufferSize, debug)
+		return StartAndListenUDP(address, port, bufferSize)
 	default:
 		return nil, notImplementedNetworkError{network: network}
 	}

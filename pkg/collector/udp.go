@@ -25,7 +25,7 @@ type UDPCollector struct {
 }
 
 // StartAndListenUDP creates an IPFIX UDPCollector and returns a reference to it.
-func StartAndListenUDP(address string, port, bufferSize int, debug bool) (*UDPCollector, error) {
+func StartAndListenUDP(address string, port, bufferSize int) (*UDPCollector, error) {
 	ip := net.ParseIP(address)
 	if ip == nil {
 		return &UDPCollector{}, invalidAddressError{address: address}
@@ -38,7 +38,7 @@ func StartAndListenUDP(address string, port, bufferSize int, debug bool) (*UDPCo
 		return &UDPCollector{}, errors.Unwrap(err)
 	}
 
-	return &UDPCollector{addr, conn, nil, nil, bufferSize, debug}, nil
+	return &UDPCollector{addr, conn, nil, nil, bufferSize, false}, nil
 }
 
 // Close closes a UDP connection.
@@ -55,13 +55,15 @@ func (c *UDPCollector) Close() error {
 }
 
 // Collect listens on the UDP connection for the incoming IPFIX Messages and stores them.
-func (c *UDPCollector) Collect(s storage.Storage) {
+func (c *UDPCollector) Collect(s storage.Storage, debug bool) {
 	if c.conn == nil {
 		log.Println("uninitialized UDP connection")
 
 		return
 	}
 	defer c.conn.Close()
+
+	c.debug = debug
 
 	c.storage = s
 

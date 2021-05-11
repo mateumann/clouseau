@@ -54,7 +54,7 @@ func (db MockStorageErr) RecreateDB() error {
 }
 
 func TestUDPCollector_StartAndListenUDP(t *testing.T) {
-	c, err := StartAndListen("udp", "127.0.0.1", 20000, 0, false)
+	c, err := StartAndListen("udp", "127.0.0.1", 20000, 0)
 	if err != nil {
 		t.Errorf("unable to start UDP collector: %v", err)
 	}
@@ -79,7 +79,7 @@ func TestUDPCollector_StartAndListenUDP(t *testing.T) {
 
 func TestUDPCollector_Collect_exit_on_nil_connection(t *testing.T) {
 	c := UDPCollector{}
-	c.Collect(nil)
+	c.Collect(nil, false)
 	t.Log("success")
 }
 
@@ -102,7 +102,7 @@ func TestUDPCollector_Collect_changeme(t *testing.T) {
 
 	// sendToUdP(PACKET(), addr)
 
-	c.Collect(MockStorageOK{})
+	c.Collect(MockStorageOK{}, true)
 	t.Log("success")
 }
 
