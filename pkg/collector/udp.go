@@ -21,14 +21,14 @@ type UDPCollector struct {
 	decoder    *ipfix.Decoder
 	storage    storage.Storage
 	bufferSize int
-	debug      bool
+	debugging  bool
 }
 
 // StartAndListenUDP creates an IPFIX UDPCollector and returns a reference to it.
-func StartAndListenUDP(address string, port, bufferSize int, debug bool) (*UDPCollector, error) {
+func StartAndListenUDP(address string, port, bufferSize int) (*UDPCollector, error) {
 	ip := net.ParseIP(address)
 	if ip == nil {
-		return &UDPCollector{}, InvalidAddressError{address: address}
+		return &UDPCollector{}, invalidAddressError{address: address}
 	}
 
 	addr := &net.UDPAddr{IP: ip, Port: port, Zone: ""}
@@ -38,7 +38,7 @@ func StartAndListenUDP(address string, port, bufferSize int, debug bool) (*UDPCo
 		return &UDPCollector{}, errors.Unwrap(err)
 	}
 
-	return &UDPCollector{addr, conn, nil, nil, bufferSize, debug}, nil
+	return &UDPCollector{addr, conn, nil, nil, bufferSize, false}, nil
 }
 
 // Close closes a UDP connection.
@@ -54,17 +54,8 @@ func (c *UDPCollector) Close() error {
 	return nil
 }
 
-// LocalAddr returns an address of a UDP connection.
-func (c *UDPCollector) LocalAddr() net.Addr {
-	if c == nil || c.conn == nil {
-		return nil
-	}
-
-	return c.conn.LocalAddr()
-}
-
 // Collect listens on the UDP connection for the incoming IPFIX Messages and stores them.
-func (c *UDPCollector) Collect(s storage.Storage) {
+func (c *UDPCollector) Collect(s storage.Storage, debugging bool) {
 	if c.conn == nil {
 		log.Println("uninitialized UDP connection")
 
@@ -72,9 +63,11 @@ func (c *UDPCollector) Collect(s storage.Storage) {
 	}
 	defer c.conn.Close()
 
+	c.debugging = debugging
+
 	c.storage = s
 
-	c.decoder = ipfix.NewDecoder(c.debug)
+	c.decoder = ipfix.NewDecoder(c.debugging)
 
 	var bytesCount int
 
@@ -99,31 +92,23 @@ func (c *UDPCollector) Collect(s storage.Storage) {
 // }
 
 func (c UDPCollector) process(buf []byte, sourceAddr *net.UDPAddr) {
-	if c.debug {
-		log.Printf("UDPCollector processing %d bytes from %v\n", len(buf), sourceAddr)
-	}
+	c.debug(fmt.Sprintf("UDPCollector processing %d bytes from %v\n", len(buf), sourceAddr))
 
 	c.decoder.NewContext(fmt.Sprintf("%s:%s", udpNetwork, sourceAddr))
 
 	n := c.decode(buf)
 
 	if err := c.store(c.decoder.LastMessages(n)); err != nil {
-		if c.debug {
-			log.Printf("error saving data: '%v'\n", err)
-		}
+		c.debug(fmt.Sprintf("error saving data: '%v'\n", err))
 	} else if err = cleanUp(c.decoder, n); err != nil {
-		if c.debug {
-			log.Printf("error cleaning up: '%v'\n", err)
-		}
+		c.debug(fmt.Sprintf("error cleaning up: '%v'\n", err))
 	}
 }
 
 func (c UDPCollector) decode(p []byte) int {
 	n, err := c.decoder.Read(p)
 	if err != nil {
-		if c.debug {
-			log.Printf("error while decoding: %v\n", err)
-		}
+		c.debug(fmt.Sprintf("error while decoding: %v\n", err))
 	}
 
 	return n
@@ -141,6 +126,12 @@ func (c UDPCollector) store(messages []*ipfix.Message) error {
 	}
 
 	return nil
+}
+
+func (c UDPCollector) debug(msg string) {
+	if c.debugging {
+		log.Print(msg)
+	}
 }
 
 func cleanUp(decoder *ipfix.Decoder, n int) error {

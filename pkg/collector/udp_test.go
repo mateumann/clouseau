@@ -38,6 +38,10 @@ func (db MockStorageOK) Write(m *ipfix.Message) (err error) {
 	return nil
 }
 
+func (db MockStorageOK) RecreateDB() error {
+	return nil
+}
+
 type MockStorageErr struct{}
 
 // nolint:goerr113
@@ -45,8 +49,12 @@ func (db MockStorageErr) Write(m *ipfix.Message) (err error) {
 	return errors.New("no good")
 }
 
+func (db MockStorageErr) RecreateDB() error {
+	return nil
+}
+
 func TestUDPCollector_StartAndListenUDP(t *testing.T) {
-	c, err := StartAndListen("udp", "127.0.0.1", 20000, 0, false)
+	c, err := StartAndListen("udp", "127.0.0.1", 20000, 0)
 	if err != nil {
 		t.Errorf("unable to start UDP collector: %v", err)
 	}
@@ -55,10 +63,6 @@ func TestUDPCollector_StartAndListenUDP(t *testing.T) {
 		t.Error("empty (nil) collector")
 
 		return
-	}
-
-	if c.LocalAddr().String() != "127.0.0.1:20000" {
-		t.Error("invalid connection address")
 	}
 
 	err = c.Close()
@@ -75,7 +79,7 @@ func TestUDPCollector_StartAndListenUDP(t *testing.T) {
 
 func TestUDPCollector_Collect_exit_on_nil_connection(t *testing.T) {
 	c := UDPCollector{}
-	c.Collect(nil)
+	c.Collect(nil, false)
 	t.Log("success")
 }
 
@@ -98,7 +102,7 @@ func TestUDPCollector_Collect_changeme(t *testing.T) {
 
 	// sendToUdP(PACKET(), addr)
 
-	c.Collect(MockStorageOK{})
+	c.Collect(MockStorageOK{}, true)
 	t.Log("success")
 }
 

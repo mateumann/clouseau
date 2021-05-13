@@ -29,7 +29,7 @@ func (e RethinkDBError) Error() string {
 }
 
 // NewRethinkDB creates a new connection to the rethinkdb.
-func NewRethinkDB(url, database string, recreate bool) (db *RethinkDB, err error) {
+func NewRethinkDB(url, database string) (db *RethinkDB, err error) {
 	var session *r.Session
 	session, err = r.Connect(r.ConnectOpts{
 		Address:  url, // endpoint without http
@@ -41,12 +41,6 @@ func NewRethinkDB(url, database string, recreate bool) (db *RethinkDB, err error
 	}
 
 	db = &RethinkDB{address: url, database: database, session: session}
-
-	if recreate {
-		if err = db.recreateDB(); err != nil {
-			return nil, err
-		}
-	}
 
 	return db, nil
 }
@@ -67,7 +61,8 @@ func (db RethinkDB) createDB() (err error) {
 	return nil
 }
 
-func (db RethinkDB) recreateDB() error {
+// RecreateDB drops the old DB and creates a new one from scratch.
+func (db RethinkDB) RecreateDB() error {
 	_ = db.dropDB()
 
 	if err := db.createDB(); err != nil {

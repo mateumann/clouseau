@@ -3,28 +3,27 @@ package collector
 import (
 	"errors"
 	"fmt"
-	"net"
 
 	"github.com/mateumann/clouseau/pkg/storage"
 )
 
-// InvalidAddressError is the error type usually returned by functions in the collector
+// invalidAddressError is the error type usually returned by functions in the collector
 // package.  It describes the invalid network address.
-type InvalidAddressError struct {
+type invalidAddressError struct {
 	address string
 }
 
-func (e InvalidAddressError) Error() string {
+func (e invalidAddressError) Error() string {
 	return fmt.Sprintf("invalid address: %v", e.address)
 }
 
-// NotImplementedNetworkError is an Error that occurs when collector.StartAndListen is called for a network which does
+// notImplementedNetworkError is an Error that occurs when collector.StartAndListen is called for a network which does
 // not have a Collector implementation.
-type NotImplementedNetworkError struct {
+type notImplementedNetworkError struct {
 	network string
 }
 
-func (e NotImplementedNetworkError) Error() string {
+func (e notImplementedNetworkError) Error() string {
 	return fmt.Sprintf("network not implemented: %v", e.network)
 }
 
@@ -47,17 +46,16 @@ var errCollectorNotInitialized = errors.New("connector not initialized")
 // Collector is an interface defining a IPFIX collector which collects incoming messages.
 type Collector interface {
 	Close() error
-	LocalAddr() net.Addr
-	Collect(s storage.Storage)
+	Collect(s storage.Storage, debug bool)
 }
 
 // StartAndListen starts listening on [network]://[address]:[port] (e.g. udp://localhost:4739) for the incoming
 // IPFIX messages.
-func StartAndListen(network, address string, port, bufferSize int, debug bool) (Collector, error) {
+func StartAndListen(network, address string, port, bufferSize int) (Collector, error) {
 	switch network {
 	case "udp":
-		return StartAndListenUDP(address, port, bufferSize, debug)
+		return StartAndListenUDP(address, port, bufferSize)
 	default:
-		return nil, NotImplementedNetworkError{network: network}
+		return nil, notImplementedNetworkError{network: network}
 	}
 }
