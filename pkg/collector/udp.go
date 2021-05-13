@@ -21,7 +21,7 @@ type UDPCollector struct {
 	decoder    *ipfix.Decoder
 	storage    storage.Storage
 	bufferSize int
-	debug      bool
+	debugging  bool
 }
 
 // StartAndListenUDP creates an IPFIX UDPCollector and returns a reference to it.
@@ -55,7 +55,7 @@ func (c *UDPCollector) Close() error {
 }
 
 // Collect listens on the UDP connection for the incoming IPFIX Messages and stores them.
-func (c *UDPCollector) Collect(s storage.Storage, debug bool) {
+func (c *UDPCollector) Collect(s storage.Storage, debugging bool) {
 	if c.conn == nil {
 		log.Println("uninitialized UDP connection")
 
@@ -63,11 +63,11 @@ func (c *UDPCollector) Collect(s storage.Storage, debug bool) {
 	}
 	defer c.conn.Close()
 
-	c.debug = debug
+	c.debugging = debugging
 
 	c.storage = s
 
-	c.decoder = ipfix.NewDecoder(c.debug)
+	c.decoder = ipfix.NewDecoder(c.debugging)
 
 	var bytesCount int
 
@@ -92,23 +92,23 @@ func (c *UDPCollector) Collect(s storage.Storage, debug bool) {
 // }
 
 func (c UDPCollector) process(buf []byte, sourceAddr *net.UDPAddr) {
-	c.log(fmt.Sprintf("UDPCollector processing %d bytes from %v\n", len(buf), sourceAddr))
+	c.debug(fmt.Sprintf("UDPCollector processing %d bytes from %v\n", len(buf), sourceAddr))
 
 	c.decoder.NewContext(fmt.Sprintf("%s:%s", udpNetwork, sourceAddr))
 
 	n := c.decode(buf)
 
 	if err := c.store(c.decoder.LastMessages(n)); err != nil {
-		c.log(fmt.Sprintf("error saving data: '%v'\n", err))
+		c.debug(fmt.Sprintf("error saving data: '%v'\n", err))
 	} else if err = cleanUp(c.decoder, n); err != nil {
-		c.log(fmt.Sprintf("error cleaning up: '%v'\n", err))
+		c.debug(fmt.Sprintf("error cleaning up: '%v'\n", err))
 	}
 }
 
 func (c UDPCollector) decode(p []byte) int {
 	n, err := c.decoder.Read(p)
 	if err != nil {
-		c.log(fmt.Sprintf("error while decoding: %v\n", err))
+		c.debug(fmt.Sprintf("error while decoding: %v\n", err))
 	}
 
 	return n
@@ -128,8 +128,8 @@ func (c UDPCollector) store(messages []*ipfix.Message) error {
 	return nil
 }
 
-func (c UDPCollector) log(msg string) {
-	if c.debug {
+func (c UDPCollector) debug(msg string) {
+	if c.debugging {
 		log.Print(msg)
 	}
 }
