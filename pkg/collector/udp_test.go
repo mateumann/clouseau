@@ -98,7 +98,7 @@ func TestUDPCollector_Collect_changeme(t *testing.T) {
 		t.FailNow()
 	}
 
-	c := &UDPCollector{addr: addr, conn: conn, bufferSize: 2048, debug: true}
+	c := &UDPCollector{addr: addr, conn: conn, bufferSize: 2048, debugging: true}
 
 	// sendToUdP(PACKET(), addr)
 
@@ -118,19 +118,19 @@ func sendToUdP(p []byte, addr *net.UDPAddr) {
 */
 
 func TestUDPCollector_Process_StorageOK(t *testing.T) {
-	c := UDPCollector{storage: MockStorageOK{}, decoder: ipfix.NewDecoder(true), debug: true}
+	c := UDPCollector{storage: MockStorageOK{}, decoder: ipfix.NewDecoder(true), debugging: true}
 	c.process([]byte{0x00, 0x0a, 0x01, 0x30}, &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 12345, Zone: ""})
 	t.Log("success")
 }
 
 func TestUDPCollector_Process_StorageErr(t *testing.T) {
-	c := UDPCollector{storage: MockStorageErr{}, decoder: ipfix.NewDecoder(true), debug: true}
+	c := UDPCollector{storage: MockStorageErr{}, decoder: ipfix.NewDecoder(true), debugging: true}
 	c.process([]byte{0x00, 0x0a, 0x01, 0x30}, &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 12345, Zone: ""})
 	t.Log("success")
 }
 
 func TestDecode(t *testing.T) {
-	c := UDPCollector{storage: MockStorageErr{}, decoder: ipfix.NewDecoder(false), debug: true}
+	c := UDPCollector{storage: MockStorageErr{}, decoder: ipfix.NewDecoder(false), debugging: true}
 	n := c.decode([]byte{1, 2, 3, 4, 5})
 
 	if n != 0 {
@@ -150,13 +150,13 @@ func TestStore(t *testing.T) {
 		t.Errorf("wrong number of decoded messages %v, want %v", n, 1)
 	}
 
-	c1 := UDPCollector{storage: MockStorageErr{}, decoder: d, debug: true}
+	c1 := UDPCollector{storage: MockStorageErr{}, decoder: d, debugging: true}
 	err = c1.store(d.LastMessages(n))
 	if err == nil {
 		t.Error("expected error storing decoded Messages, got nil")
 	}
 
-	c2 := UDPCollector{storage: MockStorageOK{}, decoder: d, debug: true}
+	c2 := UDPCollector{storage: MockStorageOK{}, decoder: d, debugging: true}
 	err = c2.store(d.LastMessages(n))
 	if err != nil {
 		t.Errorf("error storing decoded Messages: %v", err)
