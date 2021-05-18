@@ -126,9 +126,9 @@ func (s *Set) handleUnmarshalError(reader io.Reader, n int, err error) (int, err
 	switch {
 	case errors.Is(err, templateNotDefinedError{templateID: s.SetID}):
 		// template for the data set not known, store raw data instead
-		buf := make([]byte, int(s.Length)-n)
-		if e := binary.Read(reader, binary.BigEndian, &buf); e != nil {
-			return len(buf), unmarshalError{e}
+		buf, e := readTheRest(reader, int(s.Length)-n)
+		if e != nil {
+			return len(buf), e
 		}
 
 		s.RawData = buf
@@ -137,10 +137,9 @@ func (s *Set) handleUnmarshalError(reader io.Reader, n int, err error) (int, err
 
 	case errors.Is(err, io.ErrUnexpectedEOF) && (int(s.Length) > n):
 		// assume s.Unmarshal failed to read a record which was actually a padding
-		buf := make([]byte, int(s.Length)-n)
-
-		if e := binary.Read(reader, binary.BigEndian, &buf); e != nil {
-			return len(buf), unmarshalError{e}
+		buf, e := readTheRest(reader, int(s.Length)-n)
+		if e != nil {
+			return len(buf), e
 		}
 
 		return len(buf), nil
@@ -148,6 +147,15 @@ func (s *Set) handleUnmarshalError(reader io.Reader, n int, err error) (int, err
 	default:
 		return 0, err
 	}
+}
+
+func readTheRest(reader io.Reader, n int) ([]byte, error) {
+	buf := make([]byte, n)
+	if e := binary.Read(reader, binary.BigEndian, &buf); e != nil {
+		return buf, unmarshalError{e}
+	}
+
+	return buf, nil
 }
 
 func (s *Set) unmarshalTemplateRecord(reader io.Reader, templates *map[uint16]*TemplateRecord) (n int, err error) {
