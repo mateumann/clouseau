@@ -14,8 +14,8 @@ coverage:
     project:
       default:
         # basic
-        #target: auto
-        #threshold: 20%
+        target: auto
+        threshold: 5%
         #flags:
         #  - unit
         #paths:
@@ -24,12 +24,12 @@ coverage:
         #branches:
         #  - master
         if_ci_failed: error
-        only_pulls: true
+        only_pulls: false
     patch:
       default:
         # basic
-        target: 67
-        #threshold: 20%
+        target: 67%
+        threshold: 20%
         # advanced
         #branches:
         #  - master
@@ -38,7 +38,7 @@ coverage:
         #paths:
         #  - encoding
         if_ci_failed: error
-        only_pulls: false
+        only_pulls: true
     changes:
       default:
         # basic
